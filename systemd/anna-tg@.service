@@ -1,0 +1,17 @@
+# The bot, instance %i (anna-tg %i), inside a detached screen session so you can attach and watch: screen -r anna-tg-%i
+# User unit, installed by install.sh when bot.enabled: systemctl --user enable --now anna-tg@<instance>
+[Unit]
+Description=Anna on Telegram (bot instance %i)
+After=network-online.target
+
+# -DmS: screen starts detached but stays in the foreground, so systemd sees the bot's own exit and restarts it after a
+# crash (with -dmS + Type=forking it tracked the screen daemon, and a dead bot stayed down)
+[Service]
+Type=simple
+ExecStart=/usr/bin/screen -DmS anna-tg-%i %h/bin/anna-tg %i
+ExecStop=/usr/bin/screen -S anna-tg-%i -X quit
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,64 @@
+#!/bin/bash
+# anna-checks [section...] — fixed, read-only checks for Anna (the morning report, the bot, you). Default: all sections.
+# Built-in sections: relay (bridge + both sides + queue, if relay.enabled), clock (ping/run items that should have fired),
+# disk (this machine's root filesystem). Yours: every executable in <record>/checks/ is a section named after the file.
+# Contract for a check: read-only; print one line per finding starting with "OK ", "⚠ " or "⛔ " (⛔ = needs the user
+# today: the morning run notifies on it); exit 0. It gets 60 s. A check that fails to run is reported as ⚠ (unverified),
+# never as OK. Allowlist this one command for headless runs and the bot, never the commands inside the checks.
+set -o pipefail
+D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
+# in_night HHMM CLOSE OPEN → 1 if HHMM is in [CLOSE, OPEN+5 min), also when CLOSE is before midnight (23:00 → 04:15)
+in_night() {
+  local h=$((10#$1)) c=$((10#$2)) o=$((10#$3)) e
+  e=$(( (o / 100 * 60 + o % 100 + 5) % 1440 )); e=$(( e / 60 * 100 + e % 60 ))
+  if [ "$c" -lt 1200 ]; then [ "$h" -ge "$c" ] && [ "$h" -lt "$e" ]   # a close from noon on is the evening before
+  else [ "$h" -ge "$c" ] || [ "$h" -lt "$e" ]; fi && echo 1 || echo 0
+}
+[ "${1:-}" = --in-night ] && { in_night "$2" "$3" "$4"; exit 0; }   # for the tests
+export TZ; TZ=$(cfg anna.timezone); export PATH="$HOME/.bun/bin:$(cfg paths.bin):$PATH"
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}   # clean environments (headless) have no user bus otherwise
+R=$(cfg paths.record); CK=$R/checks
+builtin=(relay clock disk)
+mine=(); for f in "$CK"/*; do [ -f "$f" ] && [ -x "$f" ] && mine+=("$(basename "$f")"); done
+want=("$@"); [ ${#want[@]} -eq 0 ] && want=("${builtin[@]}" "${mine[@]}")
+echo "# anna-checks $(date '+%F %T %Z') from $(hostname -s)"; echo
+
+relay() {
+  [ "$(cfg relay.enabled)" = true ] || { echo "OK relay: not enabled"; return; }
+  local a s night h
+  a=$(systemctl --user is-active anna-relay 2>&1); s=$(timeout 10 "$D/anna-relay" status 2>&1)
+  if [ "$a" != active ] || ! jq -e . >/dev/null 2>&1 <<<"$s"; then echo "⛔ relay: bridge $a; status: ${s:0:120}"; return; fi
+  h=$(date +%H%M); local c o; c=$(cfg day.close | tr -d :); o=$(cfg day.open | tr -d :)
+  night=$(in_night "$h" "$c" "$o")                   # the brain sleeps from close to open (+5 min to start up)
+  jq -r --argjson night "$night" --argjson alarm "$(cfg relay.alarm_min)" '
+    [ (if .bot != "online" then "⛔ relay: bot side \(.bot) (hand-offs stall)" else empty end),
+      (if .brain != "online" and ($night == 0) then "⚠ relay: brain side \(.brain) outside the nightly window" else empty end),
+      (if .oldest_open and ($night == 0 or .oldest_open.in != "new")
+          and ((now - (.oldest_open.created | sub("\\.[0-9]+Z$"; "Z") | fromdateiso8601)) > ($alarm * 60))
+        then "⚠ relay: \(.oldest_open.id) waiting in \(.oldest_open.in) > \($alarm) min" else empty end) ] as $bad
+    | $bad[], "\(if ($bad | length) == 0 then "OK" else "  " end) relay: bot \(.bot) · brain \(.brain)\(if .paused then " (paused)" else "" end) · open \(.new + .brain_open + .out) · done \(.done)"' <<<"$s"
+}
+clock() {  # a ping/run item still open well past due = the tick isn't running
+  local late; late=$("$D/anna-clock" due 2>/dev/null | awk -v now="$(date '+%F %H:%M')" '($4=="ping"||$4=="run") && $3!="--:--" && ($2" "$3) < now' | head -3)
+  if [ -n "$late" ]; then echo "⛔ clock: ping/run items past due and not fired (anna-clock.timer?): $(tr '\n' ';' <<<"$late")"
+  else echo "OK clock: $("$D/anna-clock" due 2>/dev/null | grep -c '^#') item(s) due"; fi
+}
+disk() {
+  local p; p=$(df --output=pcent / | tail -1 | tr -dc 0-9)
+  if [ "$p" -ge 95 ]; then echo "⛔ disk: / is $p% full"; elif [ "$p" -ge 85 ]; then echo "⚠ disk: / is $p% full"; else echo "OK disk: / $p%"; fi
+}
+
+for m in "${mine[@]}"; do                          # yours can't replace a built-in: the built-in would run instead, silently
+  case " ${builtin[*]} " in *" $m "*) echo "⚠ checks: $CK/$m has a built-in's name ($m) and never runs; rename it"; echo ;; esac
+done
+for s in "${want[@]}"; do
+  echo "\$ $s"
+  case " ${builtin[*]} " in
+    *" $s "*) "$s" ;;
+    *) if [ -x "$CK/$s" ]; then out=$(timeout 60 "$CK/$s" 2>&1); rc=$?
+         if [ $rc -ne 0 ] && ! grep -qE '^(OK|⚠|⛔) ' <<<"$out"; then echo "⚠ $s: check failed to run (exit $rc): ${out:0:200}"
+         else printf '%s\n' "$out"; [ $rc -ne 0 ] && echo "⚠ $s: check exited $rc"; fi
+       else echo "⚠ $s: no such section (built-in: ${builtin[*]}; yours: ${mine[*]:-none in $CK})"; fi ;;
+  esac
+  echo
+done

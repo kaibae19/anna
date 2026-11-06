@@ -1,0 +1,10 @@
+# install.sh fills @OPEN@ (day.open) and @TZ@ (anna.timezone) and installs this as anna-day-open.timer.
+[Unit]
+Description=Anna: daily rollover, open at @OPEN@
+
+[Timer]
+OnCalendar=*-*-* @OPEN@:00 @TZ@
+Persistent=false
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,9 @@
+# anna-evening: the scheduled headless evening run. User unit, installed by install.sh.
+[Unit]
+Description=Anna: evening run
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/anna-evening
+TimeoutStartSec=40min

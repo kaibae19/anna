@@ -1,0 +1,247 @@
+#!/usr/bin/env python3
+"""anna-gate-hook — PreToolUse hook: a state change in the brain session needs a recent `go` from the anna-action-gate engine.
+
+Why: the engine sequence in ~/CLAUDE.md is instructions, and a newly deployed Anna, whose record is still small, may learn the
+habit of skipping the engines. This makes the gate step a rule (docs/concepts/security.md § Destructive and outward actions).
+
+Scope: the interactive brain only. The bot ($ANNA_ROLE=bot) and headless runs ($ANNA_HEADLESS) have their own deny-by-default
+allowlists and are passed through.
+State change = the patterns in CHANGE below (sudo of anything outside READ_SUDO, systemctl/reboot, packages, docker lifecycle, qm/pct lifecycle,
+firewall, ha-do, tg-send, force push, gh pr/issue writes) plus outward MCP tools (mail send/reply/forward/trash). Reads, repo
+edits and plain `git push` to our Gitea pass.
+Allowed when the session transcript shows an anna-gate block with `verdict: go` from the last WINDOW minutes, in a tool result
+or task notification (never the assistant's own text: it can't vouch for itself), whose audit target names this command's
+host (`ssh <host>` → host; otherwise any go in the window). On allow, the audit line goes to the stream (`from: gate`).
+Blocked → the reason tells the brain to call anna-action-gate first. `confirm-first` → after the person's own yes, the brain
+calls the gate again with that yes as `asked`, and gets `go`.
+Fails open: any error in this script allows the call and logs a ⚠ line to the stream, so a hook bug can't lock the brain out.
+Override: the file <paths.state>/gate-off (the person's switch, not Anna's; every pass while it exists is logged).
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+WINDOW = timedelta(minutes=15)
+try:  # the config is optional here: a hook must stay fast and must never fail closed
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))   # repo layout: hooks/ next to bin/
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from anna_cfg import STATE, USER, path  # noqa: E402
+    BIN = path("paths.bin", "~/bin")
+except Exception:  # noqa: BLE001
+    STATE, USER, BIN = Path.home() / ".local/state/anna", "the person", Path.home() / "bin"
+OFF = STATE / "gate-off"
+STREAM = str(BIN / "anna-stream")
+
+CHANGE = [re.compile(p) for p in (
+    r"\bsystemctl\b[^|;&]*\b(start|stop|restart|reload|enable|disable|mask|unmask|reboot|poweroff|kill|daemon-reload)\b",
+    r"\b(reboot|shutdown|poweroff)\b",
+    r"\bapt(-get)?\s+(install|remove|purge|upgrade|full-upgrade|dist-upgrade|autoremove)\b",
+    r"\bdocker\s+(compose\s+)?(up|down|rm|stop|start|restart|kill|pull|run|create)\b",   # exec: see REMOTE_WRITE
+    r"\bdocker-compose\s+(up|down|rm|stop|start|restart|pull)\b",
+    r"\b(qm|pct)\s+(start|stop|shutdown|reboot|destroy|create|set|clone|migrate|rollback|snapshot|delsnapshot|resize|restore)\b",
+    r"\b(iptables|ip6tables|nft|ufw)\b[^|;&]*\s(-I|-A|-D|-F|-X|add|delete|insert|flush|allow|deny|limit|enable|disable|reset)\b",
+    r"\bzfs\s+(destroy|rollback|set|create|rename)\b",
+    r"\bha-do\b", r"\bha-later\b(?![^|;&]*--list)", r"\btg-send\b",
+    r"\bgit\s+push\b[^|;&]*(--force|\s-f\b)",
+    r"\bgh\s+(pr|issue|release|repo)\s+(create|comment|merge|close|edit|delete|review)\b",
+    r"\bgh\s+api\b[^|;&]*-X\s*(POST|PUT|PATCH|DELETE)",
+)]
+# a command run elsewhere (another host, a container, a guest) is a change when it writes; reading there passes
+REMOTE_WRITE = re.compile(r"\b(ssh|docker\s+(compose\s+)?exec|pct\s+exec|qm\s+guest\s+exec)\b.*"
+                          r"\b(rm|mv|chmod|chown|setfacl|tee|truncate|dd|mkfs|kill|pkill)\s")
+SUDO_CMD = re.compile(r"\bsudo\s+(?:-\S+\s+)*([\w./-]+)")
+READ_SUDO = {"cat", "ls", "head", "tail", "grep", "find", "stat", "sha256sum", "md5sum", "wc", "du", "df", "getfacl", "id",
+             "journalctl", "dpkg", "apt", "apt-cache", "iptables", "ip6tables", "nft", "ufw", "wg", "docker", "sshd", "nginx",
+             "postconf", "doveadm", "sqlite3", "fail2ban-client", "zfs", "zpool", "lsblk", "blkid", "test", "readlink", "file",
+             "systemctl", "git", "bash", "sh", "python3", "-u"}
+# bash/sh/python3/-u: the wrapped command is checked by the other patterns; `sudo -u x <cmd>` likewise. systemctl, docker,
+# apt, ufw, iptables, nft, zfs, git: their write verbs are separate patterns above.
+OUTWARD_MCP = re.compile(r"^mcp__.*(send_message|__reply$|__forward$|trash|delete|mark_.*spam|create_label|update_label)")
+SSH_AT = re.compile(r"\bssh\s+")
+SSH_ARG_FLAGS = set("BbcDEeFIiJLlmOoPpQRSWw")    # ssh options that take a value (`-o X=y`, `-p 22`, `-i key`)
+ANY = "*"                                          # host unknown (a $variable): any go in the window counts
+GATE_BLOCK = re.compile(r"```anna-gate\s*\n(.*?)```", re.S)
+
+
+def logged(text: str) -> bool:
+    """True if this exact gate line is already in the last two stream day files (the hook passes many calls on one go;
+    each audit line goes to the stream once, also when the brain logged it itself)."""
+    want = " ".join(text.split())
+    try:
+        for f in sorted((STATE / "stream").glob("*.jsonl"))[-2:]:
+            for line in f.read_text(errors="replace").splitlines():
+                if '"gate"' in line:                     # cheap filter; the text itself is JSON-escaped in the file
+                    r = json.loads(line)
+                    if r.get("from") == "gate" and r.get("text") == want:
+                        return True
+    except Exception:  # noqa: BLE001
+        return False
+    return False
+
+
+def stream(text: str, once: bool = False) -> None:
+    if once and logged(text):
+        return
+    try:
+        subprocess.run([STREAM, "add", "--from", "gate", text], timeout=4, check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def decide(reason: str, allow: bool) -> None:
+    out = {"hookSpecificOutput": {"hookEventName": "PreToolUse",
+                                  "permissionDecision": "allow" if allow else "deny",
+                                  "permissionDecisionReason": reason}}
+    if allow:
+        out["hookSpecificOutput"].pop("permissionDecision")   # don't upgrade permissions, only stay out of the way
+    print(json.dumps(out))
+
+
+HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1[^\n]*\n.*?\n\s*\2\s*(?=\n|$)", re.S)
+
+
+def strip_heredocs(cmd: str) -> str:
+    """Heredoc bodies are data (file contents, python, prose), not commands: keep only the opening line. A heredoc fed to
+    `ssh host bash -s` still shows `ssh host` on that line, and its body is kept (it's the remote script)."""
+    def keep(m: re.Match) -> str:
+        first = m.group(0).split("\n", 1)[0]
+        line = m.string[m.string.rfind("\n", 0, m.start()) + 1:m.start()] + first   # the whole opening line
+        return m.group(0) if re.search(r"\bssh\b", line) else first   # a heredoc into ssh is the remote script: keep it
+    return HEREDOC.sub(keep, cmd)
+
+
+def ssh_host(cmd: str) -> str:
+    """The host of the first `ssh` in cmd: option values are skipped (`-o ConnectTimeout=5 dock` → dock, never
+    "ConnectTimeout"), user@ is dropped, a $variable or anything unparseable → ANY. No ssh → "local"."""
+    m = SSH_AT.search(cmd)
+    if not m:
+        return "local"
+    toks = re.findall(r"""'[^']*'|"[^"]*"|[^\s;|&()]+""", cmd[m.end():])
+    i = 0
+    while i < len(toks):
+        t = toks[i].strip("'\"")
+        if t.startswith("-") and len(t) > 1:
+            i += 2 if (len(t) == 2 and t[1] in SSH_ARG_FLAGS) else 1   # -o VALUE / -oVALUE / -4 …
+            continue
+        host = t.rsplit("@", 1)[-1]
+        return host if re.fullmatch(r"[A-Za-z][\w.-]*", host) else ANY
+    return ANY
+
+
+def is_change(tool: str, inp: dict) -> tuple[bool, str]:
+    if tool.startswith("mcp__"):
+        return (bool(OUTWARD_MCP.search(tool)), "local")
+    if tool != "Bash":
+        return (False, "")
+    cmd = strip_heredocs(str(inp.get("command", "")))
+    host = ssh_host(cmd)
+    sudo_write = any(w not in READ_SUDO and w.split("/")[-1] not in READ_SUDO for w in SUDO_CMD.findall(cmd))
+    hit = any(p.search(cmd) for p in CHANGE) or bool(REMOTE_WRITE.search(cmd)) or sudo_write
+    return (hit, host)
+
+
+def gate_ids(entry: dict) -> list[str]:
+    """IDs of Agent calls to anna-action-gate in an assistant entry."""
+    if entry.get("type") != "assistant":
+        return []
+    return [x.get("id", "") for x in (entry.get("message") or {}).get("content") or []
+            if isinstance(x, dict) and x.get("type") == "tool_use" and x.get("name") in ("Agent", "Task")
+            and (x.get("input") or {}).get("subagent_type") == "anna-action-gate"]
+
+
+def texts(entry: dict, ids: set[str]) -> list[str]:
+    """Gate output only: the tool_result of a known anna-action-gate call, or the task notification that names its call ID.
+    Never assistant text, never another tool's output (a `cat` of a fake block must not count).
+    A notification that arrives while the brain is mid-turn is recorded as an attachment (queued_command, commandMode
+    task-notification), not a user entry (2026-11-05: a valid go was invisible and the read was blocked twice)."""
+    if entry.get("type") == "attachment":
+        a = entry.get("attachment") or {}
+        t = a.get("prompt") if a.get("type") == "queued_command" and a.get("commandMode") == "task-notification" else None
+        m = re.search(r"<task-notification>.*?<tool-use-id>(toolu_\w+)</tool-use-id>", t, re.S) if isinstance(t, str) else None
+        return [t] if m and m.group(1) in ids else []
+    if entry.get("type") != "user":
+        return []
+    c = (entry.get("message") or {}).get("content")
+    items = [{"type": "text", "text": c}] if isinstance(c, str) else (c or [])
+    out = []
+    for x in items:
+        if not isinstance(x, dict):
+            continue
+        if x.get("type") == "tool_result" and x.get("tool_use_id") in ids:
+            cc = x.get("content")
+            out += [cc] if isinstance(cc, str) else [y.get("text", "") for y in cc or [] if isinstance(y, dict)]
+        elif x.get("type") == "text":
+            t = x.get("text", "")
+            m = re.search(r"<task-notification>.*?<tool-use-id>(toolu_\w+)</tool-use-id>", t, re.S)
+            if m and m.group(1) in ids:
+                out.append(t)
+    return out
+
+
+def recent_go(transcript: str, host: str) -> str | None:
+    p = Path(transcript)
+    if not p.is_file():
+        return None
+    now = datetime.now(timezone.utc)
+    with p.open("rb") as f:                       # the tail is enough: 15 minutes of a session
+        f.seek(0, 2)
+        f.seek(max(0, f.tell() - 3_000_000))
+        lines = f.read().decode("utf-8", "replace").splitlines()[1:]
+    best, ids = None, set()
+    for line in lines:
+        try:
+            e = json.loads(line)
+            ts = datetime.fromisoformat(e["timestamp"].replace("Z", "+00:00"))
+        except Exception:  # noqa: BLE001
+            continue
+        ids.update(gate_ids(e))
+        if now - ts > WINDOW:
+            continue
+        for t in texts(e, ids):
+            for blk in GATE_BLOCK.findall(t):
+                v = re.search(r"^verdict:\s*(\S+)", blk, re.M)
+                a = re.search(r"^audit:\s*(.+)$", blk, re.M)
+                if not v or v.group(1) != "go" or not a:
+                    continue
+                audit = a.group(1).strip()
+                if host in ("local", ANY) or re.search(rf"\b{re.escape(host)}\b", audit):
+                    best = audit
+    return best
+
+
+def main() -> int:
+    if os.environ.get("ANNA_ROLE") == "bot" or os.environ.get("ANNA_HEADLESS"):
+        return 0
+    data = json.load(sys.stdin)
+    tool, inp = data.get("tool_name", ""), data.get("tool_input") or {}
+    change, host = is_change(tool, inp)
+    if not change:
+        return 0
+    what = (inp.get("command") or tool)[:80].replace("\n", " ")
+    if OFF.exists():
+        stream(f"⚠ gate OFF (override file): passed {host} \"{what}\"")
+        return 0
+    audit = recent_go(data.get("transcript_path", ""), host)
+    if audit:
+        stream(audit, once=True)
+        return 0
+    decide(f"anna-gate: this looks like a state change on {host} (\"{what}\") and there's no `go` from anna-action-gate "
+           f"for {host} in the last {int(WINDOW.total_seconds() // 60)} min. Call the anna-action-gate subagent with the "
+           "action block (action, target, origin, the verbatim ask, current state line, hold, attempt, in_flight, now), "
+           f"wait for its verdict, then retry. confirm-first → ask {USER}, then re-gate with their yes as `asked`.", False)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Exception as ex:  # noqa: BLE001  fail open, loudly
+        stream(f"⚠ anna-gate-hook error, call allowed: {type(ex).__name__}: {ex}"[:300])
+        sys.exit(0)

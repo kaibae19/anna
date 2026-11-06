@@ -1,0 +1,13 @@
+# anna-relay bridge: the bot's fakechat <-> the brain's fakechat (docs/concepts/relay.md). User unit:
+#   install.sh copies it to ~/.config/systemd/user/; then systemctl --user enable --now anna-relay
+[Unit]
+Description=Anna relay bridge (bot <-> brain over fakechat)
+
+[Service]
+Environment=PATH=%h/.bun/bin:%h/bin:/usr/local/bin:/usr/bin:/bin ANNA_ROLE=relay
+ExecStart=%h/bin/anna-relay bridge
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

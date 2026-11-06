@@ -1,0 +1,71 @@
+site_name: Anna
+site_description: A scaffold for a personal agent that lives with you, built on Claude Code.
+docs_dir: docs
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.suggest
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/weather-night, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/weather-sunny, name: Light mode}
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - tables
+  - toc:
+      permalink: true
+
+validation:
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
+nav:
+  - Home: index.md
+  - Getting started:
+      - New to this?: getting-started/new-to-this.md
+      - Install: getting-started/install.md
+      - Connect Telegram: getting-started/telegram.md
+      - Your first day: getting-started/first-day.md
+      - Troubleshooting: getting-started/troubleshooting.md
+  - Guides:
+      - Help her do more: guides/growing-anna.md
+      - Write a check or a sense: guides/checks-and-senses.md
+      - Add merlin: guides/merlin.md
+      - Update after git pull: guides/updating.md
+      - Read and correct the record: guides/the-record.md
+      - What the bot may do: guides/bot-permissions.md
+  - Reference:
+      - Configuration: reference/config.md
+      - Commands: reference/commands.md
+      - Skills: reference/skills.md
+      - Engines: reference/engines.md
+      - Hooks: reference/hooks.md
+      - The record's layout: reference/record-layout.md
+      - Timers: reference/timers.md
+  - Concepts:
+      - Architecture: concepts/architecture.md
+      - The relay: concepts/relay.md
+      - Security model: concepts/security.md
+      - Philosophy:
+          - Overview: concepts/philosophy/README.md
+          - Coffee Logic: concepts/philosophy/coffee-logic.md
+          - Engines: concepts/philosophy/engines.md
+          - Distributed intelligence: concepts/philosophy/distributed-intelligence.md
+          - Ethics: concepts/philosophy/ethics.md
+  - Roadmap: roadmap.md
+  - License: license.md

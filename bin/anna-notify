@@ -1,0 +1,35 @@
+#!/bin/bash
+# anna-notify "text"      send a message to the user over the bot (Telegram sendMessage) — for scripts' alerts and pings
+# anna-notify --me        check the token (getMe)
+# anna-notify --learn     store the chat id of the most recent DM to the bot (DM the bot first; run it before the bot
+#                         session is polling: a Telegram bot allows only one getUpdates consumer at a time)
+# Token: <paths.secrets>/telegram-<bot.instance> (one line). Chat id: <paths.state>/telegram-<instance>.chat (not secret).
+# The token reaches curl through a config on stdin, never the command line. Sent messages go into Anna's stream
+# ($ANNA_NOTIFY_FROM names the sender: "clock #id", "anna-run morning", ...), so the bot session knows what was said.
+# With bot.enabled = false a message goes to the stream only, exit 0 (no token needed).
+set -euo pipefail
+D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
+inst=$(cfg bot.instance); tok=$(cfg paths.secrets)/telegram-$inst; chatf=$(cfg paths.state)/telegram-$inst.chat
+if [ "$(cfg bot.enabled)" != true ]; then         # no bot: the message goes to the stream only (the brain sees it there)
+  case "${1:?usage: anna-notify text | --me | --learn}" in
+  --me|--learn) echo "anna-notify: the bot is off (bot.enabled = false in your config)" >&2; exit 2 ;;
+  *) "$D/anna-stream" add --from "${ANNA_NOTIFY_FROM:-script} (no bot)" "$1"; exit 0 ;;
+  esac
+fi
+[ -s "$tok" ] || { echo "anna-notify: no bot token at $tok" >&2; exit 2; }
+api() { local m=$1; shift; printf 'url = "https://api.telegram.org/bot%s/%s"\n' "$(cat "$tok")" "$m" |
+        curl -sS --max-time 15 -K - "$@"; }
+case "${1:?usage: anna-notify text | --me | --learn}" in
+--me) api getMe | jq -c '{ok, bot: .result.username, name: .result.first_name}' ;;
+--learn)
+  r=$(api getUpdates -G --data-urlencode 'allowed_updates=["message"]')
+  id=$(jq -r '[.result[].message | select(.chat.type=="private")] | last | .chat.id // empty' <<<"$r")
+  who=$(jq -r '[.result[].message | select(.chat.type=="private")] | last | "\(.from.first_name) (@\(.from.username // "-"))"' <<<"$r")
+  [ -n "$id" ] || { echo "anna-notify: no DM found; message the bot first" >&2; exit 1; }
+  install -d -m 700 "$(dirname "$chatf")"; echo "$id" > "$chatf"; echo "stored chat for $inst: $who" ;;
+*)
+  [ -s "$chatf" ] || { echo "anna-notify: no chat id yet (anna-notify --learn)" >&2; exit 2; }
+  r=$(api sendMessage --data-urlencode "chat_id=$(cat "$chatf")" --data-urlencode "text=$1") && jq -e '.ok' >/dev/null <<<"$r" \
+    || { echo "anna-notify: send failed" >&2; exit 1; }
+  "$D/anna-stream" add --from "${ANNA_NOTIFY_FROM:-script} → Telegram" "$1" 2>/dev/null || true ;;
+esac

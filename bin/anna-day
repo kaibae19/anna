@@ -1,0 +1,94 @@
+#!/bin/bash
+# anna-day close | open — the daily rollover of Anna's brain session: wrapped up and closed overnight, a fresh session
+# for the new day started in the morning (anna-day-close/-open.timer, times from day.close / day.open).
+#   close: the interactive claude in screen <day.screen>, if idle ≥ day.idle_min: type <day.wrap> into it, wait for the
+#          turn to end (its reply line in Anna's stream, then quiet), then /exit. Busy → leave it open (say so in the stream).
+#          While it wraps up, relay hand-offs are held (relay `paused`).
+#   open:  retry close if a session is still open; then a new screen window running anna-brain <anna.name>-YYYYMMDD in
+#          ~, answer the trust prompt for $HOME only, optionally type /remote-control (day.remote_control); release the relay.
+# Keystrokes go in with `screen -X stuff`; screens are read with `screen -X hardcopy`. Every outcome goes to Anna's stream;
+# failures also to anna-notify if installed.
+set -uo pipefail
+D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
+export TZ; TZ=$(cfg anna.timezone); export PATH="$(cfg paths.bin):$HOME/.local/bin:$PATH"
+STATE=$(cfg paths.state); STOP=$STATE/brain-stop; RELAY=$STATE/relay   # STOP tells anna-brain this /exit is meant
+SCR=$(cfg day.screen) IDLE_MIN=$(cfg day.idle_min) WRAP=$(cfg day.wrap) NAME=$(cfg anna.name)
+TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
+log()  { echo "$(date -Is) anna-day: $*"; "$D/anna-stream" add --from "anna-day" "$*" 2>/dev/null || true; }
+fail() { log "⚠ $*"; [ "$(cfg bot.enabled)" = true ] && command -v anna-notify >/dev/null && ANNA_NOTIFY_FROM="anna-day" anna-notify "⚠ anna-day: $*" || true; }
+
+brain_pid() {  # the interactive claude whose screen session is $SCR (STY=<pid>.<name>); prints "pid window session_id cwd"
+  local f p sty win
+  for f in "$HOME"/.claude/sessions/*.json; do
+    p=$(jq -r 'select(.kind=="interactive") | .pid' "$f" 2>/dev/null) || continue
+    [ -n "$p" ] && kill -0 "$p" 2>/dev/null || continue
+    sty=$(tr '\0' '\n' < "/proc/$p/environ" 2>/dev/null | sed -n 's/^STY=//p')
+    [[ $sty == *."$SCR" ]] || continue
+    win=$(tr '\0' '\n' < "/proc/$p/environ" | sed -n 's/^WINDOW=//p')
+    echo "$p ${win:-0} $(jq -r '.sessionId + " " + .cwd' "$f")"; return 0
+  done; return 1
+}
+shot() { screen -S "$SCR" -p "$1" -X hardcopy "$TMP/h" && tr -d '\000' < "$TMP/h"; }   # window → screen text
+keys() { screen -S "$SCR" -p "$1" -X stuff "$2"; }
+# type a command: Ctrl-U first, so whatever sits in the input line (a half-typed prompt, the mouse-report codes of an
+# attached terminal) can't run into it ("61;1M…/exit" was read as text on the 2026-10-31 clean-VM install)
+type_cmd() { keys "$1" $'\025'; sleep 0.5; keys "$1" "$2"; sleep 1; keys "$1" $'\r'; }
+# Seconds since the transcript's last timestamped entry. Not the file's mtime: Claude Code keeps appending untimestamped
+# metadata lines to an idle session's transcript, so the mtime never ages. Falls back to the mtime if no entry parses.
+quiet() { local t; t=$(tac "$1" | jq -Rr 'fromjson? | select(type=="object" and .timestamp != null) | .timestamp' 2>/dev/null | head -1)
+  t=$(date -d "$t" +%s 2>/dev/null) || t=$(stat -c %Y "$1"); echo $(( $(date +%s) - t )); }
+
+close() {
+  local b pid win sid cwd tr age c0 n
+  b=$(brain_pid) || { log "close: no brain session open in screen $SCR"; return 0; }
+  read -r pid win sid cwd <<<"$b"
+  tr=$HOME/.claude/projects/$(sed 's/[^A-Za-z0-9]/-/g' <<<"$cwd")/$sid.jsonl   # Claude Code's folder name: every non-alphanumeric → -
+  if [ ! -f "$tr" ]; then                            # never used (no transcript yet): nothing to wrap up
+    touch "$STOP"; type_cmd "$win" "/exit"
+    wait_pid "$pid" 60 || { rm -f "$STOP"; fail "close: unused session ${sid:0:8} didn't exit"; return 1; }
+    log "close: session ${sid:0:8} was never used; closed"; return 0
+  fi
+  age=$(( $(quiet "$tr") / 60 ))
+  [ "$age" -ge "$IDLE_MIN" ] || { log "close: session ${sid:0:8} active ${age} min ago; left open"; return 2; }
+  sl() { cat "$STATE"/stream/*.jsonl 2>/dev/null | grep -c "\"sid\": \"${sid:0:8}\"" || true; }  # this session's stream lines
+  c0=$(sl); log "close: wrapping up session ${sid:0:8} (idle ${age} min)"
+  mkdir -p "$RELAY"; touch "$RELAY/paused"         # relay: hold hand-offs out of the wrap-up turn; open releases them
+  type_cmd "$win" "$WRAP"
+  n=0; until [ "$(sl)" -ge $((c0 + 2)) ] && [ "$(quiet "$tr")" -ge 90 ]; do   # prompt + reply logged, then quiet
+    sleep 15; n=$((n+15)); [ $n -ge 2400 ] && { fail "close: wrap-up of ${sid:0:8} didn't finish in 40 min; left open"; return 1; }
+  done
+  touch "$STOP"; type_cmd "$win" "/exit"           # a stale STOP would end the resume loop at the next crash
+  wait_pid "$pid" 120 || { rm -f "$STOP"; fail "close: session ${sid:0:8} wrapped but didn't exit"; return 1; }
+  log "close: session ${sid:0:8} wrapped up and closed"
+}
+wait_pid() { local i; for ((i = 0; i < $2; i++)); do kill -0 "$1" 2>/dev/null || return 0; sleep 1; done; return 1; }
+
+open() {
+  local name=$NAME-$(date +%Y%m%d) i s
+  if brain_pid >/dev/null; then close; [ $? -eq 0 ] || { log "open: yesterday's session still open; no new session"; return 0; }; fi
+  screen -ls "$SCR" 2>/dev/null | grep -q "\.$SCR[[:space:]]" || screen -dmS "$SCR" bash -l
+  screen -S "$SCR" -X screen -t "$name" bash -lc "cd ~ && exec $(printf '%q' "$D/anna-brain") $name"   # claude in a resume loop
+  for i in $(seq 1 40); do                          # trust prompt (each launch in ~), then ready
+    sleep 2; s=$(shot "$name")
+    if grep -q 'Yes, I trust this folder' <<<"$s"; then
+      grep -q "^ *$HOME *\$" <<<"$s" || { fail "open: trust prompt for an unexpected folder; left waiting"; return 1; }
+      # an arrow sent too early is lost, and Enter on the default ("No, exit") would quit: confirm the selection first
+      for k in 1 2 3; do keys "$name" $'\033[B'; sleep 1; grep -q 'o Yes, I trust' <<<"$(shot "$name")" && break; done
+      grep -q 'o Yes, I trust' <<<"$(shot "$name")" || { fail "open: couldn't select 'Yes' on the trust prompt; left waiting"; return 1; }
+      keys "$name" $'\r'
+    elif grep -q 'Yes, I accept' <<<"$s"; then      # Claude Code's one-time consent to Bypass Permissions mode
+      fail "open: Claude Code asks you to accept Bypass Permissions mode (once per machine; docs/concepts/security.md). That's your call, not Anna's: screen -dr $SCR, read it, choose Yes, then anna-day open again"
+      return 1
+    elif grep -q 'bypass permissions on' <<<"$s"; then break; fi
+  done
+  grep -q 'bypass permissions on' <<<"$s" || { fail "open: $name didn't reach the prompt in 80 s (screen -dr $SCR)"; return 1; }
+  if [ "$(cfg day.remote_control)" = true ]; then
+    sleep 3; type_cmd "$name" "/remote-control"
+    for i in $(seq 1 15); do sleep 2; grep -q 'remote-control is active' <<<"$(shot "$name")" && break; done
+    grep -q 'remote-control is active' <<<"$(shot "$name")" || { fail "open: $name started, but Remote Control didn't confirm"; return 1; }
+  fi
+  rm -f "$RELAY/paused"                             # relay: queued hand-offs go to the new session now
+  log "open: $name started in screen $SCR"
+}
+
+case "${1:-}" in close) close; r=$?; [ $r -eq 2 ] && exit 0; exit $r ;; open) open ;; *) sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;; esac

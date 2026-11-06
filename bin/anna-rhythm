@@ -1,0 +1,124 @@
+#!/usr/bin/env python3
+"""anna-rhythm — when the person is usually around, computed from Anna's stream (never guessed by a model).
+
+    anna-rhythm [--days N] [--min-share F]     text block for the curiosity/goals engines (default 28 days, 0.3)
+    anna-rhythm --json                         same, as JSON
+
+Activity = a stream line whose text starts "<anna.user>: " (their messages to the bot or the brain), in anna.timezone, minus
+what scripts type into the session (anna-day's day.wrap command, relays, task notifications).
+A weekday's active window = the hours in which she wrote on at least --min-share of that weekday's observed days,
+merged into ranges. Few observed days → few samples: the block says n= so the reader can weigh it.
+asked_today = a stream line from "curiosity" today (the brain writes one with `anna-stream add --from curiosity …`
+when it asks the day's question).
+Input for the curiosity and goals engines (agents/), which must not do their own date arithmetic.
+"""
+from __future__ import annotations
+
+import json
+import re
+import sys
+from collections import defaultdict
+from datetime import date, datetime, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from anna_cfg import STATE, TZ, USER, get  # noqa: E402
+
+DIR = STATE / "stream"
+SAID = f"{USER}: "
+# typed into the session by scripts, not by the person: anna-day's overnight wrap, relays, task notifications
+AUTO = re.compile("^" + re.escape(SAID) + "(" + re.escape(str(get("day.wrap", "/anna-wrapup overnight"))) + r"|\[relay |<)")
+DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def ranges(hours: list[int]) -> str:
+    if not hours:
+        return "none"
+    out, start, prev = [], hours[0], hours[0]
+    for h in hours[1:] + [None]:
+        if h is not None and h == prev + 1:
+            prev = h
+            continue
+        out.append(f"{start:02d}–{prev + 1:02d}")
+        if h is not None:
+            start = prev = h
+    return ", ".join(out)
+
+
+def main(argv: list[str]) -> int:
+    days, share, as_json = 28, 0.3, "--json" in argv
+    a = [x for x in argv if x != "--json"]
+    while len(a) >= 2 and a[0] in ("--days", "--min-share"):
+        days, share = (int(a[1]), share) if a[0] == "--days" else (days, float(a[1]))
+        a = a[2:]
+    if a:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    now = datetime.now(TZ)
+    first = now.date() - timedelta(days=days - 1)
+    observed: dict[int, set[date]] = defaultdict(set)      # weekday -> days with a stream file
+    hits: dict[int, dict[int, set[date]]] = defaultdict(lambda: defaultdict(set))  # weekday -> hour -> days
+    last, asked_today = None, False
+    for f in sorted(DIR.glob("*.jsonl")):
+        try:
+            d = date.fromisoformat(f.stem)
+        except ValueError:
+            continue
+        if d < first:
+            continue
+        observed[d.weekday()].add(d)
+        for line in f.read_text(errors="replace").splitlines():
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            ts = datetime.fromisoformat(r.get("ts", "")).astimezone(TZ) if r.get("ts") else None
+            if ts is None:
+                continue
+            if r.get("from") == "curiosity" and ts.date() == now.date():
+                asked_today = True
+            t = str(r.get("text", ""))
+            if not t.startswith(SAID) or AUTO.match(t):
+                continue
+            hits[ts.weekday()][ts.hour].add(ts.date())
+            if last is None or ts > last[0]:
+                last = (ts, r.get("from", "?"))
+    by_day = {}
+    for wd in range(7):
+        n = len(observed[wd])
+        hrs = sorted(h for h, ds in hits[wd].items() if n and len(ds) / n >= share)
+        by_day[DAYS[wd]] = {"n": n, "window": ranges(hrs)}
+    alln = sum(len(v) for v in observed.values())
+    allh = defaultdict(set)
+    for wd in hits:
+        for h, ds in hits[wd].items():
+            allh[h] |= ds
+    typical = ranges(sorted(h for h, ds in allh.items() if alln and len(ds) / alln >= share))
+    gap = None
+    if last:
+        mins = int((now - last[0]).total_seconds() // 60)
+        gap = f"{mins // 60} h {mins % 60:02d} min"
+    out = {
+        "source": f"stream {first}..{now.date()}, {alln} observed days, {USER}'s messages, {TZ.key}",
+        "now": now.strftime("%a %Y-%m-%d %H:%M"),
+        "last_active": f"{last[0]:%a %Y-%m-%d %H:%M} ({last[1]})" if last else "unknown",
+        "gap_now": gap or "unknown",
+        "typical": typical,
+        "today": f"{DAYS[now.weekday()]} {by_day[DAYS[now.weekday()]]['window']} (n={by_day[DAYS[now.weekday()]]['n']})",
+        "by_weekday": by_day,
+        "asked_today": "yes" if asked_today else "no",
+        "min_share": share,
+    }
+    if as_json:
+        print(json.dumps(out, indent=1))
+        return 0
+    print(f"rhythm ({out['source']}; window = hours with messages on ≥{share:.0%} of that weekday's days)")
+    for k in ("now", "last_active", "gap_now", "typical", "today"):
+        print(f"{k}: {out[k]}")
+    print("by_weekday: " + "; ".join(f"{d} {v['window']} (n={v['n']})" for d, v in by_day.items()))
+    print(f"asked_today: {out['asked_today']}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

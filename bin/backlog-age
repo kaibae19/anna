@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""backlog-age — open backlog items with their age in days (precomputed for Anna's goal engine; models don't do dates).
+
+    backlog-age [--min-days N] [--file PATH]     one line per open item: "<age>d  <date>  <title>", oldest first
+
+Reads <paths.record>/planning/backlog.md entries "- **(YYYY-MM-DD) title:** …". Skips done items (✅ or a ~~struck~~ title in the bold
+lead); an open item with ✅ further on (some parts done, "left: …") is listed and marked "part done".
+Age = days since the entry's date (today in anna.timezone). It isn't "untouched for": an item updated in place keeps its date.
+Input for the goals engine (agents/anna-goals.md).
+"""
+from __future__ import annotations
+
+import re
+import sys
+from datetime import date, datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from anna_cfg import RECORD, TZ  # noqa: E402
+
+ENTRY = re.compile(r"^- \*\*\((\d{4}-\d{2}-\d{2})\)\s*(.*?)(?::\*\*|\*\*)")
+
+
+def main(argv: list[str]) -> int:
+    path = RECORD / "planning/backlog.md"
+    mind, a = 0, list(argv)
+    while len(a) >= 2 and a[0] in ("--min-days", "--file"):
+        if a[0] == "--min-days":
+            mind = int(a[1])
+        else:
+            path = Path(a[1])
+        a = a[2:]
+    if a:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    today = datetime.now(TZ).date()
+    rows = []
+    if not path.is_file():
+        print("none (no planning/backlog.md)")
+        return 0
+    for line in path.read_text().splitlines():
+        m = ENTRY.match(line)
+        if not m:
+            continue
+        d, title = date.fromisoformat(m.group(1)), m.group(2).strip()
+        if "✅" in title or title.startswith("~~"):
+            continue
+        title = re.sub(r"[`*_~]", "", title)
+        age = (today - d).days
+        mixed = "  (part done: ✅ in its text)" if "✅" in line else ""
+        if age >= mind:
+            rows.append((age, d, title[:90] + mixed))
+    for age, d, title in sorted(rows, key=lambda r: -r[0]):
+        print(f"{age}d  {d}  {title}")
+    if not rows:
+        print("none")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

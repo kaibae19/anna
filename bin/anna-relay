@@ -1,0 +1,241 @@
+#!/usr/bin/env bun
+// anna-relay — bot ↔ brain relay over two fakechat channels (one voice: the brain works, the bot speaks).
+//
+//   anna-relay bridge         the daemon (anna-relay.service): holds both fakechat websockets, moves messages, keeps the queue
+//   anna-relay status         JSON: brain/bot online, paused, counts, oldest open item
+//   anna-relay list [DIR]     items in new|brain|out|done (default: all open)
+//   anna-relay send TEXT      queue TEXT for the brain as if from a script (tests, scheduled jobs)
+//   anna-relay clear-port brain|bot   kill an orphaned fakechat on that port (launchers run it before claude); exit 1 if live
+//
+// Flow: the bot calls fakechat `reply` on ITS fakechat (port BOT) with the user's words → the bridge sees that assistant message
+// on the bot's /ws, queues it (new/), and POSTs it into the BRAIN's fakechat (/upload, message_id = item id) → the brain
+// works, answers with its fakechat `reply` (reply_to = item id) → the bridge sees it on the brain's /ws, stores it (out/),
+// POSTs it into the bot's fakechat → the bot says it to the user on Telegram in its own voice. The brain never talks to Telegram.
+// Queue: ~/.local/state/anna/relay/{new,brain,out,done}/<id>.json, state change = atomic rename. Nothing deleted (fold prunes).
+// Delivery: fakechat doesn't ack, and a push before the session registers the channel is dropped silently, so a side only
+// counts as online after its websocket has been up SETTLE_MS. Items in brain/ with no result after ALARM_MIN → ⚠ stream line.
+// `paused` file present (anna-day close → open) = hold pushes to the brain. Why fakechat, and its trust caveat: docs/concepts/relay.md.
+// Config (anna-config): relay.brain_port, relay.bot_port, relay.alarm_min, paths.state, anna.user, anna.timezone, day.close/open.
+// Env overrides for tests: ANNA_RELAY_DIR, RELAY_BRAIN_PORT, RELAY_BOT_PORT, ANNA_RELAY_NOSTREAM=1.
+import { mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync, existsSync, openSync, fsyncSync, closeSync } from 'fs'
+import { join } from 'path'
+import { spawnSync } from 'child_process'
+
+const HOME = process.env.HOME!
+const CFG: any = (() => {        // anna-config next to this script, else on PATH
+  const exe = join(import.meta.dir, 'anna-config')
+  const r = spawnSync(existsSync(exe) ? exe : 'anna-config', ['--dump'], { encoding: 'utf8', timeout: 10000 })
+  try { return r.status === 0 ? JSON.parse(r.stdout) : {} } catch { return {} }
+})()
+const c = (sec: string, key: string, dflt: any) => CFG?.[sec]?.[key] ?? dflt
+const expand = (p: string) => p.replace(/^~(?=\/|$)/, HOME)
+const DIR = process.env.ANNA_RELAY_DIR ?? join(expand(c('paths', 'state', '~/.local/state/anna')), 'relay')
+const PORT = { brain: Number(process.env.RELAY_BRAIN_PORT ?? c('relay', 'brain_port', 8791)),
+               bot: Number(process.env.RELAY_BOT_PORT ?? c('relay', 'bot_port', 8792)) }
+const USER = c('anna', 'user', 'the user'), TZ = c('anna', 'timezone', 'UTC')
+const NIGHT = `${c('day', 'close', '00:30')}–${c('day', 'open', '04:15')}`
+const SETTLE_MS = Number(process.env.RELAY_SETTLE_MS ?? 5000), ALARM_MIN = Number(c('relay', 'alarm_min', 30)), TICK_MS = Number(process.env.RELAY_TICK_MS ?? 2000)
+const DIRS = ['tmp', 'new', 'brain', 'out', 'done'] as const
+type Side = 'brain' | 'bot'
+type Item = {
+  id: string; created: string; from: string; text: string
+  log: [string, string][]; results: { ts: string; text: string; final: boolean; delivered?: string }[]
+  alarmed?: boolean
+}
+
+const now = () => new Date().toISOString()
+const pdt = () => new Date().toLocaleTimeString('en-GB', { timeZone: TZ })
+for (const d of DIRS) mkdirSync(join(DIR, d), { recursive: true, mode: 0o700 })
+
+function stream(text: string) {
+  if (process.env.ANNA_RELAY_NOSTREAM) return
+  const exe = join(import.meta.dir, 'anna-stream')
+  spawnSync(existsSync(exe) ? exe : 'anna-stream', ['add', '--from', 'relay', text], { stdio: 'ignore', timeout: 10000 })
+}
+function write(dir: string, it: Item) {          // tmp + fsync + rename into dir
+  const t = join(DIR, 'tmp', it.id + '.json')
+  writeFileSync(t, JSON.stringify(it, null, 1), { mode: 0o600 })
+  const fd = openSync(t, 'r'); fsyncSync(fd); closeSync(fd)
+  renameSync(t, join(DIR, dir, it.id + '.json'))
+}
+function move(it: Item, from: string, to: string, event: string) {
+  it.log.push([now(), event]); write(from, it)
+  if (from !== to) renameSync(join(DIR, from, it.id + '.json'), join(DIR, to, it.id + '.json'))
+}
+function load(dir: string): Item[] {
+  return readdirSync(join(DIR, dir)).filter(f => f.endsWith('.json')).sort()
+    .map(f => JSON.parse(readFileSync(join(DIR, dir, f), 'utf8')) as Item)
+}
+function where(id: string): string | undefined {
+  return ['new', 'brain', 'out', 'done'].find(d => existsSync(join(DIR, d, id + '.json')))
+}
+function newId() {
+  const d = new Date(), p = (n: number) => String(n).padStart(2, '0')
+  return `r${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}-` +
+    Math.random().toString(16).slice(2, 6)
+}
+function queue(from: string, text: string): Item {
+  const it: Item = { id: newId(), created: now(), from, text, log: [[now(), `queued from ${from}`]], results: [] }
+  write('new', it)
+  stream(`relay ${it.id} queued from ${from}: ${text.replace(/\s+/g, ' ').slice(0, 160)}`)
+  return it
+}
+
+async function post(side: Side, id: string, text: string): Promise<boolean> {   // into that session's fakechat
+  const f = new FormData(); f.set('id', id); f.set('text', text)
+  try {
+    const r = await fetch(`http://127.0.0.1:${PORT[side]}/upload`, { method: 'POST', body: f, signal: AbortSignal.timeout(5000) })
+    return r.status === 204
+  } catch { return false }
+}
+
+// fakechat's Bun.serve outlives its claude (seen 2026-10-31: after kill AND after a clean /exit the `bun server.ts` stays,
+// parent 1, port held) → the next session's fakechat can't bind and the bridge would push into a dead server. So: who
+// owns the port? 'live' = a bun whose parent is alive (not 1), 'orphan' = parent 1 (ours, safe to kill), 'free'.
+function owner(side: Side): { state: 'live' | 'orphan' | 'free'; pid?: number } {
+  const r = spawnSync('ss', ['-Htlnp', `sport = :${PORT[side]}`], { encoding: 'utf8', timeout: 3000 })
+  const pid = Number((r.stdout.match(/pid=(\d+)/) ?? [])[1])
+  if (!pid) return { state: 'free' }
+  try {
+    const stat = readFileSync(`/proc/${pid}/stat`, 'utf8'); const ppid = Number(stat.slice(stat.lastIndexOf(')') + 2).split(' ')[1])
+    const args = readFileSync(`/proc/${pid}/cmdline`, 'utf8').replace(/\0/g, ' ')
+    return { state: ppid === 1 && /bun.*server\.ts/.test(args) ? 'orphan' : 'live', pid }
+  } catch { return { state: 'free' } }
+}
+function clearOrphan(side: Side): boolean {               // true = port free now (or held by a live session: false)
+  const o = owner(side)
+  if (o.state === 'orphan') { try { process.kill(o.pid!) } catch {} ; console.log(`${pdt()} killed orphaned fakechat ${o.pid} on :${PORT[side]}`); return true }
+  return o.state === 'free'
+}
+
+// ---------- bridge ----------
+const up: Record<Side, number> = { brain: 0, bot: 0 }      // ms timestamp the socket opened, 0 = down
+function online(s: Side) {
+  if (!(up[s] > 0 && Date.now() - up[s] >= SETTLE_MS)) return false
+  if (owner(s).state === 'orphan') { clearOrphan(s); up[s] = 0; return false }   // its claude is gone
+  return true
+}
+const paused = () => existsSync(join(DIR, 'paused'))
+
+function connect(side: Side) {
+  const ws = new WebSocket(`ws://127.0.0.1:${PORT[side]}/ws`)
+  ws.onopen = () => { up[side] = Date.now(); console.log(`${pdt()} ${side} up`) }
+  ws.onclose = () => {
+    if (up[side]) { console.log(`${pdt()} ${side} down`) }
+    up[side] = 0; setTimeout(() => connect(side), 3000)
+  }
+  ws.onerror = () => {}                                  // onclose follows
+  ws.onmessage = e => {
+    let m: any; try { m = JSON.parse(String(e.data)) } catch { return }
+    if (m.type !== 'msg' || m.from !== 'assistant' || typeof m.text !== 'string') return
+    if (side === 'bot') onBot(m.text, m.replyTo)
+    else onBrain(m.text, m.replyTo)
+  }
+}
+
+// Only an explicit hand-off counts: fakechat's own instructions make a session answer EVERY channel message with `reply`,
+// so a result delivered to the bot came straight back as a "request" (test 2026-10-31: 3 rounds in 15 s). Guards:
+// the RELAY: marker, never a reply_to, and a breaker (> BREAK_N bot items in BREAK_MS → intake off + ⚠, until restart).
+const MARK = /^\s*RELAY:\s*/i, BREAK_N = 5, BREAK_MS = 120000
+const recent: number[] = []; let broken = false
+function onBot(text: string, replyTo?: string) {         // the bot called its fakechat reply
+  if (replyTo || !MARK.test(text)) {
+    console.log(`${pdt()} bot message without RELAY: or with reply_to (${replyTo ?? '-'}); dropped: ${text.slice(0, 60)}`); return
+  }
+  if (broken) { console.log(`${pdt()} breaker open; dropped: ${text.slice(0, 60)}`); return }
+  const t = Date.now(); recent.push(t); while (recent.length && t - recent[0] > BREAK_MS) recent.shift()
+  if (recent.length > BREAK_N) {
+    broken = true
+    stream(`⚠ relay: more than ${BREAK_N} hand-offs from the bot in ${BREAK_MS / 60000} min; intake stopped (loop?). Restart anna-relay after checking`)
+    return
+  }
+  const it = queue('bot', text.replace(MARK, '')); console.log(`${pdt()} queued ${it.id}`)
+}
+
+function onBrain(text: string, replyTo?: string) {       // the brain called its fakechat reply
+  const id = replyTo && where(replyTo) ? replyTo : undefined
+  const progress = /^\s*\[progress\]/i.test(text)
+  if (!id) {                                             // unsolicited: brain → bot note (event wakes later)
+    const it = queue('brain', text); it.results.push({ ts: now(), text, final: true })
+    move(it, 'new', 'out', 'brain note (no reply_to)'); return
+  }
+  const dir = where(id)!; const it = JSON.parse(readFileSync(join(DIR, dir, id + '.json'), 'utf8')) as Item
+  it.results.push({ ts: now(), text: text.replace(/^\s*\[progress\]\s*/i, ''), final: !progress })
+  if (progress) { move(it, dir, dir, 'progress from brain'); return }
+  move(it, dir, 'out', 'result from brain')
+  stream(`relay ${id} answered by the brain: ${text.replace(/\s+/g, ' ').slice(0, 160)}`)
+}
+
+async function tick() {
+  if (online('brain') && !paused()) {                    // new → brain
+    for (const it of load('new')) {
+      const msg = `[relay ${it.id} from the ${it.from}] Answer with the fakechat reply tool, reply_to="${it.id}".\n\n${it.text}`
+      if (await post('brain', it.id, msg)) { move(it, 'new', 'brain', 'pushed to brain'); console.log(`${pdt()} → brain ${it.id}`) }
+      else break
+    }
+  }
+  if (online('bot') && (!online('brain') || paused())) { // a bot hand-off that can't go through: tell the bot once
+    for (const it of load('new')) {
+      if (it.from !== 'bot' || (it as any).told_waiting || Date.now() - Date.parse(it.created) < 10000) continue
+      const why = paused() ? `is wrapping up the day (nightly ${NIGHT})` : 'is not running right now'
+      const msg = `[relay status for ${it.id}] Not started yet: the working side of you ${why}. It's queued and will run as soon as ` +
+        `it's back (latest about ${c('day', 'open', '04:15')}). Tell ${USER} in one short line, in your own voice. Do NOT answer this with the fakechat reply tool.`
+      if (await post('bot', `${it.id}-wait`, msg)) { (it as any).told_waiting = now(); write('new', it) }
+    }
+  }
+  if (online('bot')) {                                   // undelivered results → bot (progress from brain/, finals from out/)
+    for (const [dir, it] of [...load('brain').map(i => ['brain', i] as const), ...load('out').map(i => ['out', i] as const)]) {
+      let ok = true
+      for (const [n, r] of it.results.entries()) {
+        if (r.delivered) continue
+        const kind = r.final ? 'result' : 'progress'
+        const msg = `[relay ${kind} for ${it.id}] Tell ${USER} on Telegram in your own words (you are Anna; never "the brain says"). ` +
+          `Keep facts, numbers and commands exactly.${r.final ? '' : ' Interim: one short line, more is coming.'} ` +
+          `Do NOT answer this with the fakechat reply tool (that is only for RELAY: hand-offs).\n\n${r.text}`
+        if (await post('bot', `${it.id}-res${n}`, msg)) { r.delivered = now(); console.log(`${pdt()} → bot ${it.id} ${kind}`) }
+        else { ok = false; break }
+      }
+      if (!ok) break
+      if (dir === 'out' && it.results.every(r => r.delivered)) move(it, 'out', 'done', 'delivered to bot')
+      else write(dir, it)
+    }
+  }
+  for (const it of load('brain')) {                      // age alarm
+    const age = (Date.now() - Date.parse(it.log.find(l => l[1] === 'pushed to brain')?.[0] ?? it.created)) / 60000
+    if (age >= ALARM_MIN && !it.alarmed) {
+      it.alarmed = true; write('brain', it)
+      stream(`⚠ relay ${it.id}: no result from the brain after ${Math.round(age)} min ("${it.text.slice(0, 80)}")`)
+    }
+  }
+}
+
+function status() {
+  const alive = async (s: Side) => ({ live: 'online', orphan: 'offline (orphaned fakechat)', free: 'offline' })[owner(s).state]
+  return Promise.all([alive('brain'), alive('bot')]).then(([brain, bot]) => {
+    const open = ['new', 'brain', 'out'].flatMap(d => load(d).map(i => ({ d, i })))
+    const oldest = open.sort((a, b) => a.i.created.localeCompare(b.i.created))[0]
+    return { brain, bot, paused: paused(), new: load('new').length, brain_open: load('brain').length, out: load('out').length,
+      done: load('done').length, oldest_open: oldest ? { id: oldest.i.id, in: oldest.d, created: oldest.i.created } : null }
+  })
+}
+
+const [cmd, ...rest] = process.argv.slice(2)
+if (cmd === 'bridge') {
+  console.log(`${pdt()} anna-relay bridge: brain :${PORT.brain}, bot :${PORT.bot}, queue ${DIR}`)
+  connect('brain'); connect('bot')
+  let busy = false
+  setInterval(async () => { if (busy) return; busy = true; try { await tick() } catch (e) { console.error(e) } finally { busy = false } }, TICK_MS)
+} else if (cmd === 'clear-port' && (rest[0] === 'brain' || rest[0] === 'bot')) {   // launchers, before starting claude
+  const o = owner(rest[0])
+  if (o.state === 'live') { console.error(`anna-relay: :${PORT[rest[0]]} is held by a live session (pid ${o.pid})`); process.exit(1) }
+  clearOrphan(rest[0])
+} else if (cmd === 'status') {
+  console.log(JSON.stringify(await status()))
+} else if (cmd === 'list') {
+  for (const d of rest.length ? rest : ['new', 'brain', 'out'])
+    for (const it of load(d)) console.log(`${d}\t${it.id}\t${it.from}\t${it.text.replace(/\s+/g, ' ').slice(0, 80)}`)
+} else if (cmd === 'send' && rest.length) {
+  console.log(JSON.stringify({ id: queue('script', rest.join(' ')).id, ...(await status()) }))
+} else {
+  console.log(readFileSync(import.meta.path, 'utf8').split('\n').slice(1, 7).map(l => l.replace(/^\/\/ ?/, '')).join('\n')); process.exit(2)
+}

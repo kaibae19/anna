@@ -1,0 +1,10 @@
+# install.sh fills @MORNING@ (runs.morning) and @TZ@ (anna.timezone) and installs this as anna-morning.timer.
+[Unit]
+Description=Anna: morning run at @MORNING@
+
+[Timer]
+OnCalendar=*-*-* @MORNING@:00 @TZ@
+Persistent=true
+
+[Install]
+WantedBy=timers.target

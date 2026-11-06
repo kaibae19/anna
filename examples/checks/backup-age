@@ -1,0 +1,8 @@
+#!/bin/bash
+# Example check: the newest file in a backup directory must be younger than MAX_H hours. Copy to <record>/checks/backup
+# and set DIR (local path, or run `ssh host find …` the same way). ⛔ when stale: a failed backup needs the user today.
+DIR=${DIR:-/var/backups}; MAX_H=${MAX_H:-26}
+n=$(find "$DIR" -type f -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1)
+[ -n "$n" ] || { echo "⚠ backup: nothing found in $DIR (unverified)"; exit 0; }
+age=$(( ($(date +%s) - ${n%%.*}) / 3600 ))
+if [ "$age" -lt "$MAX_H" ]; then echo "OK backup: newest ${age}h old (${n#* })"; else echo "⛔ backup: newest is ${age}h old (${n#* })"; fi

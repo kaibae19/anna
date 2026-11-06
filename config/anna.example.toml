@@ -1,0 +1,45 @@
+# Anna's configuration. Copy to ~/.config/anna/anna.toml (or set ANNA_CONFIG) and edit; /anna-setup writes it for you.
+# Every script reads it through `anna-config KEY` (dotted keys, e.g. `anna-config relay.brain_port`). Unset keys fall
+# back to the defaults shown here. Nothing about your home, your hosts or your people belongs in the scaffold's code:
+# it lives here and in your record.
+
+[anna]
+name = "Anna"                       # what she's called (the bot speaks as this name)
+user = "you"                        # the person she works with, as she should address them
+timezone = "UTC"                    # all times she writes and reads (journal, clock, nightly window)
+
+[paths]
+record = "~/anna-record"            # your record: journal, hosts, runbooks, planning, memory (a git repo; see record-template/)
+state = "~/.local/state/anna"       # runtime state: stream, clock lock, relay queue, drafts
+bin = "~/bin"                       # where install.sh puts the scripts
+secrets = "~/.config/anna/secrets"  # mode 700; files: claude-oauth (optional: headless auth), telegram-<instance> (bot token)
+
+[models]                            # one line per part (portable core: any model the harness can run)
+brain = ""                          # empty = the harness default
+bot = "sonnet"
+headless = ""
+
+[day]                               # the brain's daily rollover (anna-day)
+screen = "anna"                     # screen session the brain lives in
+close = "00:30"                     # wrap up the day's session if idle
+open = "04:15"                      # start the new day's session
+idle_min = 30                       # minutes without activity before close may wrap up
+wrap = "/anna-wrapup overnight"     # what close types into the brain before /exit
+remote_control = false              # type /remote-control after open (needs a claude.ai login; lets you reach the brain from the app)
+
+[runs]                              # scheduled headless runs (anna-run, deny-by-default settings)
+morning = "04:00"                   # /anna-morning: read-only check, report to journal/handoffs/ (⛔ lines notify you)
+evening = "01:00"                   # /anna-evening: fold the day's session drafts into the journal
+
+[drafts]                            # session drafts (anna-session-draft): raw, redacted, outside the record
+secret_commands = ["bw", "bw-session", "op", "pass", "vault", "secret-tool", "secret-put"]   # their output is never drafted
+
+[relay]                             # bot <-> brain (anna-relay, fakechat transport)
+enabled = false
+brain_port = 8791
+bot_port = 8792
+alarm_min = 30                      # warn when a hand-off has no result after this long
+
+[bot]                               # Telegram (the claude-plugins-official telegram channel)
+enabled = false
+instance = "ops"                    # anna-tg INSTANCE: state dir, settings file and prompt are per instance

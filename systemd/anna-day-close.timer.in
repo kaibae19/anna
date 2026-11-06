@@ -1,0 +1,10 @@
+# install.sh fills @CLOSE@ (day.close) and @TZ@ (anna.timezone) and installs this as anna-day-close.timer.
+[Unit]
+Description=Anna: daily rollover, close at @CLOSE@
+
+[Timer]
+OnCalendar=*-*-* @CLOSE@:00 @TZ@
+Persistent=false
+
+[Install]
+WantedBy=timers.target

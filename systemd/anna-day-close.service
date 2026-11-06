@@ -1,0 +1,10 @@
+# anna-day close: the brain's daily rollover (bin/anna-day). User unit, installed by install.sh.
+[Unit]
+Description=Anna: daily rollover, close the brain session
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/anna-day close
+KillMode=process
+TimeoutStartSec=50min

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Example sense: a UPS through NUT (`upsc`). Copy to <record>/senses/ups, set UPS (and run it where upsc can reach it).
+UPS=${UPS:-ups@localhost}
+r=$(timeout 5 upsc "$UPS" 2>/dev/null) || { echo '{"severity":1,"sensation":"numb","why":"can'"'"'t feel the UPS"}'; exit 0; }
+st=$(sed -n 's/^ups.status: //p' <<<"$r"); ch=$(sed -n 's/^battery.charge: //p' <<<"$r"); ch=${ch%.*}
+case "$st" in
+  *LB*) echo "{\"severity\":3,\"sensation\":\"starving\",\"why\":\"UPS low battery (${ch}%)\"}" ;;
+  *OB*) echo "{\"severity\":$([ "${ch:-0}" -lt 50 ] && echo 3 || echo 2),\"sensation\":\"hungry\",\"why\":\"on battery, ${ch}%\"}" ;;
+  *)    if [ "${ch:-100}" -lt 80 ]; then echo "{\"severity\":1,\"sensation\":\"peckish\",\"why\":\"UPS recharging, ${ch}%\"}"
+        else echo '{"severity":0,"sensation":"fed","why":"on mains, battery full"}'; fi ;;
+esac

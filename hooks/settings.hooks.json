@@ -1,0 +1,75 @@
+{
+  "_comment": "Anna's Claude Code hooks. install.sh merges this into ~/.claude/settings.json (paths assume paths.bin = ~/bin). The bot gets the stream hook too (ANNA_ROLE=bot); headless runs set ANNA_HEADLESS=1 and the hooks stay quiet. PreToolUse = the action gate (anna-gate-hook): in the brain, a state change needs a recent go from the anna-action-gate engine; the bot and headless runs pass.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/anna-session-start",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/anna-session-draft",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/anna-stream hook",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/anna-stream hook",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/anna-idle-checkpoint",
+            "timeout": 1800,
+            "asyncRewake": true
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/anna-gate-hook",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

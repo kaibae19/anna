@@ -1,0 +1,24 @@
+#!/bin/bash
+# tests/run-all — every suite (tests/test_*.sh, plus tests/test_relay.ts if bun is installed), one summary line each.
+# Exit 0 only if every suite passed; -v prints each suite's full output. Run from anywhere: it changes to the repo root.
+set -u
+cd "$(dirname "$0")/.."
+v=0; [ "${1:-}" = -v ] && v=1
+fails=0
+run() {  # run NAME CMD…: a suite fails on a nonzero exit or any FAIL line
+  local name=$1 out rc ok bad; shift
+  out=$("$@" 2>&1); rc=$?
+  ok=$(grep -cE '^ok' <<<"$out"); bad=$(grep -cE '^FAIL' <<<"$out")
+  if [ "$rc" -ne 0 ] || [ "$bad" -gt 0 ]; then
+    fails=$((fails + 1)); printf 'FAIL %-22s %3s ok, %s FAIL (exit %s)\n' "$name" "$ok" "$bad" "$rc"; grep -E '^FAIL' <<<"$out" | sed 's/^/       /'
+  else
+    printf 'ok   %-22s %3s ok\n' "$name" "$ok"
+  fi
+  [ $v = 1 ] && printf '%s\n\n' "$out"
+}
+for t in tests/test_*.sh; do run "$(basename "$t" .sh)" bash "$t"; done
+BUN=$(command -v bun || echo "$HOME/.bun/bin/bun")
+if [ -x "$BUN" ]; then run test_relay timeout 120 "$BUN" tests/test_relay.ts
+else echo "skip test_relay             (no bun: the relay needs it; https://bun.sh)"; fi
+[ "$fails" -eq 0 ] && echo "all suites passed" || echo "$fails suite(s) failed"
+exit $((fails > 0))

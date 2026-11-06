@@ -1,0 +1,8 @@
+# anna-clock tick: fire due ping/run items from Anna's clock. User unit, installed by install.sh.
+[Unit]
+Description=Anna: clock tick
+
+[Service]
+Type=oneshot
+Environment=ANNA_CLOCK_BY=tick
+ExecStart=%h/bin/anna-clock tick

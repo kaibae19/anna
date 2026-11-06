@@ -1,0 +1,27 @@
+#!/bin/bash
+# anna-evening — the nightly fold (Anna's sleep): draft any interactive session the SessionEnd hook missed (crash, still
+# open), run the headless /anna-evening fold over the drafts and yesterday's stream, then retire what it reports on its
+# FOLDED: line. Run by anna-evening.timer (runs.evening, after late sessions); drafts carry their own start day.
+set -o pipefail
+D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
+export PATH="$(cfg paths.bin):$HOME/.local/bin:$PATH" TZ; TZ=$(cfg anna.timezone)
+DRAFT=$D/anna-session-draft; [ -x "$DRAFT" ] || DRAFT=$D/../hooks/anna-session-draft   # installed: both in bin; repo: hooks/
+ST_DIR=$(cfg paths.state); DR=$ST_DIR/drafts; SD=$ST_DIR/stream; R=$(cfg paths.record)
+echo "$(date -Is) evening: $("$DRAFT" --scan 36 | grep -v 'nothing to draft' | tr '\n' ';')"
+# yesterday's stream day file, unless already folded (marker list <state>/stream/.folded)
+ST=$SD/$(date -d yesterday +%F).jsonl; STREAM=""
+[ -s "$ST" ] && ! grep -qxF "$ST" "$SD/.folded" 2>/dev/null && STREAM="STREAM: $ST"
+ls "$DR"/*.md >/dev/null 2>&1 || [ -n "$STREAM" ] || { echo "$(date -Is) evening: no drafts, no stream, no run"; exit 0; }
+ANNA_ADD_DIR=$ST_DIR "$D/anna-run" "/anna-evening $(ls "$DR"/*.md 2>/dev/null | tr '\n' ' ')$STREAM" evening
+OUT=$R/journal/handoffs/$(date +%F)-evening.md
+head -1 "$OUT" | grep -q 'exit 0$' || { echo "$(date -Is) evening: run did not exit 0, drafts kept"; exit 1; }   # anna-run alerted
+folded=$(grep -m1 '^FOLDED:' <(tac "$OUT") | cut -d: -f2-)
+keep=(); for p in $folded; do [[ $p == "$DR"/*.md && -f $p ]] && keep+=("$p"); done
+[ ${#keep[@]} -gt 0 ] && "$DRAFT" --mark-folded "${keep[@]}"
+[ -n "$STREAM" ] && grep -qF "$ST" <<<"$folded" && echo "$ST" >> "$SD/.folded"
+left=$(ls "$DR"/*.md 2>/dev/null | wc -l)
+echo "$(date -Is) evening: folded ${#keep[@]}, left $left"
+if [ "$left" -gt 0 ] && command -v anna-notify >/dev/null; then
+  ANNA_NOTIFY_FROM="anna-evening" anna-notify "⚠ evening fold left $left session draft(s) unfolded; retried tomorrow. See $OUT" || true
+fi
+exit 0

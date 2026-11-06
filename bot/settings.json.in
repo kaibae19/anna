@@ -1,0 +1,45 @@
+{
+  "_comment": "The bot's settings (anna-tg). install.sh fills @RECORD@, @SECRETS@ and installs this as ~/.claude/anna-tg-<instance>-settings.json. Deny by default: add your own read-only wrappers (home control, sensors) to allow, one entry each. Never add an HTTP-capable command (curl, wget, python, nc, bun): the brain's relay port takes local HTTP (docs/concepts/relay.md). Real work goes to the brain over the relay, not into this list.",
+  "enabledPlugins": {
+    "telegram@claude-plugins-official": true,
+    "fakechat@claude-plugins-official": true
+  },
+  "disableClaudeAiConnectors": true,
+  "env": { "ENABLE_TOOL_SEARCH": "false" },
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "additionalDirectories": ["@RECORD@", "@STATE@/telegram-@INSTANCE@/inbox"],
+    "allow": [
+      "Read(/@RECORD@/**)",
+      "Read(/@STATE@/telegram-@INSTANCE@/inbox/**)",
+      "Edit(/@RECORD@/hosts/**)",
+      "Edit(/@RECORD@/memory/**)",
+      "Write(/@RECORD@/memory/**)",
+      "mcp__plugin_telegram_telegram__*",
+      "mcp__plugin_fakechat_fakechat__reply",
+      "mcp__merlin__*",
+      "Bash(git -C @RECORD@ log*)",
+      "Bash(git -C @RECORD@ add *)",
+      "Bash(git -C @RECORD@ commit *)",
+      "Bash(git -C @RECORD@ push)",
+      "Bash(date*)",
+      "Bash(anna-checks*)",
+      "Bash(anna-body*)",
+      "Bash(anna-clock add *)",
+      "Bash(anna-clock list*)",
+      "Bash(anna-clock due*)",
+      "Bash(anna-clock done *)",
+      "Bash(anna-clock cancel *)",
+      "Bash(anna-stream add *)",
+      "Bash(anna-stream recent*)"
+    ],
+    "deny": [
+      "Read(/@SECRETS@/**)",
+      "Bash(*@SECRETS@*)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(rm *)",
+      "Bash(sudo *)"
+    ]
+  }
+}

@@ -1,0 +1,207 @@
+#!/usr/bin/env python3
+"""anna-session-draft — turn an interactive Claude Code transcript into a raw, redacted journal draft.
+
+    anna-session-draft                     # as a SessionEnd hook: hook JSON on stdin (transcript_path)
+    anna-session-draft --scan [HOURS]      # draft every interactive transcript touched in the last HOURS (default 36)
+    anna-session-draft --mark-folded F...  # after the evening run folded drafts F: record their line marks, move them
+
+Drafts: <paths.state>/drafts/<session>.md (outside the record: raw extracts are never committed or indexed).
+Incremental: <paths.state>/folded.json maps session -> transcript lines already folded, so a resumed or still-open
+session only drafts what is new. Skips headless transcripts (entrypoint sdk-cli), the bot's (cwd ~/anna-<instance>) and
+sessions with no tool calls.
+Redaction: merlin's patterns if importable, else built-in ones (anna_cfg). Commands listed in drafts.secret_commands
+never have their output drafted. The evening run (/anna-evening) folds drafts into the journal and calls --mark-folded.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))   # repo layout: hooks/ next to bin/
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, os.path.expanduser("~/bin"))
+from anna_cfg import RECORD, STATE, TZ, USER, get, redact  # noqa: E402
+
+DRAFTS, FOLDED_DIR, MARKS = STATE / "drafts", STATE / "folded", STATE / "folded.json"
+PROJECTS = Path.home() / ".claude/projects"
+BOT_CWD = re.compile("^" + re.escape(str(Path.home())) + r"/anna-[a-z0-9]+/?$")
+
+
+def is_bot(cwd: str) -> bool:
+    """~/anna-<instance>, but never the record: the default record path ~/anna-record has the same shape."""
+    return bool(BOT_CWD.match(cwd)) and Path(cwd.rstrip("/") or "/") != RECORD
+OUT_CAP, TEXT_CAP, PROMPT_CAP, DRAFT_CAP = 700, 2500, 4000, 250_000
+REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.S)
+VAULT_RE = re.compile(r"(^|[\s/;|&(])(" + "|".join(map(re.escape, get("drafts.secret_commands", ["bw"]))) + r")\b")   # never drafted
+CMD_RE = re.compile(r"<command-name>(.*?)</command-name>.*?<command-args>(.*?)</command-args>", re.S)
+
+
+def load_marks() -> dict[str, int]:
+    try:
+        return json.loads(MARKS.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def local(ts: str | None) -> datetime | None:
+    if not ts:
+        return None
+    return datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone(TZ)
+
+
+def clip(s: str, n: int) -> str:
+    s = s.strip()
+    return s if len(s) <= n else s[:n] + f" … [{len(s) - n} more chars]"
+
+
+def text_of(content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(b.get("text", "") for b in content if isinstance(b, dict) and b.get("type") == "text")
+    return ""
+
+
+def describe_tool(name: str, inp: dict) -> str:
+    if name == "Bash":
+        d = f" ({inp['description']})" if inp.get("description") else ""
+        return f"`$ {clip(inp.get('command', ''), 600)}`{d}"
+    if name in ("Edit", "Write", "Read", "NotebookEdit"):
+        return f"{name} `{inp.get('file_path', '')}`"
+    if name == "Skill":
+        return f"Skill `{inp.get('skill')}` {inp.get('args', '')}".rstrip()
+    if name.startswith("mcp__"):
+        return f"{name.split('__', 2)[-1]} {clip(json.dumps(inp, ensure_ascii=False), 200)}"
+    return f"{name} {clip(json.dumps(inp, ensure_ascii=False), 200)}"
+
+
+def draft(transcript: Path, start: int = 0) -> tuple[str, int, int] | None:
+    """(markdown, lines read, redactions) for transcript lines [start:], or None if there is nothing to draft."""
+    lines = transcript.read_text(errors="replace").splitlines()
+    entries = []
+    for l in lines[start:]:
+        try:
+            entries.append(json.loads(l))
+        except ValueError:
+            continue
+    heads = list(map(_safe, lines[:50]))
+    if any(e.get("entrypoint") == "sdk-cli" for e in heads):   # headless run (claude -p)
+        return None
+    if any(is_bot(e.get("cwd") or "") for e in heads):  # the bot (anna-tg runs in ~/anna-<instance>): its day is
+        return None                                      # in the stream already, and its chats aren't journal material
+    results = {}
+    for e in entries:
+        c = (e.get("message") or {}).get("content")
+        if e.get("type") == "user" and isinstance(c, list):
+            for b in c:
+                if b.get("type") == "tool_result":
+                    results[b.get("tool_use_id")] = text_of(b.get("content")) if not isinstance(b.get("content"), str) \
+                        else b["content"]
+    out, tools, prompts, wrapped, first, last, sid, cwd = [], 0, 0, False, None, None, transcript.stem, ""
+    for e in entries:
+        ts = local(e.get("timestamp"))
+        first, last = first or ts, ts or last
+        cwd = e.get("cwd") or cwd
+        if e.get("isSidechain"):
+            continue
+        t, c = e.get("type"), (e.get("message") or {}).get("content")
+        human = None
+        if t == "user" and isinstance(c, str) and not e.get("isMeta"):
+            m = CMD_RE.search(c)
+            human = f"/{m.group(1).lstrip('/')} {m.group(2)}".strip() if m else REMINDER_RE.sub("", c)
+        elif t == "attachment" and (e.get("attachment") or {}).get("type") == "queued_command" \
+                and ((e["attachment"].get("origin") or {}).get("kind") == "human"):
+            q = e["attachment"].get("prompt", "")              # a str, or content blocks when the message had an image
+            human = "(mid-turn) " + (q if isinstance(q, str) else " ".join(b.get("text", "") for b in q if isinstance(b, dict)))
+        if human is not None and human.strip():
+            prompts += 1
+            wrapped |= "anna-wrapup" in human
+            out.append(f"\n### {ts:%H:%M} {USER}\n> " + clip(human, PROMPT_CAP).replace("\n", "\n> "))
+        elif t == "assistant" and isinstance(c, list):
+            for b in c:
+                if b.get("type") == "text" and b.get("text", "").strip():
+                    out.append(f"\n**Anna:** {clip(b['text'], TEXT_CAP)}")
+                elif b.get("type") == "tool_use":
+                    tools += 1
+                    inp = b.get("input") or {}
+                    wrapped |= b.get("name") == "Skill" and inp.get("skill") == "anna-wrapup"
+                    res = results.get(b.get("id"), "")
+                    line = f"- {describe_tool(b.get('name', ''), inp)}"
+                    if b.get("name") == "Bash" and VAULT_RE.search(inp.get("command", "")):
+                        line += "  _(vault command: output not drafted)_"
+                    elif res and (b.get("name") == "Bash" or b.get("name", "").startswith("mcp__")):
+                        line += "\n  ```\n  " + clip(res, OUT_CAP).replace("\n", "\n  ") + "\n  ```"
+                    out.append(line)
+    if not tools or not prompts or first is None:
+        return None
+    body = "\n".join(out)
+    if len(body) > DRAFT_CAP:                               # keep the conversation, drop command output first
+        body = re.sub(r"\n  ```\n.*?\n  ```", "", body, flags=re.S)[:DRAFT_CAP]
+    head = (f"---\nsession: {sid}\nday: {first:%Y-%m-%d}\nstarted: {first:%Y-%m-%d %H:%M %Z}\n"
+            f"ended: {last:%Y-%m-%d %H:%M %Z}\ncwd: {cwd}\ntranscript_lines: {start}-{len(lines)}\n"
+            f"prompts: {prompts}\ntool_calls: {tools}\nwrapped_up_in_session: {str(wrapped).lower()}\n---\n"
+            f"# Session draft {sid[:8]} ({first:%Y-%m-%d %H:%M}–{last:%H:%M})\n")
+    text, n = redact(head + body + "\n")
+    return text, len(lines), n
+
+
+def _safe(l: str) -> dict:
+    try:
+        return json.loads(l)
+    except ValueError:
+        return {}
+
+
+def write_draft(transcript: Path) -> str:
+    sid = transcript.stem
+    r = draft(transcript, load_marks().get(sid, 0))
+    if not r:
+        return f"{sid[:8]}: nothing to draft"
+    text, n_lines, n_red = r
+    DRAFTS.mkdir(parents=True, exist_ok=True)
+    tmp = DRAFTS / f".{sid}.tmp"
+    tmp.write_text(text)
+    tmp.replace(DRAFTS / f"{sid}.md")
+    return f"{sid[:8]}: drafted to line {n_lines} ({n_red} redactions)"
+
+
+def mark_folded(paths: list[str]) -> None:
+    marks = load_marks()
+    FOLDED_DIR.mkdir(parents=True, exist_ok=True)
+    for p in map(Path, paths):
+        m = re.search(r"^transcript_lines: \d+-(\d+)$", p.read_text(), re.M)
+        if m:
+            marks[p.stem] = int(m.group(1))
+        p.replace(FOLDED_DIR / f"{p.stem}.{time.strftime('%Y%m%dT%H%M')}.md")
+    MARKS.write_text(json.dumps(marks, indent=1))
+
+
+def main() -> int:
+    if os.environ.get("ANNA_HEADLESS"):
+        return 0
+    args = sys.argv[1:]
+    if args[:1] == ["--mark-folded"]:
+        mark_folded(args[1:])
+        return 0
+    if args[:1] == ["--scan"]:
+        hours = float(args[1]) if len(args) > 1 else 36
+        cutoff = time.time() - hours * 3600
+        for t in sorted(PROJECTS.glob("*/*.jsonl")):
+            if t.stat().st_mtime >= cutoff:
+                print(write_draft(t))
+        return 0
+    try:                                                    # SessionEnd hook: never fail the session over a draft
+        hook = json.load(sys.stdin)
+        print(write_draft(Path(hook["transcript_path"])), file=sys.stderr)
+    except Exception as e:  # noqa: BLE001
+        print(f"anna-session-draft: {e}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

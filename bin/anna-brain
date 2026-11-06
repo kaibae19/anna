@@ -1,0 +1,48 @@
+#!/bin/bash
+# anna-brain NAME [SESSION_ID] — runs the brain's claude in its screen window (started by `anna-day open`, or by hand).
+# If claude exits without anna-day's stop marker (a stray Ctrl-C/Ctrl-D twice, a /exit), the window doesn't close: it
+# resumes the same conversation after 10 s. `anna-day close` touches the marker before its /exit, so the nightly close
+# still ends the window. With SESSION_ID it resumes that conversation instead of starting a new one.
+# Relay (relay.enabled): the brain loads the fakechat channel on relay.brain_port. fakechat's server outlives claude (an
+# orphan holds the port), so the port is cleared before every launch (docs/concepts/relay.md).
+# Config: paths.state, models.brain, relay.*, day.remote_control (re-read at every resume: /exit after a change).
+set -u
+D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
+name=${1:?usage: anna-brain NAME [SESSION_ID]}
+export PATH="$HOME/.bun/bin:$(cfg paths.bin):$PATH"
+STATE=$(cfg paths.state); STOP=$STATE/brain-stop; mkdir -p "$STATE"
+flags() {  # read the config on every launch, so a change (relay on, a new model) takes effect at the next resume
+  extra=(); model=$(cfg models.brain); [ -n "$model" ] && extra+=(--model "$model")
+  if [ "$(cfg relay.enabled)" = true ]; then
+    export FAKECHAT_PORT; FAKECHAT_PORT=$(cfg relay.brain_port)
+    extra+=(--settings "$HOME/.claude/anna-brain-settings.json" --channels plugin:fakechat@claude-plugins-official)
+    relay=1
+  else relay=0; unset FAKECHAT_PORT; fi
+  rc_flag=(); [ "$(cfg day.remote_control)" = true ] && rc_flag=(--remote-control)
+}
+flags
+sid=${2:-$(uuidgen)} fast=0; rm -f "$STOP"
+if [ -n "${2:-}" ]; then resume=1; else resume=0; fi
+while :; do
+  t0=$(date +%s)
+  if [ $resume = 1 ]; then args=(--resume "$sid" "${rc_flag[@]}"); else args=(--session-id "$sid"); fi
+  if [ $relay = 1 ]; then
+    "$D/anna-relay" clear-port brain || "$D/anna-stream" add "⚠ anna-brain: fakechat port held by a live session; relay to $name won't work"
+  fi
+  env -u CLAUDECODE -u CLAUDE_CODE_CHILD_SESSION claude --dangerously-skip-permissions -n "$name" "${extra[@]}" "${args[@]}"
+  rc=$?
+  [ -e "$STOP" ] && { rm -f "$STOP"; exit 0; }                       # anna-day close asked for it
+  if [ $(( $(date +%s) - t0 )) -lt 15 ]; then fast=$((fast+1)); else fast=0; fi
+  if [ $fast -ge 3 ]; then                                            # crash loop: stop retrying
+    echo "claude exited 3 times within 15 s (rc $rc). Shell here; resume by hand: claude --resume $sid"; exec bash -l
+  fi
+  printf '\nClaude exited (rc %s). Resuming %s in 10 s.   [Enter] now · [s] shell · [q] close window\n' "$rc" "$name"
+  trap '' INT; k=; read -r -s -n1 -t 10 k </dev/tty; trap - INT    # Ctrl-C here does nothing
+  case "$k" in
+    s|S) echo "Resume later with: anna-brain $name $sid   ('exit' closes the window)"; exec bash -l ;;
+    q|Q) exit 0 ;;
+  esac
+  flags
+  if [ -f "$HOME/.claude/projects/$(sed 's/[^A-Za-z0-9]/-/g' <<<"$PWD")/$sid.jsonl" ]; then resume=1   # Claude Code's folder name
+  else resume=0; fi                                                  # never used: nothing to resume
+done

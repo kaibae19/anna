@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""anna-stream — Anna's shared short-term memory: one running log of the day that every part of Anna writes and reads.
+
+    anna-stream add [--from SRC] [--for brain] TEXT   append a line (SRC default: $ANNA_ROLE or "session")
+    anna-stream recent [--hours H] [--max N] [--from SRC]  print recent lines (default 24 h, 30); --from filters by source
+    anna-stream add --from gate TEXT                  the action gate's audit line (written by anna-gate-hook)
+    anna-stream hook                                  Claude Code hook (UserPromptSubmit + Stop, in user settings)
+
+Why: the bot is all of Anna and the interactive session is her brain, but each only knows its own conversation. The stream
+is the day: every part writes what it saw or did, and each session is shown what the others did since its last turn.
+The nightly wrap-up folds it into the journal (sleep).
+
+File: <paths.state>/stream/YYYY-MM-DD.jsonl (local day in anna.timezone). Line: {"ts", "from", "sid"?, "for"?, "text"}.
+Text is redacted (merlin's patterns if importable, else a built-in set) and capped.
+Hook, by role ($ANNA_ROLE=bot from anna-tg; $ANNA_HEADLESS=1 from anna-run; else the interactive session):
+  UserPromptSubmit: log the user's message (bot: Telegram <channel> text only; session: the prompt), then add as context
+    the lines other parts wrote since this session's last turn (first turn: the last 12 h). Headless: context only.
+  Stop: log Anna's reply (bot: the Telegram reply tool text from the transcript; session: last_assistant_message).
+A hook never blocks a prompt: any error exits 0 silently.
+"""
+from __future__ import annotations
+
+import fcntl
+import json
+import os
+import re
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from anna_cfg import STATE, TZ, USER, redact  # noqa: E402
+
+DIR, SEEN = STATE / "stream", STATE / "stream-seen"
+TEXT_CAP, SHOW_CAP, FIRST_HOURS, SHOW_MAX = 600, 300, 12, 30
+# The bot logs only Telegram channel blocks as the user's words: relay (fakechat) messages are logged by anna-relay.
+CHANNEL_RE = re.compile(r"<channel [^>]*source=\"[^\"]*telegram[^\"]*\"[^>]*>\s*(.*?)\s*</channel>", re.S)
+REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.S)
+CMD_RE = re.compile(r"<command-name>(.*?)</command-name>.*?<command-args>(.*?)</command-args>", re.S)
+SAID = f"{USER}: "
+
+
+def role() -> str:
+    if os.environ.get("ANNA_ROLE") == "bot":
+        return "bot"
+    # any `claude -p` is headless, also one started by hand or from a session's shell without ANNA_HEADLESS
+    # (2026-11-05: a test `claude -p "say ok"` was logged as the user saying it)
+    if os.environ.get("ANNA_HEADLESS") or os.environ.get("CLAUDE_CODE_ENTRYPOINT", "").startswith("sdk"):
+        return "headless"
+    return "session"
+
+
+def now() -> datetime:
+    return datetime.now(TZ)
+
+
+def add(text: str, src: str, sid: str = "", for_: str = "") -> None:
+    text = " ".join(redact(text)[0].split())
+    if not text:
+        return
+    if len(text) > TEXT_CAP:
+        text = text[: TEXT_CAP - 1] + "…"
+    rec = {"ts": now().isoformat(), "from": src, "text": text}
+    if sid:
+        rec["sid"] = sid[:8]
+    if for_:
+        rec["for"] = for_
+    DIR.mkdir(parents=True, exist_ok=True)
+    with open(DIR / f"{now():%F}.jsonl", "a") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
+def read_since(since: datetime) -> list[dict]:
+    out, d = [], since.date()
+    while d <= now().date():
+        p = DIR / f"{d:%F}.jsonl"
+        if p.exists():
+            for line in p.read_text().splitlines():
+                try:
+                    r = json.loads(line)
+                    if datetime.fromisoformat(r["ts"]) > since:
+                        out.append(r)
+                except (ValueError, KeyError):
+                    continue
+        d += timedelta(days=1)
+    return out
+
+
+def fmt(r: dict) -> str:
+    t = datetime.fromisoformat(r["ts"]).astimezone(TZ)
+    full = r.get("for") == "brain" or r["text"].startswith(SAID)          # the user's words + hand-offs: never cut
+    text = r["text"] if full or len(r["text"]) <= SHOW_CAP else r["text"][: SHOW_CAP - 1] + "…"
+    tag = r["from"] + (" → for the brain" if r.get("for") == "brain" else "")
+    return f"- {t:%a %H:%M} [{tag}] {text}"
+
+
+def hook() -> None:
+    h = json.load(sys.stdin)
+    ev, sid, rl = h.get("hook_event_name", ""), h.get("session_id", ""), role()
+    if ev == "UserPromptSubmit":
+        prompt = h.get("prompt") or ""
+        if rl == "bot":
+            for m in CHANNEL_RE.findall(prompt):
+                add(SAID + m, "bot", sid)
+        elif rl == "session":
+            p = REMINDER_RE.sub("", prompt)
+            m = CMD_RE.search(p)
+            p = f"/{m.group(1).strip().lstrip('/')} {m.group(2).strip()}" if m else p.strip()
+            if p and not p.startswith("<"):
+                add(SAID + p, "session", sid)
+        SEEN.mkdir(parents=True, exist_ok=True)
+        seen_f = SEEN / (re.sub(r"[^A-Za-z0-9-]", "", sid) or "none")
+        try:
+            since = datetime.fromisoformat(seen_f.read_text().strip())
+        except (OSError, ValueError):
+            since = now() - timedelta(hours=FIRST_HOURS)
+        rows = [r for r in read_since(since) if r.get("sid") != sid[:8]]
+        seen_f.write_text(now().isoformat())
+        if not rows:
+            return
+        brain = [r for r in rows if r.get("for") == "brain"] if rl != "bot" else []
+        rest = [r for r in rows if r not in brain]
+        # keep every line with the user's own words (a capped view once hid a request for hours), plus the newest others
+        keep = {id(r) for r in rest if r["text"].startswith(SAID)} | {id(r) for r in rest[-SHOW_MAX:]}
+        rest = [r for r in rest if id(r) in keep]
+        lines = "\n".join(fmt(r) for r in brain + rest)
+        hidden = len(rows) - len(brain) - len(rest)
+        more = f" ({hidden} older lines not shown: `anna-stream recent`)" if hidden else ""
+        ctx = (f"Anna's stream: what other parts of Anna (the bot, the main session, scripts, scheduled runs) saw or did "
+               f"since your last turn{more}. Background, true when written; times are {TZ.key}. Lines marked "
+               f"'for the brain' are handed to you to pick up.\n{lines}")
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
+    elif ev == "Stop" and rl != "headless" and not h.get("stop_hook_active"):
+        if rl == "session":                             # Stop input carries the reply; the transcript may not have it yet
+            if h.get("last_assistant_message"):
+                add("Anna: " + h["last_assistant_message"], "session", sid)
+            return
+        tp = Path(h.get("transcript_path") or "")
+        if not tp.is_file():
+            return
+        with open(tp, encoding="utf-8", errors="replace") as f:   # parse only user/assistant lines (skip big blobs)
+            tail = [ln for ln in f if '"type":"user"' in ln or '"type":"assistant"' in ln]
+        replies = []
+        for line in reversed(tail):
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            content = (e.get("message") or {}).get("content")
+            if e.get("type") == "user" and (isinstance(content, str) or
+                                            any(c.get("type") == "text" for c in content or [] if isinstance(c, dict))):
+                break                                   # reached the prompt that started this turn
+            if e.get("type") != "assistant" or not isinstance(content, list):
+                continue
+            for c in reversed(content):
+                if c.get("type") == "tool_use" and "reply" in c.get("name", "") and "telegram" in c.get("name", ""):
+                    replies.insert(0, (c.get("input") or {}).get("text", ""))
+        for r in replies:                               # bot: its Telegram reply tool calls
+            add("Anna: " + r, "bot", sid)
+
+
+def main(argv: list[str]) -> int:
+    if argv[:1] == ["hook"]:
+        try:
+            hook()
+        except Exception:  # noqa: BLE001  a hook must never block the prompt
+            pass
+        return 0
+    if argv[:1] == ["add"]:
+        a, src, for_ = argv[1:], os.environ.get("ANNA_ROLE") or "session", ""
+        while a and a[0] in ("--from", "--for") and len(a) >= 2:
+            src, for_ = (a[1], for_) if a[0] == "--from" else (src, a[1])
+            a = a[2:]
+        if not a:
+            print(__doc__.strip().splitlines()[2], file=sys.stderr)
+            return 2
+        if for_ not in ("", "brain"):
+            print("anna-stream: --for takes only 'brain'", file=sys.stderr)
+            return 2
+        add(" ".join(a), src, "", for_)
+        return 0
+    if argv[:1] == ["recent"]:
+        hours, mx, src, a = 24.0, 30, "", argv[1:]
+        while len(a) >= 2 and a[0] in ("--hours", "--max", "--from"):
+            if a[0] == "--from":
+                src = a[1]
+            else:
+                hours, mx = (float(a[1]), mx) if a[0] == "--hours" else (hours, int(a[1]))
+            a = a[2:]
+        rows = [r for r in read_since(now() - timedelta(hours=hours)) if not src or r.get("from") == src][-mx:]
+        print("\n".join(fmt(r) for r in rows) or "(nothing)")
+        return 0
+    print(__doc__.strip(), file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

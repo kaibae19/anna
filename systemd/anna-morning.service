@@ -1,0 +1,9 @@
+# anna-morning: the scheduled headless morning run. User unit, installed by install.sh.
+[Unit]
+Description=Anna: morning run
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/anna-run /anna-morning morning
+TimeoutStartSec=40min

@@ -1,0 +1,36 @@
+#!/bin/bash
+# anna-tg [INSTANCE] [--print-prompt] — the bot: one Claude Code session on the Telegram channel (default instance: bot.instance).
+# Per instance: token <paths.secrets>/telegram-INSTANCE · channel state <paths.state>/telegram-INSTANCE (access.json, inbox)
+# · settings ~/.claude/anna-tg-INSTANCE-settings.json (enables the telegram plugin here only; deny by default; from
+# bot/settings.json.in) · cwd ~/anna-INSTANCE (its own directory, so its chats stay out of the brain's).
+# Prompt: the scaffold's bot/prompt.md (placeholders filled from the config) + every file in <record>/bot/context/ appended
+# as its own section (your rooms, devices, sensors, tools: whatever the bot should act on without looking it up).
+# Relay (relay.enabled): also loads fakechat on relay.bot_port, after clearing an orphaned server from that port.
+# Run it under screen or a user unit (systemd/anna-tg@.service). Model: models.bot (ANNA_TG_MODEL overrides).
+set -euo pipefail
+D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
+I=${1:-$(cfg bot.instance)}; [[ $I =~ ^[a-z0-9]+$ ]] || { echo "anna-tg: bad instance '$I'" >&2; exit 2; }
+export PATH="$HOME/.bun/bin:$(cfg paths.bin):$HOME/.local/bin:$PATH" TZ ANNA_ROLE=bot ANNA_CLOCK_BY=bot
+TZ=$(cfg anna.timezone)
+SEC=$(cfg paths.secrets) STATE=$(cfg paths.state) R=$(cfg paths.record)
+tmpl=$D/../bot/prompt.md; [ -f "$tmpl" ] || tmpl=$HOME/.local/share/anna/bot/prompt.md
+# placeholders filled by bash, not sed: a | or & in a name or path stays literal (patsub_replacement off: & isn't the match)
+shopt -u patsub_replacement 2>/dev/null || true
+prompt=$(<"$tmpl"); v=$(cfg anna.name); prompt=${prompt//@NAME@/$v}; v=$(cfg anna.user); prompt=${prompt//@USER@/$v}
+prompt=${prompt//@RECORD@/$R}; prompt=${prompt//@TZ@/$TZ}
+for f in "$R"/bot/context/*; do
+  [ -f "$f" ] && [[ $(basename "$f") != README* ]] || continue   # the README explains the folder; it is not context
+  prompt+=$(printf '\n\n## %s (%s)\n```\n%s\n```' "$(basename "${f%.*}")" "$f" "$(cat "$f")")
+done
+[ "${2:-}" = --print-prompt ] && { printf '%s\n' "$prompt"; exit 0; }   # see what the bot is told
+export TELEGRAM_STATE_DIR=$STATE/telegram-$I
+[ -s "$SEC/telegram-$I" ] || { echo "anna-tg: no bot token at $SEC/telegram-$I" >&2; exit 2; }
+export TELEGRAM_BOT_TOKEN; TELEGRAM_BOT_TOKEN=$(cat "$SEC/telegram-$I")
+mkdir -p "$HOME/anna-$I"; cd "$HOME/anna-$I"
+ch=(plugin:telegram@claude-plugins-official)
+if [ "$(cfg relay.enabled)" = true ]; then
+  export FAKECHAT_PORT; FAKECHAT_PORT=$(cfg relay.bot_port); ch+=(plugin:fakechat@claude-plugins-official)
+  "$D/anna-relay" clear-port bot || echo "anna-tg: fakechat port $FAKECHAT_PORT held by a live session; relay won't work" >&2
+fi
+exec claude --model "${ANNA_TG_MODEL:-$(cfg models.bot)}" --channels "${ch[@]}" \
+  --settings "$HOME/.claude/anna-tg-$I-settings.json" --append-system-prompt "$prompt"

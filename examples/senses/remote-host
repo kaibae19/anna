@@ -1,0 +1,15 @@
+#!/bin/bash
+# Example sense: another machine over ssh (key auth). Copy to <record>/senses/<host>, set HOST.
+# Unreachable on ssh AND ping = pain; ssh failing but ping answering = numb (can't tell); recent reboot = sore.
+# PING_HOST: what ping should use when HOST is an ssh-config alias that DNS can't resolve (its address or real name);
+# without it, an alias that fails ssh would also fail ping and read as "unreachable".
+HOST=${HOST:-example-host}; PING_HOST=${PING_HOST:-$HOST}
+r=$(timeout 6 ssh -o BatchMode=yes -o ConnectTimeout=4 "$HOST" 'cat /proc/uptime /proc/loadavg; nproc' 2>/dev/null)
+if [ -z "$r" ]; then
+  if ping -c1 -W2 "$PING_HOST" >/dev/null 2>&1; then echo "{\"severity\":2,\"sensation\":\"numb\",\"why\":\"$HOST answers ping but not ssh\"}"
+  else echo "{\"severity\":3,\"sensation\":\"pain\",\"why\":\"$HOST unreachable (ssh and ping)\"}"; fi; exit 0
+fi
+up=$(sed -n 1p <<<"$r" | cut -d' ' -f1); up=${up%.*}; l15=$(sed -n 2p <<<"$r" | cut -d' ' -f3); n=$(sed -n 3p <<<"$r")
+if [ "$up" -lt 86400 ]; then echo "{\"severity\":1,\"sensation\":\"sore\",\"why\":\"$HOST rebooted $((up / 3600)) h ago\"}"; fi
+awk -v l="$l15" -v n="$n" -v h="$HOST" 'BEGIN{ if (l/n >= 1.5) printf "{\"severity\":2,\"sensation\":\"feverish\",\"why\":\"%s load %.1f per CPU\"}\n", h, l/n;
+  else printf "{\"severity\":0,\"sensation\":\"rested\",\"why\":\"%s fine\"}\n", h }'

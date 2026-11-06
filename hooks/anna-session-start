@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""anna-session-start — SessionStart hook: tell a new interactive session what happened while no one was looking.
+
+stdout becomes session context. Everything here is BACKGROUND, true when written: verify live before relying on it, and
+after a long gap greet rather than recap. Shows: hours since the last interactive activity (headless runs don't count),
+the latest headless report's "Needs action" section, and how many session drafts wait for the evening fold.
+"""
+import glob
+import json
+import os
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))   # repo layout: hooks/ next to bin/
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(os.path.expanduser("~/bin"))))
+try:
+    from anna_cfg import RECORD, STATE, get
+except ImportError:
+    sys.exit(0)
+
+if os.environ.get("ANNA_HEADLESS"):
+    sys.exit(0)
+try:
+    sid = json.loads(sys.stdin.read() or "{}").get("session_id", "")
+except ValueError:
+    sid = ""
+
+def last_activity(f: str) -> float:
+    """Epoch of the transcript's last timestamped entry. Not the mtime: Claude Code keeps appending untimestamped metadata
+    to an idle session's transcript, so the mtime makes a long gap look short. Falls back to the mtime."""
+    try:
+        with open(f, "rb") as fh:
+            fh.seek(0, 2)
+            fh.seek(max(0, fh.tell() - 262144))
+            tail = fh.read().decode("utf-8", "replace").splitlines()
+        for line in reversed(tail):
+            if '"timestamp"' not in line:
+                continue
+            try:
+                ts = json.loads(line).get("timestamp")
+            except ValueError:
+                continue
+            if isinstance(ts, str):
+                return datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp()
+    except OSError:
+        pass
+    return os.path.getmtime(f)
+
+
+best = 0.0
+for f in glob.glob(os.path.expanduser("~/.claude/projects/*/*.jsonl")):
+    if sid and sid in f:
+        continue
+    try:
+        with open(f) as fh:
+            head = fh.read(20000)
+    except OSError:
+        continue
+    if '"entrypoint":"sdk-cli"' in head:          # headless runs don't count as the user being here
+        continue
+    if os.path.getmtime(f) <= best:                 # can't be newer than what we have: skip the read
+        continue
+    best = max(best, last_activity(f))
+
+morning = get("runs.morning", "04:00")
+print("## Since the last session (anna-session-start hook) — BACKGROUND: true when written; verify live before stating it as current")
+if best:
+    gap = (time.time() - best) / 3600
+    line = f"Last interactive session activity: {gap:.1f} h ago."
+    if gap >= 8:
+        line += (f" Long gap: greet back; don't recite the handoff unless asked. The {morning} run did the morning check: "
+                 "mention only what it flagged; no /anna-morning rerun unless asked.")
+    print(line)
+reports = sorted(glob.glob(str(RECORD / "journal/handoffs/20*-*.md")), key=os.path.getmtime)
+if reports:
+    last = Path(reports[-1])
+    lines = last.read_text(errors="replace").splitlines()
+    first = lines[0] if lines else ""
+    print(f"Latest headless run: {last.relative_to(RECORD)} ({first[:80]}); its items may since be done:")
+    keep, out = False, []
+    for l in lines:
+        if l.startswith("## "):
+            keep = l.startswith("## Needs action")
+        if keep:
+            out.append(l)
+    print("\n".join(out[:15]))
+drafts = len(glob.glob(str(STATE / "drafts/*.md")))
+print(f"Unfolded session drafts (folded by the {get('runs.evening', '01:00')} run): {drafts}")

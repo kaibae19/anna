@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+"""anna-idle-checkpoint — wake the brain for /anna-checkpoint after a quiet spell, so a long day is journaled in pieces
+(the manual /anna-checkpoint stays).
+
+Claude Code user hook: Notification, matcher idle_prompt, {"asyncRewake": true, "timeout": 1800}. Runs in the background;
+exit 2 wakes the session with stderr as the message, exit 0 does nothing. It waits WAIT seconds, then wakes only if:
+  - this is the brain (interactive: no ANNA_ROLE, no ANNA_HEADLESS; the bot and anna-run never checkpoint),
+  - the transcript didn't change while waiting (anything new = not idle; the next idle_prompt starts a new waiter),
+  - the user typed at least one prompt since the last fold mark (folded.json, set by the checkpoint / evening fold):
+    their silence = nothing new to journal, so after they go to sleep it checkpoints once and then stays quiet,
+  - it's not the night window (from midnight, or from day.close if that is before midnight, until 15 min after day.open:
+    anna-day close wraps up, open starts fresh).
+One waiter per session (flock). Never blocks or fails a turn: any error exits 0.
+Test knobs: ANNA_IDLE_WAIT (seconds); ANNA_IDLE_TEST=1 asks for "PONG" instead of a checkpoint (throwaway sessions).
+"""
+import fcntl
+import json
+import os
+import re
+import sys
+import time
+from datetime import datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))   # repo layout: hooks/ next to bin/
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, os.path.expanduser("~/bin"))
+from anna_cfg import STATE, TZ, USER, get  # noqa: E402
+
+MARKS, LOCKS = STATE / "folded.json", STATE / "idle-checkpoint"
+WAIT = int(os.environ.get("ANNA_IDLE_WAIT", "1200"))
+MSG = ("Idle {m} min with " + USER + "'s prompts not yet journaled (auto-checkpoint, anna-idle-checkpoint): run /anna-checkpoint. "
+       "Keep the reply to one line; they may be away.")
+def _mins(hhmm: str) -> int:
+    h, m = (int(x) for x in str(hhmm).split(":"))
+    return h * 60 + m
+
+
+# night = from midnight (or from day.close, when the day closes before midnight) until 15 min after day.open
+NIGHT_END = _mins(get("day.open", "04:15")) + 15
+_close = _mins(get("day.close", "00:30"))
+NIGHT_START = _close if _close >= 12 * 60 else 0             # a close from noon on is the evening before
+
+
+def in_night(m: int) -> bool:
+    return m >= NIGHT_START or m < NIGHT_END if NIGHT_START else m < NIGHT_END
+
+
+def human_prompts_after(transcript: Path, mark: int) -> int:
+    n = 0
+    with open(transcript, encoding="utf-8", errors="replace") as f:
+        for i, line in enumerate(f):
+            if i < mark or ('"type":"user"' not in line and '"queued_command"' not in line):
+                continue
+            try:
+                e = json.loads(line)
+            except ValueError:
+                continue
+            c = (e.get("message") or {}).get("content")
+            a = e.get("attachment") or {}
+            if isinstance(c, str) and not e.get("isMeta") and not c.lstrip().startswith("<"):
+                n += 1
+            elif a.get("type") == "queued_command" and (a.get("origin") or {}).get("kind") == "human":
+                n += 1                                     # typed while Anna was mid-turn
+    return n
+
+
+def main() -> int:
+    if os.environ.get("ANNA_ROLE") or os.environ.get("ANNA_HEADLESS"):
+        return 0
+    h = json.load(sys.stdin)
+    sid, tp = h.get("session_id", ""), Path(h.get("transcript_path") or "")
+    if not sid or not tp.is_file():
+        return 0
+    LOCKS.mkdir(parents=True, exist_ok=True)
+    lock = open(LOCKS / (re.sub(r"[^A-Za-z0-9-]", "", sid) + ".lock"), "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)   # a waiter for this session is already counting
+    except OSError:
+        return 0
+    before = tp.stat().st_size
+    time.sleep(WAIT)
+    if tp.stat().st_size != before:                        # something happened: not idle
+        return 0
+    now = datetime.now(TZ)
+    if in_night(now.hour * 60 + now.minute):
+        return 0
+    try:
+        mark = int(json.loads(MARKS.read_text()).get(sid, 0))
+    except (OSError, ValueError):
+        mark = 0
+    if human_prompts_after(tp, mark) == 0:
+        return 0
+    msg = "Idle-hook test: reply with the single word PONG." if os.environ.get("ANNA_IDLE_TEST") else MSG.format(m=WAIT // 60)
+    print(msg, file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Exception:  # noqa: BLE001  never break a session
+        sys.exit(0)

@@ -1,0 +1,10 @@
+# install.sh fills @EVENING@ (runs.evening) and @TZ@ (anna.timezone) and installs this as anna-evening.timer.
+[Unit]
+Description=Anna: evening run at @EVENING@
+
+[Timer]
+OnCalendar=*-*-* @EVENING@:00 @TZ@
+Persistent=true
+
+[Install]
+WantedBy=timers.target
