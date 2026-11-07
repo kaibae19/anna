@@ -95,7 +95,7 @@ it changes anything. It never asks you to paste a token into the chat; it tells 
 | Your config, only the keys that differ from the defaults (shown to you first) | `~/.config/anna/anna.toml` |
 | Everything `install.sh` writes (next section) | see below |
 | Who you are and how you like to work | `<record>/memory/user-<you>.md` and its line in `memory/MEMORY.md` |
-| Your machines | `<record>/CLAUDE.md` § Hosts at a glance, `<record>/hosts/<name>.md` |
+| The things she looks after (machines, projects, …) | `<record>/CLAUDE.md` § Things at a glance, `<record>/hosts/<name>.md` |
 | Things you want to do | `<record>/planning/backlog.md` |
 | A first check and a first sense, from `examples/` | `<record>/checks/<name>`, `<record>/senses/<name>` |
 | Day one's journal entry and the handoff line | `<record>/journal/YYYY/MM/<today>.md`, the 📌 line in `memory/MEMORY.md` |

@@ -9,10 +9,14 @@ user = "you"                        # the person she works with, as she should a
 timezone = "UTC"                    # all times she writes and reads (journal, clock, nightly window)
 
 [paths]
-record = "~/anna-record"            # your record: journal, hosts, runbooks, planning, memory (a git repo; see record-template/)
+record = "~/anna-record"            # your record: journal, memory, planning, clock, your things (record.things), runbooks (a git repo; see record-template/)
 state = "~/.local/state/anna"       # runtime state: stream, clock lock, relay queue, drafts
 bin = "~/bin"                       # where install.sh puts the scripts
 secrets = "~/.config/anna/secrets"  # mode 700; files: claude-oauth (optional: headless auth), telegram-<instance> (bot token)
+
+[record]                            # the first folder for things; it grows from there (docs: A record that grows)
+things = "hosts"                    # folder of things she keeps a record of: hosts (machines), or chapters, clients, plants…
+thing = "host"                      # the front-matter key naming each one (merlin's entity name for history)
 
 [models]                            # one line per part (portable core: any model the harness can run)
 brain = ""                          # empty = the harness default

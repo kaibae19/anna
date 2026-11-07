@@ -32,7 +32,7 @@ index finds what you expect.
 | Without merlin | With merlin |
 |---|---|
 | The memory engine reads `memory/MEMORY.md`, greps the record for literal words and reads matching journal days. | It searches an index of the whole record, by meaning as well as words, with dates and document types. |
-| The action gate reads `hosts/<host>.md` before a reboot. | It can also ask for a host's history across the journal (`host_history`). |
+| The action gate reads the thing's record (`<record.things>/<name>.md`) before a reboot or restart. | It can also ask for that thing's history across the journal (`history`). |
 | The morning check has no index to report on. | It reports whether the index is fresh (`index_status`). |
 | Drafts and the stream are redacted with the built-in patterns. | They can use merlin's redaction patterns. |
 
@@ -64,8 +64,8 @@ name **`merlin`**. The tools the scaffold uses:
 | Tool | Used by |
 |---|---|
 | `search` | `anna-memory`, `anna-action-gate` (standing permissions in memory lessons) |
-| `history` | `anna-memory` |
-| `host_history` | `anna-memory` (`mode: host-history`), `anna-action-gate` (what depends on a host before a reboot) |
+| `history` | `anna-memory` (`mode: history`), `anna-action-gate` (what depends on a thing before a reboot or restart) |
+| `host_history` | the same, in older merlin versions (the engines accept either) |
 | `get_document` | `anna-memory` (reads the hit it quotes) |
 | `list_documents` | `anna-memory` |
 | `index_status` | `anna-memory` (once per question), `/anna-morning` |

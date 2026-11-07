@@ -27,9 +27,11 @@ cfg() { "$SRC/bin/anna-config" "$1"; }
 NAME=$(cfg anna.name) USR=$(cfg anna.user) TZ_=$(cfg anna.timezone)
 BIN=$(cfg paths.bin) REC=$(cfg paths.record) STATE=$(cfg paths.state) SEC=$(cfg paths.secrets)
 RELAY=$(cfg relay.enabled) BOT=$(cfg bot.enabled) INST=$(cfg bot.instance)
+THINGS=$(cfg record.things) THING=$(cfg record.thing)
 { [ "$RELAY" = true ] || [ "$BOT" = true ]; } && need bun "for the relay and the Telegram channel: https://bun.sh"
 fill() { sed -e "s|@NAME@|$NAME|g" -e "s|@USER@|$USR|g" -e "s|@RECORD@|$REC|g" -e "s|@TZ@|$TZ_|g" \
-             -e "s|@SECRETS@|$SEC|g" -e "s|@HOME@|$HOME|g" -e "s|@STATE@|$STATE|g" -e "s|@INSTANCE@|$INST|g" "$@"; }
+             -e "s|@SECRETS@|$SEC|g" -e "s|@HOME@|$HOME|g" -e "s|@STATE@|$STATE|g" -e "s|@INSTANCE@|$INST|g" \
+             -e "s|@THINGS@|$THINGS|g" -e "s|@THING@|$THING|g" "$@"; }
 
 echo "Installing Anna ($NAME, for $USR) from $SRC"
 install -d "$BIN" "$STATE" "$HOME/.local/share/anna/config" "$HOME/.local/share/anna/bot" "$HOME/.claude/skills"
@@ -56,7 +58,8 @@ say "engines → ~/.claude/agents ($(cd "$SRC/agents" && ls anna-*.md | sed 's/\
 
 if [ ! -e "$REC" ]; then                                           # the record: created once, then it's yours
   cp -r "$SRC/record-template" "$REC"
-  for f in CLAUDE.md memory/MEMORY.md; do fill -i "$REC/$f"; done
+  [ "$THINGS" != hosts ] && mv "$REC/hosts" "$REC/$THINGS"                 # the folder of things takes its configured name
+  for f in CLAUDE.md memory/MEMORY.md "$THINGS/README.md" "$THINGS/_template.md"; do fill -i "$REC/$f"; done
   { git -C "$REC" init -q -b main && git -C "$REC" add -A && git -C "$REC" commit -q -m "record: start from the Anna template"; } \
     || { echo "install.sh: created $REC but couldn't commit it (git user.name/email set?)" >&2; exit 1; }
   say "record created at $REC (git init; add a remote when you want it backed up)"

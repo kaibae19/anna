@@ -25,11 +25,11 @@ versioned in the record.
 
 ```
 <record>/
-├── CLAUDE.md            how Anna and you work; where a new thing goes; hosts at a glance
+├── CLAUDE.md            how Anna and you work; where a new thing goes; things at a glance
 ├── bot/context/         what the bot knows by heart (appended to its prompt)
 ├── checks/              your anna-checks sections (executables)
 ├── clock/               Anna's own schedule, one file per month
-├── hosts/               one file per machine or device
+├── hosts/               the folder of things: one file per thing she keeps a record of
 ├── journal/
 │   ├── YYYY/MM/         one file per day
 │   └── handoffs/        reports from the headless runs
@@ -46,12 +46,13 @@ Each folder in the template has a `README.md` with its own rules. They're summar
 Read first in every session. It has four parts:
 
 - **How we work:** design first for non-trivial changes; never conclude a negative from one check; evidence or
-  "hypothesis"; say the current state, read live, before a state change; two failed fixes, then stop; one host at a time;
+  "hypothesis"; say the current state, read live, before a state change; two failed fixes, then stop; one thing at a time;
   back up a config as `*.bak.<date>` before editing it; `set -o pipefail`; secrets never on a command line, in the record
   or in a chat; commit when asked or as the skills say.
 - **Where a new thing goes** (the layer rules, below).
 - **Session bookends:** `/anna-morning`, `/anna-wrapup`, `/anna-checkpoint` ([Skills](skills.md)).
-- **Hosts at a glance:** a table of host, address and what it is. `/anna-setup` starts it.
+- **Things at a glance:** a table of the things she keeps a record of (name, optional address, what it is). `/anna-setup`
+  starts it.
 
 ### Where a new thing goes
 
@@ -108,8 +109,11 @@ and exit code. The template keeps the folder with a `.gitkeep`.
 
 ### hosts/
 
-`hosts/<name>.md`: what the machine or device is, how to reach it (no secrets), what runs on it, and `## Notes` with dated
-facts, newest first. Use the same name everywhere (journal, checks, senses) so a search ties them together. The host file
+`hosts/<name>.md`: one file per *thing* Anna keeps a record of. In a home lab that's a machine or device; elsewhere it
+might be a chapter, a source, a client or a plant ([A record that grows](../concepts/a-record-that-grows.md)). Each file
+says what the thing is, how to reach it if that applies (no secrets), what matters about it, and `## Notes` with dated
+facts, newest first. The folder's name comes from `record.things` (default `hosts`) and the key from `record.thing`
+(default `host`); the engines read whatever you chose. Use the same name everywhere (journal, checks, senses) so a search ties them together. The host file
 holds current practice; the history of how it got that way stays in the journal.
 
 New host files start from `hosts/_template.md`, whose front matter names the host and its other names:
@@ -122,7 +126,9 @@ ips: [192.0.2.20]
 ---
 ```
 
-merlin reads this to tie mentions in the journal back to the host. Without it, `host_history` finds nothing for that host.
+merlin reads this to tie mentions in the journal back to the thing. Without it, `history` finds nothing for it. Point
+merlin's layout at your folder: its `[entities]` `name`, `types` and `key` take `record.thing`, and the layer glob
+takes `record.things` (the merlin guide shows the Anna layout).
 
 ### runbooks/
 

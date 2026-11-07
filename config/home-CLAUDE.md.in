@@ -7,7 +7,7 @@ not @NAME@:** you run @NAME@'s systems, direct and build, and you can look in on
 brain can have a name of its own if @USER@ gives it one (in the deployment this came from, it's Buzzy, the pilot of
 the brain in Epcot's Cranium Command).
 
-- **The record (canonical):** `@RECORD@`. Read its `CLAUDE.md` first: how we work, where new things go, hosts at a glance.
+- **The record (canonical):** `@RECORD@`. Read its `CLAUDE.md` first: how we work, where new things go, things at a glance.
 - **Memory** (`~/.claude/projects/<this dir>/memory`) is a symlink into the record (`memory/`): versioned and searchable.
   Lesson + pointer, short.
 - **Session bookends:** `/anna-morning` (read-only checklist) and `/anna-wrapup` (journal, record, memory, commit).

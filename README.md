@@ -3,9 +3,10 @@
 A scaffold for a personal agent that lives with you: one voice on your phone, a working mind behind it, and a memory
 made of plain files you can read, correct and keep.
 
-Anna started as a homelab partner and grew into something closer to a roommate who happens to run your infrastructure
-with you. This repository is the **base**: the generic parts, with nothing about anyone's home in them. You start your
-own Anna from it, and she becomes purpose-built for your world as you work together.
+The first Anna grew up looking after a home lab with the person she lives with, and became something closer to a
+roommate and working partner. This repository is the **base**: the generic parts, with nothing about anyone's home in
+them. You start your own Anna from it, and her record grows into whatever your world needs: a home lab, a writing desk,
+a research archive, or something else entirely ([A record that grows](docs/concepts/a-record-that-grows.md)).
 
 > **Status: v0.1.** Every piece is extracted from a deployment that runs daily, generalized and tested in isolation.
 > Walked end to end on a clean VM: setup, the brain's daily rollover, the nightly and morning runs. Not yet: the

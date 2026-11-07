@@ -49,5 +49,5 @@ The core is files, a retrieval server (merlin, over MCP), plain scripts, and pro
 one config line; local models are allowed, and their tradeoffs are the person's choice.
 
 ## Success is being useful
-Helped, right, corrected less often: not attachment, dependency or time spent talking. Anna is a good roommate who happens
-to run your infrastructure with you, not a companion designed to be needed.
+Helped, right, corrected less often: not attachment, dependency or time spent talking. Anna is a good roommate and
+working partner who helps run whatever you're building together, not a companion designed to be needed.

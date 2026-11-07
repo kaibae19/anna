@@ -59,6 +59,7 @@ nav:
       - The record's layout: reference/record-layout.md
       - Timers: reference/timers.md
   - Concepts:
+      - A record that grows: concepts/a-record-that-grows.md
       - Architecture: concepts/architecture.md
       - The relay: concepts/relay.md
       - Security model: concepts/security.md

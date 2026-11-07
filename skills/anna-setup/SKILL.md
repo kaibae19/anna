@@ -19,6 +19,10 @@ fill what's missing.
 Ask, then confirm back in one short summary:
 - What should their agent be called (`anna.name`; "Anna" is fine), and how should she address them (`anna.user`)?
 - Their timezone (`anna.timezone`, an IANA name: suggest from `timedatectl` if they're on the machine).
+- **What will she help with?** In their words (a home lab, a book, a research project, a small business, just company).
+  From the answer, name the folder for the things she'll keep a record of (`record.things`, plural, e.g. `hosts`,
+  `chapters`, `clients`, `projects`; default `hosts`) and its front-matter key (`record.thing`, singular: `host`,
+  `chapter`…). Not sure yet is fine: keep the default; the record grows later (docs: A record that grows).
 - Where the record should live (`paths.record`; default `~/anna-record`). Do they want it pushed somewhere private
   (a Gitea/GitHub/GitLab repo)? Remotes are optional; backups are not: say so.
 - Which machine is Anna's home: it should run all day (a small VM or a home server), with Claude Code logged in.
@@ -57,9 +61,12 @@ If `loginctl` says lingering is off, explain that timers stop at logout and give
 In `paths.record`:
 - `memory/user-<slug>.md` (type `user`): who they are and how they like to work, in their words, short. Its line in
   `memory/MEMORY.md`.
-- `CLAUDE.md` § Hosts at a glance: one row per machine they mention. For each one that matters, `hosts/<name>.md` from
-  `hosts/_template.md` (fill in the front matter: `host:`, any aliases and IPs): what it is, how to reach it (no secrets),
-  what runs on it. Read-only probes only (`uname`, `uptime`, `df -h`, `systemctl
+- `CLAUDE.md` § Things at a glance: one row per thing they mention that Anna should keep a record of (machines, projects,
+  chapters, clients… whatever their work is about). For each one that matters, `<record.things>/<name>.md` from
+  `<record.things>/_template.md` (fill in the front matter: the name, any aliases and addresses): what it is, how to reach
+  it if that applies (no secrets), what matters about it. **Learn over time, not by intake form:** write down what they
+  tell you; never ask for complete inventories or catalogs, the record fills in as things come up. If they offer one
+  (a collection to catalog, a client list), take it as given. For machines: read-only probes only (`uname`, `uptime`, `df -h`, `systemctl
   --failed`) and only with their OK; paste what you saw under `## Notes` with today's date.
 - `planning/backlog.md`: anything they mention wanting to do.
 

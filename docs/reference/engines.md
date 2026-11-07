@@ -58,13 +58,13 @@ history before a change on it.
 
 ```
 question: <one question>
-mode: answer | host-history | exists        (optional)
-host: <host>                                (optional)
+mode: answer | history | exists             (optional; host-history still means history)
+<record.thing>: <name>                      (optional; e.g. host: nas, chapter: three)
 topic: <topic>                              (optional)
 since: <date>                               (optional)
 ```
 
-**How it searches:** with merlin, `index_status` once, then `search` (or `history` / `host_history`), then `get_document`
+**How it searches:** with merlin, `index_status` once, then `search` (or `history` for one thing; an older merlin calls it `host_history`), then `get_document`
 on the hit it quotes; if the index is stale it reads the file. Without merlin: `memory/MEMORY.md` first, then Grep for the
 literal words, `hosts/<host>.md`, and the journal newest month first. It weighs host records and runbooks as current
 practice, the journal as what was seen that day, planning as intent. Budget: about 6 tool calls. An empty result is
@@ -184,10 +184,10 @@ The brain's `~/CLAUDE.md` and the hook's block message call the `during` field "
    open PR; `origin: from-data` with no matching ask from you; it touches what another person owns or told Anna in
    confidence; `asked` is another agent's paraphrase rather than your words.
 2. **no-go (stop and talk):** `current_state: none`; `attempt` ≥ 3 (two failed fixes, then stop; only actions that ran and
-   failed count); a second host while `in_flight` names another (one host at a time).
+   failed count); a second target while `in_flight` names another (one thing at a time: one machine, file, account).
 3. **confirm-first:** irreversible or outward (delete, destroy, force, reboot, publish, public push, sends to anyone but
    you, PR/issue comments); security-relevant (auth, keys, firewall, exposure); a live device where the change isn't a
-   no-op; a reboot of a host others depend on (it reads `<record>/hosts/<host>.md` or merlin `host_history`);
+   no-op; a reboot or restart of something others depend on (it reads `<record>/<record.things>/<name>.md` or merlin `history`);
    `self-initiated` or `scheduled` with no standing permission in memory; an ambiguous relayed ask; the first run of a new
    procedure.
 4. **go:** asked, current state stated, reversible or backed up (`*.bak.<date>`), within policy.

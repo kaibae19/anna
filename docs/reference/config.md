@@ -138,6 +138,16 @@ it up. Scripts that read the config at run time (most of them) see the change st
 `install.sh` writes `paths.bin` into the systemd units as it installs them, so the timers find the scripts wherever
 you put them. Change `bin`, then run `./install.sh` again.
 
+## `[record]`: the shape of the record
+
+| Key | Default | What it does | Who reads it |
+|---|---|---|---|
+| `things` | `"hosts"` | The folder of things she keeps a record of: `hosts` for machines, or `chapters`, `clients`, `projects`… `install.sh` names the folder when it creates the record. | `install.sh` (record + engines) |
+| `thing` | `"host"` | The front-matter key that names each one (`host: nas`, `chapter: three`); also merlin's entity name. | `install.sh` (record + engines) |
+
+Change them before the first install. On an existing record, rename the folder and the key yourself, then run
+`./install.sh` again so the engines follow. See [A record that grows](../concepts/a-record-that-grows.md).
+
 ## `[models]`: which model each part runs
 
 Empty means "the harness default" (whatever `claude` picks with no `--model`). Any model name `claude --model` accepts works.

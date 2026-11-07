@@ -12,7 +12,7 @@ This repository is @NAME@'s long-term memory: plain Markdown, in git. Files are 
 - **Before a state change, say the current state**, read live, in one line before the command. For anything long-running,
   also say what must not happen meanwhile.
 - **Two failed fixes, then stop.** State the hypothesis and the evidence, and talk it through.
-- **One host at a time** for state changes; back up a config as `*.bak.<date>` before editing it.
+- **One thing at a time** for state changes (one machine, one file, one account); back up a config as `*.bak.<date>` before editing it.
 - **Shell:** `set -o pipefail`; never let `| tail` or `&&` hide a failure; a zero exit is not proof the work happened.
 - **Secrets** never on a command line, in the record, or in a chat. Point to where they live instead.
 - **Commit when asked** (or as the skills say). Make the change, show the diff.
@@ -20,7 +20,8 @@ This repository is @NAME@'s long-term memory: plain Markdown, in git. Files are 
 ## Where a new thing goes
 - What we did and the raw output → `journal/YYYY/MM/YYYY-MM-DD.md` (the day the session **started**, @TZ@). Paste real
   output, never a summary of it. Format: `journal/README.md`.
-- A fact about one host or device → `hosts/<name>.md` (`## Notes`); a new host starts from `hosts/_template.md`.
+- A fact about one thing she keeps a record of (a machine, a chapter, a client…) → `@THINGS@/<name>.md` (`## Notes`); a new
+  one starts from `@THINGS@/_template.md`.
 - A step-by-step procedure, a config file, a script → `runbooks/<topic>/`.
 - A lesson, a gotcha, a "why we chose this" → `memory/`: short, **pointer first** to where the detail lives
   (`memory/README.md`).
@@ -34,7 +35,7 @@ This repository is @NAME@'s long-term memory: plain Markdown, in git. Files are 
 `/anna-morning` (read-only checklist; also runs headless every morning) and `/anna-wrapup` (journal + record + commit;
 also typed in overnight). `/anna-checkpoint` journals mid-session.
 
-## Hosts at a glance
-| Host | Address | What |
+## Things at a glance
+| Thing | Address (optional) | What |
 |---|---|---|
 | (add yours: `/anna-setup` starts this table) | | |

@@ -165,7 +165,7 @@ footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(-
       Anna
     </div>
     <nav aria-label="Sections">
-      <a href="#models">The idea</a><a href="#files">Her files</a><a href="#merlin">merlin</a><a href="#modules">The modules</a><a href="#gate">Asking first</a><a href="#grow">Add a part</a><a href="#start">Start</a><a href="docs/">Docs</a>
+      <a href="#models">The idea</a><a href="#files">Her files</a><a href="#grows">Grows</a><a href="#merlin">merlin</a><a href="#modules">The modules</a><a href="#gate">Asking first</a><a href="#grow">Add a part</a><a href="#start">Start</a><a href="docs/">Docs</a>
     </nav>
   </header>
 
@@ -237,15 +237,40 @@ footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(-
       <p>The record is about you and your home, but it belongs to her. She writes it, lives in it, and reads it back every morning. Change the model underneath and she is still Anna. Lose the files and she isn't.</p>
       <p class="pull">You can read every line, correct anything, and see every change in the history.</p>
     </div>
-    <div class="tree" aria-label="Example layout of a record"><span class="d">record/</span>
+    <div><div class="tree" aria-label="Example layout of a record"><span class="d">record/</span>
 ├── <span class="d">journal/</span>2026/11/2026-11-07.md  <span class="c"># what happened, verbatim</span>
-├── <span class="d">hosts/</span>media-server.md          <span class="c"># one note per machine</span>
-├── <span class="d">runbooks/</span>backups/README.md      <span class="c"># how we do things</span>
+├── <span class="d">chapters/</span>chapter-03.md           <span class="c"># one file per thing she looks after</span>
+├── <span class="d">runbooks/</span>submit-a-draft.md      <span class="c"># a how-to, once it's done twice</span>
 ├── <span class="d">memory/</span>
 │   ├── MEMORY.md                   <span class="c"># the index she loads</span>
 │   └── check-state-first.md        <span class="c"># a lesson, one per file</span>
 ├── <span class="d">planning/</span>backlog.md
 └── <span class="d">clock/</span>2026-11.md               <span class="c"># her own schedule</span></div>
+      <p class="hint">One Anna's record, a writer's. The first Anna's grew a <code>hosts/</code> folder instead, because she looks after a home lab.</p></div>
+  </div>
+</section>
+
+<section id="grows">
+  <div class="wrap split">
+    <div class="stack">
+      <span class="eyebrow">Growth</span>
+      <h2>A record that grows.</h2>
+      <p>Anna doesn't arrive with a form to fill in. She starts with a small core (a journal, lessons, a plan, her own clock) and the rest grows out of the work you do together.</p>
+      <p>When the conversation keeps coming back to the same kind of thing, machines, chapters, clients, plants, she suggests a place for it, you agree, and it gets a one-page README saying what goes there. Our home lab is simply what the first Anna grew into.</p>
+      <p><a href="docs/concepts/a-record-that-grows/">How the record grows, in the docs</a></p>
+    </div>
+    <div class="stack">
+      <div class="col">
+        <h3><span class="dot" style="background:var(--file)"></span>How she learns</h3>
+        <ul>
+          <li><strong>Over time, not by intake form.</strong> She writes down what comes up, the way a roommate learns you. She never asks for a complete inventory.</li>
+          <li><strong>A whole collection is welcome</strong> when you offer one: a record library, a bibliography, a client list. She takes it as given.</li>
+          <li><strong>Names that last.</strong> Folders are named for the stable thing (a room, a project); nicknames stay as aliases, so "the studio" still finds the spare-room setup.</li>
+          <li><strong>Moving things later is cheap.</strong> Each folder keeps a short moves log, and the search index rebuilds from the files.</li>
+        </ul>
+      </div>
+      <p class="pull">The scaffold is what a new Anna starts with. After that, her record is her own.</p>
+    </div>
   </div>
 </section>
 
@@ -333,6 +358,7 @@ footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(-
     <span class="eyebrow">Platform</span>
     <h2>Add a part. See what she becomes.</h2>
     <p class="lede" style="margin-top:1rem">The scaffold is the generic base. Every Anna grows from it into something purpose-built for one person's life. Engines are files, senses are small scripts, skills are written procedures, so a new part is something you can read before you plug it in. Nobody knows yet what the most interesting parts will be.</p>
+    <p style="margin-top:1rem;color:var(--muted)"><strong style="color:var(--ink)">Integrations are parts too, and always optional.</strong> Connect a music-library service, a calendar or a notes app if you want her to look things up there; leave them out and she learns the same things by talking with you. Want something that isn't here? Tell Anna, and build it together.</p>
     <h3 style="margin-top:2.5rem">Think about how a brain works. Which part would you build?</h3>
     <p style="margin-top:.5rem;color:var(--muted)">Anna's parts are loosely inspired by what brains do. It's an analogy, not neuroscience, but it's a good way to find the gaps.</p>
     <div class="regions" id="regions"></div>

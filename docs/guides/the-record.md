@@ -33,7 +33,7 @@ Good starting points:
 
 - **"What's going on?"** The 📌 line at the top of `memory/MEMORY.md`, then the newest `journal/handoffs/*-morning.md`.
 - **"What happened on Tuesday?"** That day's file in `journal/YYYY/MM/`. Each session is a `## ` block; each topic a `###`.
-- **"How is this machine set up?"** `hosts/<name>.md`.
+- **"What do we know about this thing?"** (a machine, a chapter, a client…) `hosts/<name>.md`.
 - **"How do we do this?"** `runbooks/<topic>/README.md`.
 
 To find a word anywhere in the record:
