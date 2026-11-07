@@ -1,5 +1,6 @@
 site_name: Anna
 site_description: A scaffold for a personal agent that lives with you, built on Claude Code.
+repo_url: https://github.com/kaibae19/anna
 docs_dir: docs
 strict: true
 

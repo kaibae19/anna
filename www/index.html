@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anna, a Modular Mind</title>
+<meta name="description" content="Anna is an open scaffold for an AI working partner who lives with you at home: a modular mind of small engines, and a memory made of plain files she writes herself.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* Layout: a single scroll story around one living diagram: modules plugged into a core of files, like a patch bay for a mind */
+:root {
+  --paper: #eef1f6;      /* cool drafting paper */
+  --panel: #ffffff;
+  --ink: #1b1f2e;
+  --muted: #5b6275;
+  --line: #c9cfdc;
+  --spark: #e2456f;      /* synapse rose: the one accent */
+  --file: #2b7a78;       /* the record: deep teal, used only for files */
+  --spark-soft: #fbe3ea;
+  --file-soft: #dcefee;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --s1: .875rem; --s2: 1rem; --s3: 1.25rem; --s4: 1.75rem; --s5: clamp(2rem, 5vw, 3rem); --s6: clamp(2.6rem, 8vw, 5.2rem);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #10131d; --panel: #181c29; --ink: #e9ebf3; --muted: #9aa1b5; --line: #2c3245;
+  --spark: #ff7a9c; --file: #5cc2bd; --spark-soft: #3a1d29; --file-soft: #15302f; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --paper: #10131d; --panel: #181c29; --ink: #e9ebf3; --muted: #9aa1b5; --line: #2c3245;
+  --spark: #ff7a9c; --file: #5cc2bd; --spark-soft: #3a1d29; --file-soft: #15302f; color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--paper); color: var(--ink); font: 400 var(--s2)/1.6 var(--body); margin: 0; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+section { padding-block: clamp(3rem, 8vw, 6rem); border-top: 1px dashed var(--line); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.01em }
+h1 { font-size: var(--s6); font-weight: 800; line-height: .98 }
+h2 { font-size: var(--s5); font-weight: 800; line-height: 1.05 }
+h3 { font-size: var(--s3); font-weight: 600 }
+p { margin: 0; max-width: 62ch }
+.eyebrow { font: 500 var(--s1)/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--spark) }
+.lede { font-size: var(--s3); color: var(--muted); line-height: 1.5 }
+a { color: var(--spark); text-underline-offset: 3px }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--spark); outline-offset: 3px; border-radius: 6px }
+code, .mono { font-family: var(--mono); font-size: .9em }
+.stack { display: grid; gap: 1.25rem }
+
+/* top bar */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1.25rem; }
+.mark { font: 800 var(--s3)/1 var(--display); display: flex; align-items: center; gap: .55rem }
+.mark svg { width: 28px; height: 28px }
+.top nav { display: flex; gap: 1.1rem; flex-wrap: wrap; font-size: var(--s1) }
+.top nav a { color: var(--ink); text-decoration: none; font-weight: 500 }
+.top nav a:hover { color: var(--spark) }
+
+/* hero */
+.hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(1.5rem, 4vw, 3.5rem); align-items: center; padding-block: clamp(1.5rem, 5vw, 4rem) clamp(3rem, 7vw, 5rem); }
+.hero > * { min-width: 0 }
+.hero h1 em { font-style: normal; color: var(--spark) }
+.cta { display: flex; gap: .75rem; flex-wrap: wrap; margin-top: .5rem }
+.btn { display: inline-flex; align-items: center; gap: .5rem; padding: .7rem 1.1rem; border-radius: 999px; font-weight: 600; text-decoration: none; border: 2px solid var(--ink); color: var(--ink); background: transparent }
+.btn.primary { background: var(--ink); color: var(--paper) }
+.btn:hover { border-color: var(--spark); }
+.btn.primary:hover { background: var(--spark); border-color: var(--spark); color: #fff }
+
+/* the brain diagram */
+.brain { width: 100%; max-width: 100%; aspect-ratio: 1 / 1; }
+.brain .wire { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: 4 6 }
+.brain .wire.on { stroke: var(--spark); stroke-dasharray: none }
+.brain .node rect { fill: var(--panel); stroke: var(--line); stroke-width: 2; transition: stroke .2s, fill .2s }
+.brain .node text { fill: var(--ink); font: 600 15px var(--display) }
+.brain .node .sub { fill: var(--muted); font: 400 11px var(--mono) }
+.brain .node { cursor: pointer }
+.brain .node:hover rect, .brain .node.on rect { stroke: var(--spark); fill: var(--spark-soft) }
+.brain .core rect { fill: var(--file-soft); stroke: var(--file); stroke-width: 2.5 }
+.brain .core text { fill: var(--ink); font: 800 18px var(--display) }
+.brain .core .sub { fill: var(--file); font: 500 11px var(--mono) }
+.brain .pulse { fill: var(--spark) }
+.brain .sheet { fill: var(--panel); stroke: var(--file); stroke-width: 1.5 }
+.readout { margin-top: .75rem; background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 1rem 1.1rem; display: grid; gap: .35rem; min-height: 7.2rem }
+.readout .q { font: 500 var(--s1) var(--mono); color: var(--spark) }
+.readout p { color: var(--muted); font-size: .95rem }
+.hint { font-size: var(--s1); color: var(--muted); margin-top: .5rem }
+
+/* files */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.5rem, 4vw, 3rem); align-items: start }
+.split > * { min-width: 0 }
+.tree { background: var(--panel); border: 2px solid var(--file); border-radius: 14px; padding: 1.1rem 1.2rem; font: 400 .88rem/1.75 var(--mono); overflow-x: auto; white-space: pre; color: var(--ink) }
+.tree .d { color: var(--file); font-weight: 500 }
+.tree .c { color: var(--muted) }
+.pull { font: 800 var(--s4)/1.2 var(--display); color: var(--ink); border-left: 4px solid var(--file); padding-left: 1rem; max-width: 30ch }
+
+/* modules grid */
+.mods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2rem }
+.mod { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 1.1rem 1.2rem 1.2rem; display: grid; gap: .5rem; align-content: start; position: relative }
+.mod::before { content: ""; position: absolute; top: -9px; left: 22px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); border: 2px solid var(--line) }
+.mod:hover { border-color: var(--spark) }
+.mod:hover::before { border-color: var(--spark); background: var(--spark) }
+.mod .q { font: 500 var(--s1) var(--mono); color: var(--spark) }
+.mod p { color: var(--muted); font-size: .95rem }
+.mod .file { font: 400 .78rem var(--mono); color: var(--file) }
+
+/* gate transcript */
+.chat { background: var(--panel); border: 2px solid var(--line); border-radius: 16px; padding: 1.1rem; display: grid; gap: .7rem; font-size: .95rem }
+.msg { padding: .65rem .9rem; border-radius: 14px; max-width: 85% }
+.msg.you { background: var(--paper); justify-self: end; border-bottom-right-radius: 4px }
+.msg.her { background: var(--spark-soft); border-bottom-left-radius: 4px }
+.msg.sys { justify-self: center; max-width: 100%; font: 400 .78rem/1.5 var(--mono); color: var(--muted); background: transparent; border: 1px dashed var(--line); border-radius: 8px }
+.who { font: 500 .72rem var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: block; margin-bottom: .15rem }
+
+/* halves */
+.halves { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem }
+.half { border-radius: 18px; padding: 1.4rem; display: grid; gap: .6rem; align-content: start; border: 2px solid var(--line); background: var(--panel) }
+.half .tag { font: 500 var(--s1) var(--mono); color: var(--spark) }
+.half ul { margin: 0; padding-left: 1.1rem; color: var(--muted) }
+
+/* status */
+.status { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem }
+.col { background: var(--panel); border: 2px solid var(--line); border-radius: 14px; padding: 1.1rem 1.2rem }
+.col h3 { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block }
+.col ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem; color: var(--muted) }
+.col li strong { color: var(--ink); font-weight: 600 }
+
+/* brain regions map */
+.regions { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .75rem; margin-top: 1.25rem }
+.reg { background: var(--panel); border: 2px solid var(--line); border-radius: 12px; padding: .85rem 1rem; display: grid; gap: .3rem; align-content: start }
+.reg .fn { font: 500 .78rem var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em }
+.reg .part { font: 600 1.05rem var(--display) }
+.reg .note { font-size: .88rem; color: var(--muted) }
+.chip { justify-self: start; font: 500 .72rem var(--mono); padding: .15rem .55rem; border-radius: 999px; border: 1.5px solid currentColor }
+.chip.ships { color: var(--file) }
+.chip.open { color: var(--spark) }
+.chip.home { color: var(--muted) }
+.reg.open { border-style: dashed; border-color: var(--spark) }
+
+/* quick start */
+.term { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 1.1rem 1.2rem; font: 400 .92rem/1.8 var(--mono); overflow-x: auto; white-space: pre }
+.term .p { color: var(--spark) }
+.term .c { opacity: .6 }
+footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(--muted); font-size: var(--s1); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap }
+
+@media (max-width: 820px) {
+  .hero, .split, .halves, .status { grid-template-columns: 1fr }
+  .mods { grid-template-columns: 1fr 1fr }
+}
+@media (max-width: 520px) { .mods { grid-template-columns: 1fr } .top nav { display: none } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="mark">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><circle cx="14" cy="14" r="5" fill="var(--file)"/><g stroke="var(--spark)" stroke-width="2.2" stroke-linecap="round"><path d="M14 2v5M14 21v5M2 14h5M21 14h5M5.5 5.5l3.5 3.5M19 19l3.5 3.5M22.5 5.5L19 9M9 19l-3.5 3.5"/></g></svg>
+      Anna
+    </div>
+    <nav aria-label="Sections">
+      <a href="#models">The idea</a><a href="#files">Her files</a><a href="#merlin">merlin</a><a href="#modules">The modules</a><a href="#gate">Asking first</a><a href="#grow">Add a part</a><a href="#start">Start</a><a href="docs/">Docs</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <div class="stack">
+      <span class="eyebrow">Open scaffold · v0.1</span>
+      <h1>A mind you can <em>read</em>, made of parts you can swap.</h1>
+      <p class="lede">Anna is an AI working partner who lives with you, at home: part roommate, part colleague. Her thinking is split into small engines that each do one job, and her memory is a folder of plain files she writes herself.</p>
+      <div class="cta">
+        <a class="btn primary" href="#start">Start your own Anna</a>
+        <a class="btn" href="docs/">Read the docs</a>
+        <a class="btn" href="https://github.com/kaibae19/anna">View on GitHub</a>
+      </div>
+    </div>
+    <div>
+      <svg class="brain" id="brain" viewBox="0 0 440 440" role="img" aria-label="Diagram: six engines plugged into a central record of files">
+        <g id="wires"></g>
+        <g class="core" transform="translate(150 180)">
+          <rect width="140" height="80" rx="16"/>
+          <rect class="sheet" x="104" y="-10" width="26" height="32" rx="4"/>
+          <rect class="sheet" x="110" y="-4" width="26" height="32" rx="4"/>
+          <text x="18" y="38">her record</text>
+          <text class="sub" x="18" y="58">plain files · git</text>
+        </g>
+        <g id="nodes"></g>
+        <g id="pulses"></g>
+      </svg>
+      <div class="readout" id="readout" aria-live="polite">
+        <span class="q" id="r-q">"What matters right now?"</span>
+        <h3 id="r-name">Interpretation</h3>
+        <p id="r-text">Sorts everything she could bring up into background, worth mentioning, or best left unsaid. A greeting after a long gap gets a greeting back, not a status report.</p>
+      </div>
+      <p class="hint">Tap a module to see what it does.</p>
+    </div>
+  </div>
+</div>
+
+<section id="models">
+  <div class="wrap">
+    <span class="eyebrow">The idea</span>
+    <h2>Not a bigger model. A better arrangement.</h2>
+    <div class="split" style="margin-top:1.5rem">
+      <div class="stack">
+        <p class="lede">The usual answer in AI is one model, as large as possible, for everything. Anna goes the other way: several small parts that each do one job, working together, each on the smallest model that does that job well.</p>
+        <p>Most of what an agent does is reading, not writing: is this message tired or busy? Is that fact stale? Does this draft claim more than its evidence shows? Those are short questions with a few fixed answers, and small models are good at them. The big model is kept for what needs it: the hard problems and the reply itself.</p>
+        <p>The aim is a home with one ordinary GPU running most of Anna, with frontier models called in for the complex work. No data center needed for the everyday parts, and what runs at home stays at home.</p>
+      </div>
+      <div class="stack">
+        <div class="col">
+          <h3><span class="dot" style="background:var(--file)"></span>Where it stands today</h3>
+          <ul>
+            <li>Every engine names its model in one line of config.</li>
+            <li>Today the frontier models do the work, because reliability comes first.</li>
+            <li>Next: a local model shadows a whole day overnight, with no actions and no replies, scored engine by engine. An engine moves to local hardware when it earns it, not before.</li>
+          </ul>
+        </div>
+        <p class="pull" style="border-color:var(--spark)">Designed to be light on the world and heavy on help.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="files">
+  <div class="wrap split">
+    <div class="stack">
+      <span class="eyebrow">Memory</span>
+      <h2>Her files are her.</h2>
+      <p>Most assistants keep their memory in someone else's database. Anna keeps hers as Markdown in a git repository on a machine at home: a journal of what happened, notes on every device she looks after, how-tos she has worked out, and short lessons she has learned the hard way.</p>
+      <p>The record is about you and your home, but it belongs to her. She writes it, lives in it, and reads it back every morning. Change the model underneath and she is still Anna. Lose the files and she isn't.</p>
+      <p class="pull">You can read every line, correct anything, and see every change in the history.</p>
+    </div>
+    <div class="tree" aria-label="Example layout of a record"><span class="d">record/</span>
+├── <span class="d">journal/</span>2026/11/2026-11-07.md  <span class="c"># what happened, verbatim</span>
+├── <span class="d">hosts/</span>media-server.md          <span class="c"># one note per machine</span>
+├── <span class="d">runbooks/</span>backups/README.md      <span class="c"># how we do things</span>
+├── <span class="d">memory/</span>
+│   ├── MEMORY.md                   <span class="c"># the index she loads</span>
+│   └── check-state-first.md        <span class="c"># a lesson, one per file</span>
+├── <span class="d">planning/</span>backlog.md
+└── <span class="d">clock/</span>2026-11.md               <span class="c"># her own schedule</span></div>
+  </div>
+</section>
+
+<section id="merlin">
+  <div class="wrap split">
+    <div class="stack">
+      <span class="eyebrow">How she remembers</span>
+      <h2>Her files are who she is. merlin is how she remembers.</h2>
+      <p>A model on its own only knows what fits in the conversation. Long sessions get squeezed into summaries, and whatever the summary dropped gets filled in with something that merely sounds right. That is where most assistants go wrong.</p>
+      <p>Anna doesn't try to recall. She looks things up. <strong>merlin</strong> is the search engine over her files: it reads the journal, the notes on each device, the how-tos and the lessons, and answers her questions with the file and the date each answer came from.</p>
+      <p><a href="https://github.com/kaibae19/merlin">merlin on GitHub</a> · a project in its own right, usable with or without Anna. It's under the Apache License 2.0, so it can be used anywhere, commercial work included. The Anna scaffold is separate and noncommercial (PolyForm Noncommercial 1.0.0).</p>
+    </div>
+    <div class="stack">
+      <div class="col">
+        <h3><span class="dot" style="background:var(--file)"></span>What makes it different</h3>
+        <ul>
+          <li><strong>Sources, not recollection.</strong> Every answer comes with where it was written.</li>
+          <li><strong>"What we saw" vs "how things are now."</strong> A journal entry is evidence from a date; a host note or how-to is current practice. merlin tells her which is which and ranks the current one higher.</li>
+          <li><strong>History per thing.</strong> "What have we already tried on the printer?" gets a timeline, not a guess.</li>
+          <li><strong>An empty search proves nothing.</strong> It says how fresh the index is, so "I found nothing" never turns into "it never happened".</li>
+          <li><strong>The files stay in charge.</strong> The index is built from them and can be rebuilt from git at any time. Nothing lives only in the database.</li>
+        </ul>
+      </div>
+      <p style="font-size:.92rem;color:var(--muted)">It searches by meaning and by exact words at once, so "the thing with the flaky camera" and a literal error message both find their way.</p>
+    </div>
+  </div>
+</section>
+
+<section id="modules">
+  <div class="wrap">
+    <span class="eyebrow">Architecture</span>
+    <h2>A brain in modules.</h2>
+    <p class="lede" style="margin-top:1rem">Each engine is a small, readable agent definition with one question to answer. They run before she replies or acts, and each one can be read, tuned or replaced on its own.</p>
+    <div class="mods" id="modlist"></div>
+  </div>
+</section>
+
+<section id="gate">
+  <div class="wrap split">
+    <div class="stack">
+      <span class="eyebrow">Safety</span>
+      <h2>She asks before she acts.</h2>
+      <p>Reading is free. Changing something is not. Before any command that restarts, deletes, installs or sends, the action gate checks who asked, what the thing looks like right now, and whether the words she was given actually cover it.</p>
+      <p>This isn't a polite habit she might forget. A hook in front of her tools blocks a state-changing command unless the gate said go in the last few minutes, and every verdict lands in an audit line.</p>
+    </div>
+    <div class="chat" aria-label="Example exchange">
+      <div class="msg you"><span class="who">You</span>The media server feels slow, can you sort it?</div>
+      <div class="msg sys">read-only checks · disk 41% · 2 transcodes running · CPU 96%</div>
+      <div class="msg sys">gate: confirm-first · "sort it" doesn't name a restart</div>
+      <div class="msg her"><span class="who">Anna</span>It's busy with two transcodes, nothing's broken. I could stop the second one, which ends someone's movie. Want me to?</div>
+      <div class="msg you"><span class="who">You</span>Leave it, it'll finish.</div>
+    </div>
+  </div>
+</section>
+
+<section id="halves">
+  <div class="wrap">
+    <span class="eyebrow">Two halves</span>
+    <h2>One voice, one working mind.</h2>
+    <div class="halves">
+      <div class="half">
+        <span class="tag">The voice</span>
+        <h3>Anna, on your phone</h3>
+        <ul>
+          <li>A chat bot you talk to during the day</li>
+          <li>Keeps her own tone and her own sense of you</li>
+          <li>Hands bigger jobs to the brain and brings the answer back</li>
+        </ul>
+      </div>
+      <div class="half">
+        <span class="tag">The brain</span>
+        <h3>A long-running working session</h3>
+        <ul>
+          <li>Part builder: writes code, reasons through problems with you</li>
+          <li>Part control room: runs the engines, the clock and the scheduled jobs</li>
+          <li>Reads her stream to see what the voice and the jobs did</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="grow">
+  <div class="wrap">
+    <span class="eyebrow">Platform</span>
+    <h2>Add a part. See what she becomes.</h2>
+    <p class="lede" style="margin-top:1rem">The scaffold is the generic base. Every Anna grows from it into something purpose-built for one person's life. Engines are files, senses are small scripts, skills are written procedures, so a new part is something you can read before you plug it in. Nobody knows yet what the most interesting parts will be.</p>
+    <h3 style="margin-top:2.5rem">Think about how a brain works. Which part would you build?</h3>
+    <p style="margin-top:.5rem;color:var(--muted)">Anna's parts are loosely inspired by what brains do. It's an analogy, not neuroscience, but it's a good way to find the gaps.</p>
+    <div class="regions" id="regions"></div>
+    <div class="status">
+      <div class="col">
+        <h3><span class="dot" style="background:var(--file)"></span>In the scaffold today</h3>
+        <ul>
+          <li><strong>Six engines</strong>: interpretation, memory, epistemic, action gate, goals, curiosity</li>
+          <li><strong>The gate hook</strong> that blocks unapproved changes</li>
+          <li><strong>Her clock</strong>: follow-ups with dates, pings and scheduled runs</li>
+          <li><strong>The stream</strong>: one log of what every part of her did</li>
+          <li><strong>Session bookends</strong>: morning check, checkpoint, wrap-up, evening fold</li>
+          <li><strong>Phone voice + relay</strong> to the brain (works, still rough at the edges)</li>
+          <li><strong>merlin</strong> search over her record (separate open project)</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3><span class="dot" style="background:var(--spark)"></span>Parts waiting for a better version</h3>
+        <ul>
+          <li><strong>The model under each engine</strong>: local models, one engine at a time, once they prove themselves</li>
+          <li><strong>The chat channel</strong>: Telegram today; any chat app should be a setting, not an edit</li>
+          <li><strong>The bridge</strong> between the phone voice and the brain: it works, and it's the newest part</li>
+          <li><strong>Her own journal and dreaming</strong>: a nightly pass over what she noticed, running at home, not in the scaffold yet</li>
+          <li><strong>Your parts</strong>: senses, checks and engines nobody has thought of yet</li>
+        </ul>
+        <p style="margin-top:.75rem;font-size:.92rem;color:var(--muted)">None of these is a crack in the foundation. Each one is a part, so it can be swapped or improved without touching the rest.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap split">
+    <div class="stack">
+      <span class="eyebrow">Start</span>
+      <h2>Grow your own.</h2>
+      <p><strong>Who she is:</strong> a roommate, or a working partner. One Anna runs a home lab with the person she lives with. Another works alongside someone researching and writing a book. Where it goes from there is up to the two of you.</p>
+      <p><strong>Don't have a home lab yet?</strong> You don't need one. If you'd like a media server, a home automation system or a place for your files, tell Anna and build it together. She helps you plan it, sets it up step by step, asking before every change, and then looks after it with you.</p>
+      <p><strong>An operator, not the system.</strong> Anna works the way you do: through the same doors, with the same permissions you give her. Home Assistant is still Home Assistant, your NAS is still your NAS, your writing app is still your writing app. She helps you build the automations and wire things together, but they live in their own systems and keep running if she's offline. She never becomes the alarm, the lock or the thermostat. When something important happens, the system's own alert reaches you first; Anna is the follow-up who knows the context.</p>
+      <p><strong>What it takes today:</strong> an always-on machine (a small Linux VM is enough) and some comfort with a terminal. Plan on a weekend. An easier way in for people who'd rather not touch a terminal is on the list.</p>
+      <p>Anna runs on Claude Code on a machine of yours: a small VM or a spare box is enough. Setup interviews you, writes the config, and starts her record. She knows nothing about your home on day one; that part you build together.</p>
+      <p>She works for one person. Her memory stays in her files, on your hardware. The model provider sees what she sends it for each task, and the more of her that runs locally, the less that is.</p>
+      <p><a href="docs/">The docs</a> · <a href="https://github.com/kaibae19/anna">Anna on GitHub</a> (source) · <a href="https://github.com/kaibae19/merlin">merlin on GitHub</a> (her memory search; its README has a one-machine Docker quick start)</p>
+    </div>
+    <div class="term"><span class="p">$</span> git clone https://github.com/kaibae19/anna
+<span class="p">$</span> cd anna
+<span class="p">$</span> claude
+<span class="c">  # then type /anna-setup</span></div>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer>
+    <span>Anna scaffold v0.1 · PolyForm Noncommercial 1.0.0</span>
+    <span>Built on Claude Code · memory search by <a href="https://github.com/kaibae19/merlin">merlin</a> (Apache-2.0)</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var M = [
+    { id: "interp", name: "Interpretation", q: "What matters right now?", file: "agents/anna-interpretation.md", x: 220, y: 52,
+      t: "Sorts everything she could bring up into background, worth mentioning, or best left unsaid. A greeting after a long gap gets a greeting back, not a status report." },
+    { id: "memory", name: "Memory", q: "What do we already know?", file: "agents/anna-memory.md", x: 372, y: 142,
+      t: "Searches her record and answers with the file and date it came from. An empty search is never treated as proof that something didn't happen." },
+    { id: "epist", name: "Epistemic", q: "Is that actually true?", file: "agents/anna-epistemic.md", x: 372, y: 298,
+      t: "Reads a draft reply before it goes out and labels each claim: backed by evidence, a hypothesis, or unbacked. Then names the check that would settle it." },
+    { id: "gate", name: "Action gate", q: "May I do this?", file: "agents/anna-action-gate.md", x: 220, y: 388,
+      t: "Before anything changes state, it weighs who asked, the current state and whether the request covers the action: go, confirm first, or no-go." },
+    { id: "goals", name: "Goals", q: "What's due, and is it moving?", file: "agents/anna-goals.md", x: 68, y: 298,
+      t: "Keeps track of her own follow-ups and your open items. Momentum, never nagging: at most one gentle nudge, at a good moment." },
+    { id: "curio", name: "Curiosity", q: "What would I like to understand?", file: "agents/anna-curiosity.md", x: 68, y: 142,
+      t: "Picks at most one real question a day, one whose answer would change how she works with you, and asks it when the conversation has room." }
+  ];
+  var NS = "http://www.w3.org/2000/svg", cx = 220, cy = 220;
+  var wires = document.getElementById("wires"), nodes = document.getElementById("nodes"), pulses = document.getElementById("pulses");
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e; }
+  M.forEach(function (m, i) {
+    var mx = (m.x + cx) / 2 + (m.y - cy) * 0.12, my = (m.y + cy) / 2 - (m.x - cx) * 0.12;
+    var d = "M" + m.x + " " + m.y + " Q" + mx + " " + my + " " + cx + " " + cy;
+    var w = el("path", { d: d, class: "wire", id: "w-" + m.id }); wires.appendChild(w);
+    var g = el("g", { class: "node", transform: "translate(" + (m.x - 62) + " " + (m.y - 26) + ")", tabindex: "0", role: "button", "aria-label": m.name, id: "n-" + m.id });
+    g.appendChild(el("rect", { width: 124, height: 52, rx: 12 }));
+    var t = el("text", { x: 12, y: 23 }); t.textContent = m.name; g.appendChild(t);
+    var s = el("text", { x: 12, y: 40, class: "sub" }); s.textContent = m.q.length > 20 ? m.q.slice(0, 19) + "…" : m.q; g.appendChild(s);
+    g.addEventListener("click", function () { pick(i); });
+    g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(i); } });
+    nodes.appendChild(g);
+    if (!reduce) {
+      var c = el("circle", { r: 4, class: "pulse" });
+      var am = el("animateMotion", { dur: (2.6 + i * 0.35) + "s", repeatCount: "indefinite", path: d, keyPoints: "1;0", keyTimes: "0;1", calcMode: "linear", begin: (i * 0.4) + "s" });
+      c.appendChild(am); pulses.appendChild(c);
+    }
+  });
+  var cur = -1;
+  function pick(i) {
+    if (cur >= 0) { document.getElementById("n-" + M[cur].id).classList.remove("on"); document.getElementById("w-" + M[cur].id).classList.remove("on"); }
+    cur = i; var m = M[i];
+    document.getElementById("n-" + m.id).classList.add("on"); document.getElementById("w-" + m.id).classList.add("on");
+    document.getElementById("r-q").textContent = "“" + m.q + "”";
+    document.getElementById("r-name").textContent = m.name;
+    document.getElementById("r-text").textContent = m.t;
+  }
+  pick(0);
+  var R = [
+    ["Senses", "Checks and senses", "Small scripts that watch something: a disk, a backup, a sensor. The slot ships; most senses are yours to add.", "open", "bring your own"],
+    ["Attention", "Interpretation", "Decides what deserves mention right now.", "ships", "ships"],
+    ["Memory", "Memory + merlin", "Recall from her files, with the source attached.", "ships", "ships"],
+    ["Error checking", "Epistemic", "Notices when a claim outruns its evidence.", "ships", "ships"],
+    ["Choosing an action", "Action gate", "Go, ask first, or no. Enforced by a hook.", "ships", "ships"],
+    ["Goals", "Goals", "Follow-ups and momentum, without nagging.", "ships", "ships"],
+    ["Curiosity", "Curiosity", "One real question a day.", "ships", "ships"],
+    ["Sense of time", "Her clock + daily rhythm", "Dated follow-ups, morning and evening runs.", "ships", "ships"],
+    ["Language", "The voice", "Anna on your phone. Works; the newest part.", "ships", "ships, rough"],
+    ["Sleep", "Dreaming", "A nightly pass that sorts what she noticed. Running at home, not in the scaffold yet.", "home", "coming next"],
+    ["Feeling", "Her own journal", "What would feelings even mean for an agent? An open question, being explored carefully.", "home", "open question"],
+    ["Something new", "Your part", "Senses, checks and engines nobody has thought of yet.", "open", "yours"]
+  ];
+  var rg = document.getElementById("regions");
+  R.forEach(function (r) {
+    var d = document.createElement("div"); d.className = "reg" + (r[3] === "open" ? " open" : "");
+    d.innerHTML = '<span class="fn"></span><span class="part"></span><span class="note"></span><span class="chip"></span>';
+    d.children[0].textContent = r[0]; d.children[1].textContent = r[1]; d.children[2].textContent = r[2];
+    d.children[3].textContent = r[4]; d.children[3].className = "chip " + r[3];
+    rg.appendChild(d);
+  });
+  var list = document.getElementById("modlist");
+  M.forEach(function (m) {
+    var d = document.createElement("article"); d.className = "mod";
+    d.innerHTML = '<span class="q"></span><h3></h3><p></p><span class="file"></span>';
+    d.children[0].textContent = "“" + m.q + "”"; d.children[1].textContent = m.name; d.children[2].textContent = m.t; d.children[3].textContent = m.file;
+    list.appendChild(d);
+  });
+})();
+</script>
+</body>
+</html>
