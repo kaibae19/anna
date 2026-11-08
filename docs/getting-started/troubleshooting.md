@@ -89,10 +89,12 @@ cd ~/projects/anna && ./install.sh
 Your `~/.claude/settings.json` isn't valid JSON. Check with `jq . ~/.claude/settings.json`, which names the line. Fix it
 (a timestamped backup `settings.json.bak.*` sits beside it), then rerun.
 
-### `~/CLAUDE.md exists: the template is at ~/CLAUDE.md.anna-new to merge by hand`
+### `⚠ you edited ~/CLAUDE.md: the new version is at ~/CLAUDE.md.anna-new; rerun /anna-setup to merge them, or diff by hand`
 
-You already had a `~/CLAUDE.md`, and the installer doesn't overwrite it. The brain reads `~/CLAUDE.md` at every start, so
-copy the sections from `~/CLAUDE.md.anna-new` into it. Same idea for `⚠ you edited: anna-goals.md (left as is; new
+Your `~/CLAUDE.md` differs from the version the installer last put there, so it isn't overwritten. (If you had never
+edited it, the update would have replaced it and said `~/CLAUDE.md updated`.) The brain reads `~/CLAUDE.md` at every
+start, so bring the new parts in: rerun `/anna-setup`, which merges `~/CLAUDE.md.anna-new` with you, or copy the
+sections over by hand and delete the `.anna-new` file. Same idea for `⚠ you edited: anna-goals.md (left as is; new
 versions beside them as .anna-new)`: compare `~/.claude/agents/<name>.md` with its `.anna-new` and merge.
 
 ### `⚠ … memory is a real directory: move its files into … memory and replace it with a symlink by hand`

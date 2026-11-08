@@ -71,8 +71,14 @@ and `record.thing`; not sure yet keeps the default), 2 which parts (rollover, mo
 3 config and install, 4 start the record, 5 a first check and sense (optional), 6 the bot (if on), 7 day one, 8 hand over.
 
 **Won't do:** ask you to paste a token (you create the files in `paths.secrets` yourself), run `sudo` (it gives you the
-`loginctl enable-linger` command), or accept Claude Code's Bypass Permissions dialog for you. The first `anna-day open` is
-yours.
+`loginctl enable-linger` command), or accept Claude Code's Bypass Permissions dialog (or the bot's folder trust) for you.
+
+**The first start, together:** at the end it offers to start the brain right away. It runs `anna-day open`, tells you
+exactly what the one-time dialog looks like and which keys accept it, waits while you decide in your own terminal, then
+starts her again and checks she's up (and the same for the bot's first start, if the bot is on).
+
+**On a rerun** it also merges `~/CLAUDE.md.anna-new` into your `~/CLAUDE.md` with you, if an update left one: it says
+what's new, keeps your own edits, and writes the result only on your yes.
 
 ## anna-morning
 

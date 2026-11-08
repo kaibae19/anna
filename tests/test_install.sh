@@ -69,7 +69,7 @@ ok "update: a template file you removed (in git history) is not added back" '[ !
 ok "update: new template files are added to an existing record" '[ -f "$HOME/anna-record/self/README.md" ] && [ -f "$HOME/anna-record/planning/wonders.md" ] && echo "$out2" | grep -q "added what.s new in the template"'
 ok "hooks are not duplicated" '[ "$(jq "[.hooks.UserPromptSubmit[].hooks[]] | length" "$S")" -eq 1 ] && [ "$(jq "[.hooks.Stop[].hooks[]] | length" "$S")" -eq 4 ]'
 ok "the record is left alone" 'grep -q "my notes" "$HOME/anna-record/CLAUDE.md"'
-ok "~/CLAUDE.md is left alone (template beside it)" 'grep -qx "# mine" "$HOME/CLAUDE.md" && [ -f "$HOME/CLAUDE.md.anna-new" ]'
+ok "~/CLAUDE.md edited by you: left alone, new version beside it, ⚠ line" 'grep -qx "# mine" "$HOME/CLAUDE.md" && [ -f "$HOME/CLAUDE.md.anna-new" ] && grep -q "you edited ~/CLAUDE.md" <<<"$out2"'
 ok "an engine you edited is left alone (new one beside it)" 'grep -q "my tweak" "$HOME/.claude/agents/anna-goals.md" && [ -f "$HOME/.claude/agents/anna-goals.md.anna-new" ]'
 ok "an unedited engine is updated in place, no .anna-new" 'cmp -s "$T/mem.before" "$HOME/.claude/agents/anna-memory.md" && [ ! -e "$HOME/.claude/agents/anna-memory.md.anna-new" ]'
 ok "the gate hook is not duplicated" '[ "$(jq "[.hooks.PreToolUse[].hooks[]] | length" "$S")" -eq 2 ]'
@@ -88,4 +88,10 @@ ok "install with units exits 0" '[ $rc -eq 0 ]'
 ok "units call the scripts in paths.bin, not ~/bin" 'grep -q "^ExecStart=$HOME/opt/anna-bin/anna-day open" "$U/anna-day-open.service" && ! grep -rq "%h/bin" "$U"/anna-*.service'
 ok "the relay unit's PATH has paths.bin" 'grep -q ":$HOME/opt/anna-bin:" "$U/anna-relay.service"'
 ok "the scripts are in paths.bin" '[ -x "$HOME/opt/anna-bin/anna-day" ]'
+# an unedited ~/CLAUDE.md from an older install is replaced on update
+printf 'older template\n' | tee "$HOME/CLAUDE.md" > "$HOME/.local/share/anna/home-CLAUDE.md"; rm -f "$HOME/CLAUDE.md.anna-new"
+out3=$(./install.sh --no-systemd 2>&1)
+ok "~/CLAUDE.md you never edited is updated in place, with a backup" 'grep -q "~/CLAUDE.md updated" <<<"$out3" && ! grep -qx "older template" "$HOME/CLAUDE.md" && [ ! -e "$HOME/CLAUDE.md.anna-new" ] && ls "$HOME"/CLAUDE.md.bak.* >/dev/null 2>&1'
+out4=$(./install.sh --no-systemd 2>&1)
+ok "a second update with nothing new: up to date" 'grep -q "~/CLAUDE.md is up to date" <<<"$out4"'
 exit $fail

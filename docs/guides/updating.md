@@ -60,7 +60,7 @@ Installing Anna (Anna, for you) from /home/you/projects/anna
   record exists at /home/you/anna-record (left as is)
   ~/.claude/anna-headless-settings.json
   hooks merged into ~/.claude/settings.json (backup kept); fakechat/telegram off at user scope
-  ~/CLAUDE.md exists: the template is at ~/CLAUDE.md.anna-new to merge by hand
+  ~/CLAUDE.md updated (you hadn't edited it; the old one is kept as ~/CLAUDE.md.bak.<time>)
   brain memory symlink exists → /home/you/anna-record/memory
   units → /home/you/.config/systemd/user
   timers enabled
@@ -77,7 +77,7 @@ These are yours; `install.sh` never overwrites them:
 |---|---|
 | Your config, `~/.config/anna/anna.toml` | Left alone. It's only created (from the example) if it doesn't exist. |
 | Anna's record, `paths.record` | Never overwritten. Files that are new in the template and missing from your record (for example `self/README.md` and `planning/wonders.md` when the own journal arrived) are added, not committed (a file your record's git history ever had is left out: you removed it on purpose): `record exists at …: added what's new in the template: …`. Look at them, then commit them in the record. |
-| `~/CLAUDE.md` (the brain's home instructions) | Left alone. The new template is written beside it as `~/CLAUDE.md.anna-new`. |
+| `~/CLAUDE.md` (the brain's home instructions) | If you never edited it, it's **updated** (the old one kept as `~/CLAUDE.md.bak.<time>`), so new instructions arrive by themselves. If you edited it, it's left alone and the new version goes beside it as `~/CLAUDE.md.anna-new` with a `⚠ you edited ~/CLAUDE.md` line: rerun `/anna-setup` to merge them. |
 | The bot's allowlist, `~/.claude/anna-tg-<instance>-settings.json` | Left alone (`exists (left as is: your allowlist)`). |
 | An engine you edited in `~/.claude/agents/` | Left alone, with the new version beside it as `<name>.md.anna-new` and a `⚠ you edited: …` line. |
 | Your other hooks in `~/.claude/settings.json` | Kept. Anna's hooks are added only where missing, and the file is backed up first as `settings.json.bak.<timestamp>`. |
@@ -113,7 +113,8 @@ ls ~/CLAUDE.md.anna-new ~/.claude/agents/*.anna-new 2>/dev/null
 diff ~/CLAUDE.md ~/CLAUDE.md.anna-new
 ```
 
-Copy over the parts you want, then delete the `.anna-new` file. New features often come with a line or two for the
+For `~/CLAUDE.md.anna-new`, the easiest way is to rerun `/anna-setup`: it merges the two with you. Or copy over the
+parts you want by hand, then delete the `.anna-new` file. New features often come with a line or two for the
 brain here (when to log to the own journal, which engines now run by themselves), so don't skip this diff. (If you've never edited `~/CLAUDE.md` yourself, you can
 simply replace it: `mv ~/CLAUDE.md.anna-new ~/CLAUDE.md`.)
 

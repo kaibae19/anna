@@ -120,8 +120,18 @@ jq --slurpfile h "$SRC/hooks/settings.hooks.json" --arg bin "$BIN" '
 mv "$S.new" "$S"
 say "hooks merged into ~/.claude/settings.json (backup kept); fakechat/telegram off at user scope"
 
-if [ ! -e "$HOME/CLAUDE.md" ]; then fill "$SRC/config/home-CLAUDE.md.in" > "$HOME/CLAUDE.md"; say "~/CLAUDE.md (the brain's home)"
-else fill "$SRC/config/home-CLAUDE.md.in" > "$HOME/CLAUDE.md.anna-new"; say "~/CLAUDE.md exists: the template is at ~/CLAUDE.md.anna-new to merge by hand"; fi
+# ~/CLAUDE.md (the brain's home): like the engines, a copy of what was last installed is kept in ~/.local/share/anna/: if
+# yours still matches it (you never edited it), an update replaces it; if you edited it, the new one goes beside it as
+# ~/CLAUDE.md.anna-new and /anna-setup (rerun) merges it with you.
+H=$HOME/CLAUDE.md; last=$HOME/.local/share/anna/home-CLAUDE.md; install -d "$(dirname "$last")"
+fill "$SRC/config/home-CLAUDE.md.in" > "$last.new"
+if [ ! -e "$H" ]; then cp "$last.new" "$H"; mv "$last.new" "$last"; say "~/CLAUDE.md (the brain's home)"
+elif cmp -s "$H" "$last.new"; then mv "$last.new" "$last"; rm -f "$H.anna-new"; say "~/CLAUDE.md is up to date"
+elif [ -f "$last" ] && cmp -s "$H" "$last"; then
+  cp "$H" "$H.bak.$(date +%Y%m%d%H%M%S)"; cp "$last.new" "$H"; mv "$last.new" "$last"; rm -f "$H.anna-new"
+  say "~/CLAUDE.md updated (you hadn't edited it; the old one is kept as ~/CLAUDE.md.bak.<time>)"
+else mv "$last.new" "$H.anna-new"
+  say "⚠ you edited ~/CLAUDE.md: the new version is at ~/CLAUDE.md.anna-new; rerun /anna-setup to merge them, or diff by hand"; fi
 M=$HOME/.claude/projects/$(sed 's/[^A-Za-z0-9]/-/g' <<<"$HOME")/memory   # Claude Code's folder name: every non-alphanumeric → -
 if [ ! -e "$M" ]; then install -d "$(dirname "$M")"; ln -s "$REC/memory" "$M"; say "brain memory → $REC/memory (symlink)"
 elif [ -L "$M" ]; then say "brain memory symlink exists → $(readlink "$M")"

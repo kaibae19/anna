@@ -15,6 +15,11 @@ ask where it is if you're not in it). Don't put secrets in the config, the recor
 changing anything on their machines, say what you're about to do. If a config or record already exists, read it and only
 fill what's missing.
 
+**On a rerun, merge `~/CLAUDE.md.anna-new` if it's there.** It's the brain's new home instructions from an update, left
+beside their `~/CLAUDE.md` because they had edited theirs. Read both, tell them in a few lines what the new one adds or
+changes (new parts, new rules), carry those into their file while keeping their own edits, show them the result, and on
+their yes write it and delete `~/CLAUDE.md.anna-new`. Never drop a line they wrote without asking.
+
 ## 1. Who and where
 Ask, then confirm back in one short summary:
 - What should she be called (`anna.name`; "Anna" is fine), and how should she address them (`anna.user`)?
@@ -110,7 +115,17 @@ writes an audit line to the stream. A hook enforces it: a change without a recen
 ask the gate. Reads, edits in the record and plain pushes pass. The switch `<paths.state>/gate-off` turns the hook off
 (every pass is still logged); it's theirs, not Anna's. Details: `docs/concepts/security.md` § Destructive and outward actions.
 
-**The first start is theirs.** The brain runs with permissions off (`docs/concepts/security.md` § Allowlists), and Claude Code asks
-once per machine to accept Bypass Permissions mode. Explain that before they start it, and don't accept it for them: they
-run `anna-day open`, and if it stops at that dialog, `screen -dr <day.screen>`, read it, choose Yes, then `anna-day open`
-again. (Or let the 04:15 open stop there and do it in the morning.)
+**The first start, together.** The brain runs with permissions off (`docs/concepts/security.md` § Allowlists), and Claude
+Code asks once per machine to accept Bypass Permissions mode. Accepting it is their decision, so never do it for them, but
+guide them through it now rather than leaving it for the morning:
+1. Explain in two lines what the dialog means and why the brain runs this way, and ask whether to start her now.
+2. On yes, run `anna-day open`. The first time it stops with `⚠ open: Claude Code asks you to accept Bypass Permissions
+   mode`. Tell them exactly what to do in their own terminal: `screen -dr <day.screen>`; they'll see `WARNING: Claude
+   Code running in Bypass Permissions mode`; if they agree, press **Down**, then **Enter** on "Yes, I accept"; detach
+   with **Ctrl-A, then D**; then tell you.
+3. Run `anna-day open` again and check she's up (`screen -ls` shows `<day.screen>`; with the relay on, `anna-relay
+   status` shows `"brain":"online"`).
+4. If the bot is on, its first start asks the same kind of question about its folder (`~/anna-<instance>`): guide them
+   the same way (`screen -r anna-tg-<instance>`, "Yes, I trust this folder", detach), then check `systemctl --user
+   is-active anna-tg@<instance>` and ask them to say hi to it.
+If they'd rather not now, say that the `day.open` start will stop at the same dialog and wait for them.
