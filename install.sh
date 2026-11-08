@@ -13,6 +13,7 @@ SRC=$(cd "$(dirname "$0")" && pwd)
 NOSYS=0 NOENABLE=0 NOPLUG=0
 for a in "$@"; do case $a in --no-systemd) NOSYS=1 ;; --no-enable) NOENABLE=1 ;; --no-plugins) NOPLUG=1 ;; *) echo "usage: install.sh [--no-systemd] [--no-enable] [--no-plugins]" >&2; exit 2 ;; esac; done
 say() { printf '  %s\n' "$*"; }
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"   # bun and claude install here, but only interactive shells get them
 need() { command -v "$1" >/dev/null || { echo "install.sh: '$1' is required${2:+ ($2)}" >&2; exit 1; }; }
 need python3; need jq; need git; need screen "the brain lives in a screen session"; need claude "Claude Code"
 python3 -c 'import sys, tomllib; sys.exit(sys.version_info < (3, 11))' || { echo "install.sh: Python 3.11+ is required" >&2; exit 1; }

@@ -46,6 +46,7 @@ cases = [
  ("qm destroy blocked", {"tool_name": "Bash", "tool_input": {"command": "ssh hv 'qm destroy 107 --purge'"}}, T([]), None, "deny"),
  ("gmail send blocked", {"tool_name": "mcp__claude_ai_Gmail__send_message", "tool_input": {}}, T([]), None, "deny"),
  ("merlin search passes", {"tool_name": "mcp__merlin__search", "tool_input": {"query": "x"}}, T([]), None, "pass"),
+ ("relay reply passes (goes back through the person's own bot)", {"tool_name": "mcp__plugin_fakechat_fakechat__reply", "tool_input": {"text": "done", "reply_to": "r1"}}, T([]), None, "pass"),
  ("local repo commit passes", {"tool_name": "Bash", "tool_input": {"command": "git commit -qm x && git push -q"}}, T([]), None, "pass"),
  ("sudo read passes", {"tool_name": "Bash", "tool_input": {"command": "ssh mail 'sudo -n cat /etc/hostname; sudo -n iptables -t raw -S PREROUTING; sudo -n docker ps'"}}, T([]), None, "pass"),
  ("sudo setfacl blocked", {"tool_name": "Bash", "tool_input": {"command": "ssh mail 'sudo -n setfacl -m u:postfix:r /x'"}}, T([]), None, "deny"),

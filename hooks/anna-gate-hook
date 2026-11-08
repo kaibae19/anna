@@ -62,6 +62,7 @@ READ_SUDO = {"cat", "ls", "head", "tail", "grep", "find", "stat", "sha256sum", "
              "systemctl", "git", "bash", "sh", "python3", "-u"}
 # bash/sh/python3/-u: the wrapped command is checked by the other patterns; `sudo -u x <cmd>` likewise. systemctl, docker,
 # apt, ufw, iptables, nft, zfs, git: their write verbs are separate patterns above.
+RELAY_REPLY = "mcp__plugin_fakechat_fakechat__reply"   # exempt: it goes back to the person; the epistemic hook can check it
 OUTWARD_MCP = re.compile(r"^mcp__.*(send_message|__reply$|__forward$|trash|delete|mark_.*spam|create_label|update_label)")
 SSH_AT = re.compile(r"\bssh\s+")
 SSH_ARG_FLAGS = set("BbcDEeFIiJLlmOoPpQRSWw")    # ssh options that take a value (`-o X=y`, `-p 22`, `-i key`)
@@ -137,6 +138,8 @@ def ssh_host(cmd: str) -> str:
 
 def is_change(tool: str, inp: dict) -> tuple[bool, str]:
     if tool.startswith("mcp__"):
+        if tool.startswith(RELAY_REPLY):            # a relay result goes back to the person through their own bot
+            return (False, "")
         return (bool(OUTWARD_MCP.search(tool)), "local")
     if tool != "Bash":
         return (False, "")

@@ -13,10 +13,9 @@ turn on the relay so the bot can hand real work to the brain. Do [Install](insta
     editing a few files by hand ([Using another chat app](#using-another-chat-app) below); making the channel a
     setting is on the [roadmap](../roadmap.md).
 
-!!! note "Not yet walked on a clean machine"
-    The bot and the relay run daily in the deployment Anna was extracted from, and each piece has tests, but nobody has
-    yet set them up from scratch on a fresh machine by following these steps. If a step doesn't behave as described,
-    [Troubleshooting](troubleshooting.md) lists what the scripts check, and the notes marked "Untested" say what is unverified.
+!!! note "Walked on a clean machine"
+    These steps were followed from scratch on a fresh VM on 2026-11-08 (a new user, the bot and the relay), and the
+    fixes that walk turned up are in. The pairing flow in step 5 is still untested; use the by-hand allowlist.
 
 ## How the pieces fit
 
@@ -27,8 +26,9 @@ turn on the relay so the bot can hand real work to the brain. Do [Install](insta
 - **`anna-notify`** sends one-way alerts from scripts (a failed night run, a ⛔ in the morning report, clock pings) to your
   chat.
 
-The bot needs **bun**: check with `bun --version` ([bun.sh](https://bun.sh) if it's missing; the installer adds
-`~/.bun/bin` to your shell profile, so open a new terminal afterwards).
+The bot needs **bun**: check with `bun --version` ([bun.sh](https://bun.sh) if it's missing; its installer needs
+`unzip` (`sudo apt install unzip` on Debian/Ubuntu) and adds `~/.bun/bin` to your shell profile, so open a new terminal
+afterwards).
 
 ## 1. Create a bot with BotFather
 
@@ -182,8 +182,9 @@ systemctl --user status anna-tg@ops
 
 `Active: active (running)`. To watch the bot's session, `screen -r anna-tg-ops`; detach with **Ctrl-A, then D**.
 
-The first time, look at the session: Claude Code may be waiting on a question about the bot's working folder
-(`~/anna-ops`). Answer it there. <!-- TODO: verify whether the folder-trust prompt appears for ~/anna-<instance> on the bot's first start -->
+**The first time, the bot waits for you.** Claude Code asks whether you trust the bot's working folder
+(`~/anna-<instance>`, e.g. `~/anna-ops`) before it starts listening. Attach with `screen -r anna-tg-ops`, choose
+**Yes, I trust this folder**, then detach with **Ctrl-A, then D**. It asks only once.
 
 Now DM the bot `hi`. It answers in a few lines, in Anna's voice.
 
@@ -205,7 +206,11 @@ systemctl --user status anna-relay
 Both sessions must be **restarted** to load the relay's channel: they only pick up the setting at launch.
 
 - **The bot:** `systemctl --user restart anna-tg@ops`.
-- **The brain:** attach (`screen -r anna`) and type `/exit`. The window shows
+- **The brain, if it isn't running yet** (a new install, before the first `day.open`): `anna-day open`. The very first
+  time, it stops and tells you Claude Code wants you to accept Bypass Permissions mode, which the brain runs in
+  ([Security model](../concepts/security.md)). Attach with `screen -dr anna`, read it, choose **Yes, I accept**, detach,
+  and run `anna-day open` again.
+- **The brain, if it's already running:** attach (`screen -r anna`) and type `/exit`. The window shows
   `Claude exited (rc 0). Resuming Anna-… in 10 s. [Enter] now · [s] shell · [q] close window`: press **Enter** (or
   wait). It reads the config again as it resumes, so the same conversation comes back with the relay's channel.
 

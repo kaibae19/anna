@@ -49,14 +49,18 @@ ok "no stale 'not in the scaffold yet' outside the roadmap" '! grep -rli "not in
 # Coffee Logic: no session links, and no person, home or host of yours. Your own names live outside the repo, one
 # extended regex per line (case-insensitive): $ANNA_LEAK_PATTERNS, default ~/.config/anna/leak-patterns.
 LP=${ANNA_LEAK_PATTERNS:-$HOME/.config/anna/leak-patterns}
-leak=$(grep -rniE 'claude\.ai/(code|artifact)' docs www mkdocs.yml README.md || true)
+# every tracked file, not only the docs (2026-11-08: a code comment carried a name to the publish step); LICENSE's
+# notice names the author by choice. Outside a git checkout (a tarball), fall back to the docs folders.
+files=$(git ls-files 2>/dev/null | grep -v -x -e LICENSE -e tests/test_docs.sh || true)
+[ -n "$files" ] || files="docs www mkdocs.yml README.md"
+leak=$(grep -niE 'claude\.ai/(code|artifact)' $files || true)
 if [ -s "$LP" ]; then
-  leak+=$(grep -v -e '^#' -e '^[[:space:]]*$' "$LP" | grep -rniE -f - docs www mkdocs.yml README.md \
+  leak+=$(grep -v -e '^#' -e '^[[:space:]]*$' "$LP" | grep -niE -f - $files \
           | grep -v -E 'kaibae19/(merlin|anna)' || true)
 else
   echo "note: no $LP, so only session links are checked (add your own names there)"
 fi
-ok "no home names or session links in docs or the front page" '[ -z "$leak" ]'
+ok "no home names or session links in any tracked file" '[ -z "$leak" ]'
 [ -n "$leak" ] && echo "$leak" | sed 's/^/       /'
 
 MK=${MKDOCS:-$(command -v mkdocs || true)}

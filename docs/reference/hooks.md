@@ -203,7 +203,7 @@ engine returned `verdict: go` for that host in the last **15 minutes**. The bot 
 - **`sudo`** of any command not on a read-only list (`cat`, `ls`, `grep`, `journalctl`, `systemctl`, `docker`, `git`, …;
   for the ones that have write verbs, those verbs are caught by the patterns above).
 - **Outward MCP tools** whose name matches `send_message`, `__reply`, `__forward`, `trash`, `delete`, `mark_*spam`,
-  `create_label` or `update_label`.
+  `create_label` or `update_label`. The relay reply (`mcp__plugin_fakechat_fakechat__reply`) is exempt: it only goes back to the person through their own bot, and `anna-epistemic-hook` can check it instead.
 
 Reads, edits to files, plain `git push` and other MCP tools (merlin search, for example) pass. Heredoc bodies are treated
 as data (file contents), except a heredoc fed to `ssh`, which is the remote script and is checked.

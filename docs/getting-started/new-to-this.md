@@ -119,7 +119,7 @@ Run each check on Anna's machine. If a command prints "command not found", insta
 | uuidgen | names each brain session | `uuidgen` prints an ID | `sudo apt install uuid-runtime` (Debian/Ubuntu) |
 | curl | sends Telegram alerts | `curl --version` | `sudo apt install curl` |
 | Claude Code | the brain, the bot and every scheduled run | `claude --version` | [docs.claude.com](https://docs.claude.com/en/docs/claude-code/setup) |
-| bun (only for the bot or relay) | runs the relay and the Telegram channel | `bun --version` | [bun.sh](https://bun.sh) (its one-line installer) |
+| bun (only for the bot or relay) | runs the relay and the Telegram channel | `bun --version` | [bun.sh](https://bun.sh) (its one-line installer; it needs `unzip`: `sudo apt install unzip` on Debian/Ubuntu) |
 
 `install.sh` checks for python3 (and its version), jq, git, screen and claude, and for bun when the bot or relay is on.
 It stops with a message naming the missing piece, so you can also just run it and see.
