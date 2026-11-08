@@ -6,7 +6,7 @@ description: "What's designed or prototyped in the deployment Anna came from but
 
 Designed and partly prototyped in the deployment this scaffold came from; not in the scaffold yet.
 
-**Done:** engines as subagents (`agents/`, [architecture](concepts/architecture.md) § Engines) with the action gate enforced by a hook.
+**Done:** engines as subagents (`agents/`, [architecture](concepts/architecture.md) § Engines) with the action gate enforced by a hook. Pushed senses: the sense intake (`anna-senses`; contract v1 over HTTP, a drop folder or MQTT; [Senses](concepts/senses.md)).
 Next for them: replay a day's stream through each engine and score the blocks in the nightly fold, so prompt changes are
 measured rather than guessed; then the local-model shadow below, engine by engine (interpretation and epistemic first: no
 tool calls, fixed labels).
@@ -27,9 +27,6 @@ tool calls, fixed labels).
   used. Corrections, decisions and their reasons never fade. Designed, not built.
 - **A record access log.** Which parts of her record get read, searched or written, by which part of her, so fading,
   search and the always-loaded index can follow real use. Running in one home since 2026-11; not in the scaffold yet.
-- **Pushed senses.** One standard for events reaching Anna: contract v1 over MQTT on `anna/senses/<name>`, one sense
-  intake that logs every event and hands `tell`/`ask`/`check` to the working session ([Senses](concepts/senses.md)).
-  Running in one home, with a home-automation hub as the first sense; not in the scaffold yet.
 - **Secrets without a terminal.** A small local web form for giving Anna a token or password, for people who don't work
   in a terminal. Designed, not built.
 - **Proof of memory.** OpenTimestamps over the record's commits, so the history provably existed when it says it did.

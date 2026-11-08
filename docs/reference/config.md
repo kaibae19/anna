@@ -214,6 +214,22 @@ The relay moves requests from the Telegram bot to the brain and results back, ov
 !!! note
     The relay and the Telegram bot have not yet been walked through on a clean machine. Expect rough edges.
 
+## `[senses]`: the sense intake
+
+Pushed senses: how events reach Anna (`anna-senses`). See [Senses](../concepts/senses.md).
+
+| Key | Default | What it does | Who reads it |
+|---|---|---|---|
+| `enabled` | `false` | Turn the intake on: `install.sh` starts `anna-senses.service`. | `install.sh` |
+| `http` | `true` | Take events over HTTP: `POST /sense/<name>` with that sense's token (`anna-senses token NAME`). | `anna-senses` |
+| `listen` | `"127.0.0.1"` | Address HTTP listens on. Set this machine's LAN address on purpose to take events from other machines. | `anna-senses`, `anna-sense-send` |
+| `port` | `8793` | HTTP port. | `anna-senses`, `anna-sense-send` |
+| `drop` | `true` | Take events from the drop folder: `<name>.<anything>.json`, read and deleted within 2 s. | `anna-senses` |
+| `drop_dir` | `""` | The drop folder; empty = `<paths.state>/senses/inbox` (mode 700). | `anna-senses`, `anna-sense-send` |
+| `mqtt_host` | `""` | An MQTT broker to subscribe to `anna/senses/+` on; empty = MQTT off. Needs `paho-mqtt`. | `anna-senses` |
+| `mqtt_port` | `1883` | The broker's port. | `anna-senses` |
+| `mqtt_user` | `"anna"` | The broker login; its password is the file `<paths.secrets>/mqtt-senses`. | `anna-senses` |
+
 ## `[bot]`: Telegram
 
 | Key | Default | What it does | Who reads it |

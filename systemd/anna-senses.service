@@ -1,0 +1,13 @@
+# anna-senses: the sense intake (docs/concepts/senses.md). User unit: install.sh copies it to ~/.config/systemd/user/
+# and starts it when senses.enabled = true; or systemctl --user enable --now anna-senses
+[Unit]
+Description=Anna sense intake (pushed senses: http, drop folder, optional mqtt)
+
+[Service]
+Environment=PATH=%h/.bun/bin:%h/bin:/usr/local/bin:/usr/bin:/bin ANNA_ROLE=senses
+ExecStart=%h/bin/anna-senses
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

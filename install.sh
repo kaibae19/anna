@@ -26,7 +26,7 @@ fi
 cfg() { "$SRC/bin/anna-config" "$1"; }
 NAME=$(cfg anna.name) USR=$(cfg anna.user) TZ_=$(cfg anna.timezone)
 BIN=$(cfg paths.bin) REC=$(cfg paths.record) STATE=$(cfg paths.state) SEC=$(cfg paths.secrets)
-RELAY=$(cfg relay.enabled) BOT=$(cfg bot.enabled) INST=$(cfg bot.instance)
+RELAY=$(cfg relay.enabled) BOT=$(cfg bot.enabled) INST=$(cfg bot.instance) SENSES=$(cfg senses.enabled)
 THINGS=$(cfg record.things) THING=$(cfg record.thing)
 { [ "$RELAY" = true ] || [ "$BOT" = true ]; } && need bun "for the relay and the Telegram channel: https://bun.sh"
 fill() { sed -e "s|@NAME@|$NAME|g" -e "s|@USER@|$USR|g" -e "s|@RECORD@|$REC|g" -e "s|@TZ@|$TZ_|g" \
@@ -127,6 +127,7 @@ systemctl --user daemon-reload; say "units → $U"
 if [ $NOENABLE = 0 ]; then
   systemctl --user enable --now anna-clock.timer anna-morning.timer anna-evening.timer anna-day-close.timer anna-day-open.timer
   [ "$RELAY" = true ] && systemctl --user enable --now anna-relay.service
+  [ "$SENSES" = true ] && systemctl --user enable --now anna-senses.service
   [ "$BOT" = true ] && say "bot: start it when the token is in place: systemctl --user enable --now anna-tg@$INST"
   loginctl show-user "$USER" -p Linger 2>/dev/null | grep -q yes || say "⚠ user lingering is off: timers stop when you log out (sudo loginctl enable-linger $USER)"
   say "timers enabled"

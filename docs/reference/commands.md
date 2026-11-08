@@ -481,6 +481,39 @@ anna-run "/anna-morning" morning
 !!! note
     Headless login (`claude-oauth`) has not yet been walked through on a clean machine.
 
+## `anna-senses`
+
+The sense intake: pushed senses reach Anna through it, in one contract (v1), over HTTP, a drop folder or (optionally)
+MQTT. Runs as the `anna-senses` user unit when `senses.enabled = true`. Background: [Senses](../concepts/senses.md).
+
+```text
+anna-senses
+anna-senses token NAME
+anna-senses once JSON [NAME]
+```
+
+| Subcommand | What it does |
+|---|---|
+| (none) | Run the intake with every transport switched on in `[senses]`: HTTP on `senses.listen:senses.port` (`POST /sense/<name>`, `GET /health`), the drop folder, and MQTT when `senses.mqtt_host` is set. |
+| `token NAME` | Make the HTTP token for sense NAME (or show the existing one): `<paths.secrets>/sense-<name>`, mode 600. A token only works for its own name. |
+| `once JSON [NAME]` | Run one event through the intake as sense NAME (default `test`) and print the result (`log`, `tell`, `ask`, `check`, `dup`, `limited`, `bad`). For tests. |
+
+Every event goes to the stream as `[sense:<name>]`; `tell`, `ask` and `check` also go to the brain through
+`anna-relay send`, marked as data. `ANNA_SENSES_DRY=1` prints those calls instead of making them.
+
+## `anna-sense-send`
+
+Send one contract-v1 event the way a sense would: for writing and testing a sense, and for local scripts.
+
+```text
+anna-sense-send SENSE MESSAGE [--do log|tell|ask|check] [--importance low|normal|high] [--kind K] [--entity E]
+                [--state S] [--context C] [--id ID] [--via http|drop] [--url URL] [--token-file F]
+```
+
+`--via http` (the default) posts to the intake with the token from `<paths.secrets>/sense-<SENSE>`; `--via drop` writes
+the event into the drop folder (same machine). Prints the JSON it sent and, over HTTP, the intake's answer; exit 1 when
+the intake refused it.
+
 ## `anna-stream`
 
 Anna's shared short-term memory: one running log of the day that every part of Anna writes and reads. The bot, the brain,

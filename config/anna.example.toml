@@ -47,3 +47,14 @@ alarm_min = 30                      # warn when a hand-off has no result after t
 [bot]                               # Telegram (the claude-plugins-official telegram channel)
 enabled = false
 instance = "ops"                    # anna-tg INSTANCE: state dir, settings file and prompt are per instance
+
+[senses]                            # pushed senses: the sense intake (anna-senses; docs: Senses). Contract v1 on every transport
+enabled = false                     # install.sh starts the anna-senses unit when true
+http = true                         # POST /sense/<name>, one token per sense (anna-senses token NAME)
+listen = "127.0.0.1"                # where http listens; set your LAN address on purpose to take events from other machines
+port = 8793
+drop = true                         # drop folder: <sense>.<anything>.json files, read and deleted within 2 s
+drop_dir = ""                       # empty = <paths.state>/senses/inbox
+mqtt_host = ""                      # optional: a broker to subscribe to anna/senses/+ on (needs paho-mqtt); empty = off
+mqtt_port = 1883
+mqtt_user = "anna"                  # password file: <paths.secrets>/mqtt-senses

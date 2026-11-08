@@ -25,7 +25,7 @@ and stay in step. The [philosophy pages](philosophy/README.md) say why; this pag
 | **Goals** | What's due, what's moving, what stalled; momentum, never nagging | Haiku | `agents/anna-goals.md` |
 | **Curiosity** | At most one real question a day | Sonnet | `agents/anna-curiosity.md` |
 | **Clock** | Her own schedule: notes, pings, headless tasks | no model | `bin/anna-clock` |
-| **Senses and checks** | How the world reaches her ([Senses](senses.md)) and whether things are right (OK / ⚠ / ⛔) | no model | `bin/anna-body`, `bin/anna-checks`; pushed senses: designed |
+| **Senses and checks** | How the world reaches her ([Senses](senses.md)) and whether things are right (OK / ⚠ / ⛔) | no model | `bin/anna-body`, `bin/anna-checks`; pushed senses: `bin/anna-senses` |
 | **Short-term memory** (stream) | What every part did today, so they stay in step | no model | `bin/anna-stream` |
 
 "Runs on today" is the honest state: apart from merlin's embeddings, every model is Claude. Smaller and local models for
@@ -79,7 +79,7 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
 | relay | `bin/anna-relay`, [the relay](relay.md) | bot ↔ brain over two fakechat channels and a file queue |
 | notify | `bin/anna-notify` | Telegram messages from scripts (alerts, clock pings); logged to the stream |
 | checks | `bin/anna-checks` + `record/checks/` | read-only checks: OK / ⚠ / ⛔ lines |
-| senses | `bin/anna-body` + `record/senses/` | how she feels: JSON sensations, one summary line |
+| senses | `bin/anna-body` + `record/senses/`; `bin/anna-senses` | how she feels: JSON sensations, one summary line; pushed senses: events in contract v1 over HTTP, a drop folder or MQTT |
 | engines | `agents/anna-*.md` → `~/.claude/agents/` | subagents the brain calls: memory, interpretation, epistemic, action-gate, goals, curiosity (sensors: they return a block, the brain acts) |
 | gate hook | `hooks/anna-gate-hook` | PreToolUse: in the brain, a state change needs a recent `go` from the action-gate engine |
 | engine inputs | `bin/anna-rhythm`, `bin/backlog-age` | precomputed numbers (active windows, gaps, ages) so no model does date arithmetic |
