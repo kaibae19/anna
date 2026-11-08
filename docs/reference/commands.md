@@ -455,9 +455,6 @@ anna-relay status
 {"brain":"online","bot":"online","paused":false,"new":0,"brain_open":0,"out":0,"done":12,"oldest_open":null}
 ```
 
-!!! note
-    The relay and the bot have not yet been walked through on a clean machine.
-
 ## `anna-rhythm`
 
 When you're usually around, computed from the stream so no model has to guess or do date arithmetic. Input for the
@@ -630,9 +627,6 @@ It sets `ANNA_ROLE=bot` and `ANNA_CLOCK_BY=bot`.
 ```bash
 anna-tg ops --print-prompt | less
 ```
-
-!!! note
-    The Telegram bot has not yet been walked through on a clean machine.
 
 ## `backlog-age`
 

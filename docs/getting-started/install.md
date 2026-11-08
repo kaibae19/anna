@@ -230,9 +230,9 @@ The path is `paths.secrets` (default `~/.config/anna/secrets`, mode 700). Never 
 record.
 
 !!! note "Not yet tested on a clean machine"
-    The headless login with this token, the Telegram bot and the relay haven't yet been walked end to end on a fresh
-    machine. Setup, the brain's daily rollover and the nightly and morning runs have. Expect rough edges in the untested
-    parts, and see [Troubleshooting](troubleshooting.md).
+    The headless login with this token hasn't yet been walked end to end on a fresh machine (setup, the daily rollover,
+    the nightly and morning runs, the bot and the relay have). Expect rough edges here, and see
+    [Troubleshooting](troubleshooting.md).
 
 ## 6. Start the brain
 

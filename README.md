@@ -8,9 +8,10 @@ roommate and working partner. This repository is the **base**: the generic parts
 them. You start your own Anna from it, and her record grows into whatever your world needs: a home lab, a writing desk,
 a research archive, or something else entirely ([A record that grows](docs/concepts/a-record-that-grows.md)).
 
-> **Status: v0.1.** Every piece is extracted from a deployment that runs daily, generalized and tested in isolation.
-> Walked end to end on a clean VM: setup, the brain's daily rollover, the nightly and morning runs. Not yet: the
-> Telegram bot, the relay and headless login. Expect rough edges there.
+> **Status: v0.1.** Every piece is extracted from a deployment that runs daily, generalized and tested in isolation,
+> and the tests run on every push. Walked end to end on a clean VM: setup, the brain's daily rollover, the nightly and
+> morning runs, the Telegram bot and the relay. Not yet: headless login with a long-lived token, the bot's pairing flow
+> and merlin in the bot's session. Expect rough edges there.
 
 ## Quick start
 

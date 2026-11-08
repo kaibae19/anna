@@ -13,9 +13,11 @@ them. You start your own Anna from it, and her record grows into whatever your w
 a research archive, or something else entirely ([A record that grows](concepts/a-record-that-grows.md)).
 
 !!! note "Status: v0.1"
-    Every piece is extracted from a deployment that runs daily, generalized and tested in isolation. A fresh install
-    has been walked end to end on a clean VM (setup, the brain's daily rollover, the nightly and morning runs). Not yet
-    on a clean machine: the Telegram bot, the relay and headless login. Expect rough edges there.
+    Every piece is extracted from a deployment that runs daily, generalized and tested in isolation, and the tests run
+    on every push. A fresh install has been walked end to end on a clean VM: setup, the brain's daily rollover, the
+    nightly and morning runs, the Telegram bot and the relay. Not yet on a clean machine: headless login with a
+    long-lived token, the bot's pairing flow (the by-hand allowlist is the walked path) and merlin in the bot's session.
+    Expect rough edges there.
 
 ## Where to start
 

@@ -64,16 +64,17 @@ def claims(text: str) -> list[str]:
     return out
 
 
-def this_turn(transcript: str) -> tuple[bool, str]:
+def this_turn(transcript: str) -> tuple[bool, str, str]:
     """(called anna-epistemic this turn?, this turn's tool output as evidence, trimmed). The turn starts after the last
     user entry whose content is a string (a typed prompt or a notification)."""
     p = Path(transcript)
     if not p.is_file():
-        return False, ""
+        return False, "", ""
     with p.open("rb") as f:
         f.seek(0, 2)
-        f.seek(max(0, f.tell() - 4_000_000))
-        lines = f.read().decode("utf-8", "replace").splitlines()[1:]
+        off = max(0, f.tell() - 4_000_000)
+        f.seek(off)
+        lines = f.read().decode("utf-8", "replace").splitlines()[1 if off else 0:]   # drop a partial first line only
     entries = []
     for line in lines:
         if '"type":"user"' in line or '"type":"assistant"' in line:
@@ -99,7 +100,8 @@ def this_turn(transcript: str) -> tuple[bool, str]:
                 txt = cc if isinstance(cc, str) else "\n".join(x.get("text", "") for x in cc or [] if isinstance(x, dict))
                 if txt.strip():
                     ev.append(txt.strip()[:1200])
-    return called, "\n---\n".join(ev)[-6000:]
+    turn = str(entries[start].get("uuid") or entries[start].get("timestamp") or "") if entries else ""
+    return called, "\n---\n".join(ev)[-6000:], turn
 
 
 def on_stop(h: dict) -> None:
@@ -108,7 +110,7 @@ def on_stop(h: dict) -> None:
     found = claims(h.get("last_assistant_message") or "")
     if not found:
         return
-    called, _ = this_turn(h.get("transcript_path") or "")
+    called, _, _ = this_turn(h.get("transcript_path") or "")
     if called:
         log("epistemic ran (called by the brain)")
     else:
@@ -121,12 +123,14 @@ def on_relay(h: dict) -> None:
     found = claims(text)
     if not found:
         return
-    key = str(inp.get("reply_to") or hashlib.sha1(text.encode()).hexdigest()[:12])
+    called, evidence, turn = this_turn(h.get("transcript_path") or "")
+    # a reply is keyed by its relay item; a note without reply_to by the session and the turn it's sent in, so rewording
+    # it after a block can't loop (2026-11-08: four rewordings of one note were each blocked as a new item)
+    key = str(inp.get("reply_to") or "note-" + hashlib.sha1(f"{h.get('session_id', '')}|{turn or text}".encode()).hexdigest()[:12])
     mark = STATE / re.sub(r"[^A-Za-z0-9_-]", "", key)
     if mark.exists():                                   # blocked once already for this item: let it through
         log(f"epistemic: relay {key} sent after one check (not re-blocked)")
         return
-    called, evidence = this_turn(h.get("transcript_path") or "")
     data = (f"draft: {text}\nevidence:\n{evidence or '(no tool output this turn)'}\ncontext: relay reply going to the bot "
             f"and on to Telegram; the brain {'called' if called else 'did not call'} anna-epistemic itself this turn")
     try:

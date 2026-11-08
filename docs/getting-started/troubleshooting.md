@@ -9,8 +9,9 @@ search this page for the line you see. Most scripts also write what they did to 
 often the fastest first look.
 
 !!! note "Least-tested parts"
-    The Telegram bot, the relay and headless login with a token haven't yet been walked on a clean machine. If you hit
-    something there that isn't on this page, it's probably a gap in the scaffold, not something you did.
+    Headless login with a long-lived token and the bot's pairing flow haven't yet been walked on a clean machine (setup,
+    the nightly runs, the bot and the relay have). If you hit something there that isn't on this page, it's probably a
+    gap in the scaffold, not something you did.
 
 ## First: run the tests
 

@@ -94,9 +94,6 @@ Detach again with **Ctrl-A** then **D**. `install.sh` doesn't enable it; when th
 systemctl --user enable --now anna-tg@ops
 ```
 
-!!! note
-    The bot and the relay have not yet been walked through on a clean machine.
-
 ## How install.sh renders and installs them
 
 `install.sh` (unless you pass `--no-systemd`):

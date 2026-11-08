@@ -70,4 +70,11 @@ printf '[anna]\nuser = "Sam"\ntimezone = "UTC"\n[paths]\nstate = "%s/state"\nrec
 ok "epistemic: relay check on → blocks a check-first" 'echo "$rel" | $H | grep -q "permissionDecision\": \"deny"'
 ok "epistemic: never blocks the same item twice" '[ -z "$(echo "$rel" | $H)" ]'
 ok "epistemic: the bot passes through" '[ -z "$(echo "$rel" | ANNA_ROLE=bot $H)" ]'
+# a note without reply_to is keyed to its turn: a reworded note in the same turn isn't blocked again (no loop)
+printf '%s\n' '{"type":"user","uuid":"turn-1","message":{"role":"user","content":"close the old items"}}' > "$T/turn.jsonl"
+note() { jq -nc --arg t "$1" --arg p "$T/turn.jsonl" '{hook_event_name:"PreToolUse",session_id:"s-1",transcript_path:$p,tool_name:"mcp__plugin_fakechat_fakechat__reply",tool_input:{text:$t}}' | $H; }
+ok "epistemic: a note without reply_to is checked once" 'note "It was never restarted because the disk is full." | grep -q "permissionDecision\": \"deny"'
+ok "epistemic: rewording it in the same turn passes (no loop)" '[ -z "$(note "It is not running because the disk filled up.")" ]'
+printf '%s\n' '{"type":"user","uuid":"turn-2","message":{"role":"user","content":"next thing"}}' >> "$T/turn.jsonl"
+ok "epistemic: a note in a new turn is checked again" 'note "Nothing is broken because the disk is fine." | grep -q "permissionDecision\": \"deny"'
 exit $fail

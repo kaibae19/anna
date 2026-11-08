@@ -212,9 +212,6 @@ The relay moves requests from the Telegram bot to the brain and results back, ov
 | `bot_port` | `8792` | Local port of the bot's fakechat channel. | `anna-tg` (`FAKECHAT_PORT`), `anna-relay` |
 | `alarm_min` | `30` | Minutes a hand-off may wait for a result before a ⚠ line goes to the stream (`anna-relay`) and the relay check warns (`anna-checks`). | `anna-relay`, `anna-checks` |
 
-!!! note
-    The relay and the Telegram bot have not yet been walked through on a clean machine. Expect rough edges.
-
 ## `[engines]`: engines that run themselves
 
 Hooks that run an engine instead of leaving it to the brain's judgment. See

@@ -7,10 +7,6 @@ description: "What Anna's Telegram bot is allowed to do, how to allow one more a
 This guide explains what Anna's Telegram bot is allowed to do, how to allow it one more action, and how confirmations
 work when you ask for something bigger. It's for you once the bot is running and you want it to do more than answer.
 
-!!! note
-    The Telegram bot and the relay haven't yet been walked end to end on a clean machine (see the README's status). The
-    permission files below are what `install.sh` writes; expect rough edges in the bot's setup itself.
-
 !!! tip "New to this?"
     The bot is its own Claude Code session. Claude Code checks every tool call (running a command, editing a file)
     against a **permissions** list in a settings file. The bot's list is **deny by default**: anything not listed is
