@@ -19,12 +19,15 @@ to turn it off. It's for anyone who sees hook output in a session and wants to k
 |---|---|---|---|---|
 | `SessionStart` | `startup` or `resume` | `anna-session-start` | 10 s | Tells a new session what happened while no one was looking. |
 | `SessionEnd` | (all) | `anna-session-draft` | 30 s | Turns the session's transcript into a redacted draft for the journal. |
-| `UserPromptSubmit` | (all) | `anna-stream hook` | 5 s | Logs your message to the stream; shows the session what other parts did. |
+| `UserPromptSubmit` | (all) | `anna-stream hook` | 5 s | Logs your message to the stream; shows the session what other parts did; runs the interpretation engine when due (`engines.interpretation`), carries today's question, logs your corrections to the own journal. |
 | `Stop` | (all) | `anna-stream hook` | 5 s | Logs Anna's reply to the stream. |
+| `Stop` | (all) | `anna-bot-reply-guard` | 10 s | In the bot only: a turn that began with a Telegram message can't end without a reply. |
+| `Stop` | (all) | `anna-epistemic-hook` | 10 s | In the brain: logs a reply that stated a cause, negative or state without an epistemic check. |
+| `PreToolUse` | `mcp__plugin_fakechat_fakechat__reply` | `anna-epistemic-hook` | 45 s | With `engines.epistemic_relay = true`: checks a relay result before it goes out. |
 | `Notification` | `idle_prompt` | `anna-idle-checkpoint` | 1800 s, `asyncRewake` | Wakes the brain for `/anna-checkpoint` after a quiet spell. |
 | `PreToolUse` | `Bash` or `mcp__.*` | `anna-gate-hook` | 5 s | Blocks a state change without a recent `go` from the action gate. |
 
-The four `anna-*` hook scripts live in `hooks/`; `anna-stream` lives in `bin/`. `install.sh` copies all of them into
+The six `anna-*` hook scripts live in `hooks/`; `anna-stream` lives in `bin/`. `install.sh` copies all of them into
 `paths.bin` (default `~/bin`).
 
 ## Which session each hook acts in
@@ -33,7 +36,7 @@ Every part of Anna runs Claude Code, so every part sees these hooks. Two environ
 
 | Variable | Set by | Effect |
 |---|---|---|
-| `ANNA_ROLE=bot` | `anna-tg` (the bot) | The gate hook and the idle checkpoint pass. The stream hook logs Telegram messages and replies. |
+| `ANNA_ROLE=bot` | `anna-tg` (the bot) | The gate hook and the idle checkpoint pass. The stream hook logs Telegram messages and replies. The reply guard acts (only here). |
 | `ANNA_HEADLESS=1` | `anna-run` (morning, evening, clock runs) | Session start, session draft, idle checkpoint and the gate hook do nothing. The stream hook only adds context. |
 | (neither) | the brain | Everything runs. |
 
@@ -149,6 +152,34 @@ anna-idle-checkpoint): run /anna-checkpoint. …`. Otherwise it exits 0 and does
 **Writes:** a lock file per session in `<paths.state>/idle-checkpoint/` (one waiter per session). Any error exits 0.
 
 **Test knob:** `ANNA_IDLE_TEST=1` makes it ask for the word `PONG` instead of a checkpoint (for throwaway sessions).
+
+## anna-bot-reply-guard
+
+**Event:** `Stop`. Acts only in the bot (`ANNA_ROLE=bot`); everywhere else it exits 0 at once.
+
+**What it does:** finds the turn's prompt (the last user entry in the transcript that isn't a tool result; channel
+messages arrive as meta entries). If that prompt carries a Telegram channel block and no tool call since then was a
+Telegram `reply`, `react` or `edit_message`, or a fakechat `reply` (a hand-off to the brain), it blocks the stop
+(`{"decision": "block"}`) with a reason telling the bot to send its answer now. Text the bot writes in its own terminal
+never reaches the person, and a model now and then ends a turn that way.
+
+It never blocks twice in a row (`stop_hook_active`), and any error lets the turn end. Each block writes a `bot-guard`
+line to the stream.
+
+## anna-epistemic-hook
+
+**Events:** `Stop` and `PreToolUse` (matcher `mcp__plugin_fakechat_fakechat__reply`). Brain only: the bot and headless
+runs pass through.
+
+**Stop (log-only):** if the reply states a cause, a negative (down, missing, never, not exposed) or a current state and
+the brain didn't call `anna-epistemic` this turn, it writes `epistemic due, not run: "<claim>"` to the stream
+(`from: engines`); if it did, `epistemic ran (called by the brain)`. It never blocks: terminal text is already on screen
+when Stop fires. Session start counts these as the engine's misses.
+
+**PreToolUse on the relay reply** (only with `engines.epistemic_relay = true`): if the result states such a claim, it
+runs `anna-engine epistemic` with this turn's tool output as evidence. `check-first` or `ship-with-labels` blocks the
+reply with the engine's block as the reason; the next try for the same relay item passes (logged), so a disagreement
+can't loop. Any error passes.
 
 ## anna-gate-hook
 

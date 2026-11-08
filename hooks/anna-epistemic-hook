@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""anna-epistemic-hook — the epistemic engine, made to run (docs: reference/engines.md § Engines that run themselves).
+Brain only: the bot ($ANNA_ROLE=bot) and headless runs pass through.
+
+  Stop (terminal replies, LOG-ONLY): if my reply states a cause, a negative or a current state and I didn't call
+      anna-epistemic this turn → stream line `epistemic due, not run: "<claim>"` (from: engines). If I did call it →
+      `epistemic ran (called by the brain)`. Never blocks: terminal text is already on screen when Stop fires, so
+      blocking would only add a visible correction; that comes after a week of measuring false positives.
+  PreToolUse on mcp__plugin_fakechat_fakechat__reply, only with engines.epistemic_relay = true (default false: the
+      check adds up to engines.timeout seconds before a relay result goes out, and can time out): if the text
+      states such a claim, run `anna-engine epistemic` on it with this turn's tool output as evidence. `check-first` →
+      blocked, with the check to run; `ship-with-labels` → blocked with its say_as. At most one block per relay item
+      (then it passes, logged), so a disagreement can't loop. Fails open on any error.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent                    # installed: ~/bin; in the repo: hooks/ next to bin/
+_BIN = _HERE if (_HERE / "anna-engine").exists() else _HERE.parent / "bin"
+sys.path.insert(0, str(_BIN))
+try:
+    from anna_cfg import STATE as _STATE, get  # noqa: E402
+except ImportError:                                         # no config helper: never break a turn
+    sys.exit(0)
+
+STATE = _STATE / "epistemic"
+STREAM, ENGINE = str(_BIN / "anna-stream"), str(_BIN / "anna-engine")
+CLAIM = re.compile(
+    r"\b(?:is|are|was|were|isn't|aren't|wasn't|weren't|stays?|went)\s+(?:still\s+|now\s+)?"
+    r"(?:down|offline|missing|gone|broken|not running|unreachable|not exposed|not installed|not set|empty)\b"
+    r"|\bnever\b|\bno longer\b|\bnothing (?:changed|found|is|was|ran|runs)\b|\bnone (?:of|is|are|were)\b"
+    r"|\bnot (?:exposed|running|installed|recorded|delivered|reachable|affected|vulnerable)\b"
+    r"|\bdoesn't exist\b|\bdon't exist\b|\bisn't there\b"
+    r"|\bnothing\b[^.\n]{0,40}\b(?:is|was|are|were)\s+(?:exposed|affected|vulnerable|running|down|broken|missing|wrong)\b"
+    r"|\bno (?:exposure|sign|trace|record|errors?|failures?|change|impact)s?\b|\b(?:are|is) (?:both |all )?off\b"
+    r"|\b(?:because|caused by|the (?:real |root )?cause|root cause|that's why|which is why|due to)\b", re.I)
+
+
+def log(text: str) -> None:
+    try:
+        subprocess.run([STREAM, "add", "--from", "engines", text[:500]], timeout=5, check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def claims(text: str) -> list[str]:
+    """Sentences that state a cause, a negative or a state; code, quoted output and quotes of others are skipped."""
+    t = re.sub(r"```.*?```", " ", text, flags=re.S)
+    t = re.sub(r"`[^`\n]*`", "X", t)
+    t = "\n".join(l for l in t.splitlines() if not l.lstrip().startswith(">"))
+    out = []
+    for s in re.split(r"(?<=[.!?:])\s+|\n+", t):
+        s = s.strip(" -*•")
+        if len(s) > 12 and CLAIM.search(s):
+            out.append(s[:200])
+    return out
+
+
+def this_turn(transcript: str) -> tuple[bool, str]:
+    """(called anna-epistemic this turn?, this turn's tool output as evidence, trimmed). The turn starts after the last
+    user entry whose content is a string (a typed prompt or a notification)."""
+    p = Path(transcript)
+    if not p.is_file():
+        return False, ""
+    with p.open("rb") as f:
+        f.seek(0, 2)
+        f.seek(max(0, f.tell() - 4_000_000))
+        lines = f.read().decode("utf-8", "replace").splitlines()[1:]
+    entries = []
+    for line in lines:
+        if '"type":"user"' in line or '"type":"assistant"' in line:
+            try:
+                entries.append(json.loads(line))
+            except ValueError:
+                continue
+    start = 0
+    for i, e in enumerate(entries):
+        if e.get("type") == "user" and isinstance((e.get("message") or {}).get("content"), str) and not e.get("isSidechain"):
+            start = i
+    called, ev = False, []
+    for e in entries[start:]:
+        if e.get("isSidechain"):
+            continue
+        for c in (e.get("message") or {}).get("content") or []:
+            if not isinstance(c, dict):
+                continue
+            if c.get("type") == "tool_use" and (c.get("input") or {}).get("subagent_type") == "anna-epistemic":
+                called = True
+            elif c.get("type") == "tool_result":
+                cc = c.get("content")
+                txt = cc if isinstance(cc, str) else "\n".join(x.get("text", "") for x in cc or [] if isinstance(x, dict))
+                if txt.strip():
+                    ev.append(txt.strip()[:1200])
+    return called, "\n---\n".join(ev)[-6000:]
+
+
+def on_stop(h: dict) -> None:
+    if h.get("stop_hook_active"):
+        return
+    found = claims(h.get("last_assistant_message") or "")
+    if not found:
+        return
+    called, _ = this_turn(h.get("transcript_path") or "")
+    if called:
+        log("epistemic ran (called by the brain)")
+    else:
+        log(f'epistemic due, not run: "{found[0]}"' + (f" (+{len(found) - 1} more)" if len(found) > 1 else ""))
+
+
+def on_relay(h: dict) -> None:
+    inp = h.get("tool_input") or {}
+    text = str(inp.get("text") or "")
+    found = claims(text)
+    if not found:
+        return
+    key = str(inp.get("reply_to") or hashlib.sha1(text.encode()).hexdigest()[:12])
+    mark = STATE / re.sub(r"[^A-Za-z0-9_-]", "", key)
+    if mark.exists():                                   # blocked once already for this item: let it through
+        log(f"epistemic: relay {key} sent after one check (not re-blocked)")
+        return
+    called, evidence = this_turn(h.get("transcript_path") or "")
+    data = (f"draft: {text}\nevidence:\n{evidence or '(no tool output this turn)'}\ncontext: relay reply going to the bot "
+            f"and on to Telegram; the brain {'called' if called else 'did not call'} anna-epistemic itself this turn")
+    try:
+        p = subprocess.run([ENGINE, "epistemic", "--trigger", f"relay reply {key}"], input=data, capture_output=True,
+                           text=True, timeout=float(get("engines.timeout", 30)) + 8)
+        out = p.stdout
+    except Exception:  # noqa: BLE001
+        return
+    v = re.search(r"^verdict:\s*(\S+)", out, re.M)
+    if not v or v.group(1) == "ship":
+        return
+    STATE.mkdir(parents=True, exist_ok=True)
+    mark.write_text(v.group(1))
+    reason = (f"anna-epistemic checked this relay reply before it goes to Telegram: {v.group(1)}. Fix the reply as it says "
+              f"(run the check, or use its wording), then send again; it won't be blocked twice.\n{out.strip()}")
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
+                                             "permissionDecisionReason": reason}}))
+
+
+def main() -> int:
+    if os.environ.get("ANNA_ROLE") == "bot" or os.environ.get("ANNA_HEADLESS") \
+            or os.environ.get("CLAUDE_CODE_ENTRYPOINT", "").startswith("sdk"):
+        return 0
+    h = json.load(sys.stdin)
+    ev = h.get("hook_event_name", "")
+    if ev == "Stop":
+        on_stop(h)
+    elif ev == "PreToolUse" and h.get("tool_name") == "mcp__plugin_fakechat_fakechat__reply" \
+            and get("engines.epistemic_relay", False) is True:
+        on_relay(h)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except Exception as ex:  # noqa: BLE001  never break a turn
+        log(f"⚠ epistemic hook error (passed): {type(ex).__name__}: {ex}"[:300])
+        sys.exit(0)

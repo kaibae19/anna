@@ -24,13 +24,16 @@ import fcntl
 import json
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from anna_cfg import STATE, TZ, USER, redact  # noqa: E402
+from anna_cfg import RECORD, STATE, TZ, USER, get, redact  # noqa: E402
+
+BIN = Path(__file__).resolve().parent
 
 DIR, SEEN = STATE / "stream", STATE / "stream-seen"
 TEXT_CAP, SHOW_CAP, FIRST_HOURS, SHOW_MAX = 600, 300, 12, 30
@@ -96,20 +99,138 @@ def fmt(r: dict) -> str:
     return f"- {t:%a %H:%M} [{tag}] {text}"
 
 
+# --- interpretation, run by the hook (docs: reference/engines.md § Engines that run themselves) ---
+AUTO = re.compile(r"^" + re.escape(SAID) + r"(/anna-wrapup overnight|\[relay |<)")   # typed by scripts, not by the user
+GAP_H = 8.0
+ASKS_STATE = re.compile(r"\bwhy\b|\b(?:is|are|was|were|did|does|do|has|have)\b[^.?\n]{0,60}\b(?:down|up|running|working|"
+                        r"broken|done|finished|ok|okay|exposed|affected|installed|happen\w*|fail\w*|run)\b|\bstatus\b|"
+                        r"\bwhere are we\b|\bwhat happened\b|\bstill (?:there|running|broken)\b", re.I)
+
+
+def user_last_words(before: datetime) -> datetime | None:
+    """When the user last wrote (bot or session), automation excluded; None if not in the last 3 days."""
+    for r in reversed(read_since(before - timedelta(days=3))):
+        t = r.get("text", "")
+        if t.startswith(SAID) and not AUTO.match(t):
+            ts = datetime.fromisoformat(r["ts"])
+            if ts < before:
+                return ts
+    return None
+
+
+def morning_report() -> Path:
+    return RECORD / f"journal/handoffs/{now():%F}-morning.md"
+
+
+def interp_items(rows: list[dict]) -> list[str]:
+    """The context that could ride into the reply: the 📌 handoff, this morning's report (Needs action, Question for
+    today), and the stream lines the hook is about to show."""
+    items = []
+    try:
+        pin = (RECORD / "memory/MEMORY.md").read_text(errors="replace").split("\n", 1)[0]
+        if pin.strip() and not pin.startswith("#"):
+            items.append(f"(handoff) {pin[:700]}")
+    except OSError:
+        pass
+    rep = morning_report()
+    if rep.is_file():
+        keep = False
+        for l in rep.read_text(errors="replace").splitlines():
+            if l.startswith("## ") or l.startswith("### "):
+                keep = "Needs action" in l
+            if (keep and l.strip() and not l.startswith("#")) or l.startswith("Question for today"):
+                items.append(f"(morning report {now():%m-%d}) {l.strip()[:300]}")
+    for r in rows[-12:]:
+        items.append(f"(stream {datetime.fromisoformat(r['ts']).astimezone(TZ):%a %H:%M}, {r.get('from')}) {r.get('text', '')[:300]}")
+    return items
+
+
+def interpretation(message: str, why: str, gap: str, rows: list[dict]) -> str:
+    items = interp_items(rows)
+    data = (f'message: "{message[:1500]}"\nsurface: interactive\ngap: {gap}; gap_threshold: {GAP_H:.0f} h\nitems:\n'
+            + "\n".join(f"{i}. {t}" for i, t in enumerate(items, 1)))
+    try:
+        p = subprocess.run([str(BIN / "anna-engine"), "interpretation", "--trigger", why], input=data,
+                           capture_output=True, text=True, timeout=float(get("engines.timeout", 30)) + 8)
+        out = p.stdout.strip()
+    except Exception as e:  # noqa: BLE001  never block the prompt
+        out = f"anna-interpretation engine unavailable ({type(e).__name__}): apply its rules yourself this turn."
+    return (f"## Interpretation (run by the prompt hook: {why}; follow it for this reply)\n"
+            f"Items it sorted:\n" + "\n".join(f"{i}. {t[:160]}" for i, t in enumerate(items, 1)) + f"\n{out}\n\n")
+
+
+# --- own journal: the user's corrections are logged raw for the nightly dream (docs: concepts/own-journal.md) ---
+CORRECTION = re.compile(r"^\W*(?:no\b|nope\b|not quite\b|actually\b|that'?s not\b|that isn'?t\b|that'?s wrong\b|wrong\b|"
+                        r"i meant\b|i said\b|not what i\b|you (?:missed|forgot|misread|misunderstood|got .{0,20} wrong))", re.I)
+
+
+def log_correction(text: str) -> None:
+    """A prediction error: where Anna's picture of the user didn't predict them. Raw, their words; the dream sorts it."""
+    t = " ".join(text.split())
+    if t and CORRECTION.search(t[:80]):
+        try:
+            subprocess.run([str(BIN / "anna-log"), "correction", SAID + t[:400]], timeout=5,
+                           env={**os.environ, "ANNA_LOG_BY": "hook"}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:  # noqa: BLE001
+            pass
+
+
+# --- curiosity delivery: today's question rides along until it's asked ---
+def todays_question() -> str | None:
+    try:
+        for l in morning_report().read_text(errors="replace").splitlines():
+            if l.startswith("Question for today:"):
+                q = l.split(":", 1)[1].strip()
+                return q if q and q.lower() != "none" else None
+    except OSError:
+        pass
+    return None
+
+
+def asked_today() -> bool:
+    start = now().replace(hour=0, minute=0, second=0, microsecond=0)
+    return any(r.get("from") == "curiosity" for r in read_since(start))
+
+
+def asked_in(q: str, reply: str) -> bool:
+    """The reply contains today's question: most of its content words (4+ letters) appear, and the reply asks something."""
+    words = {w for w in re.findall(r"[a-z0-9][a-z0-9'-]{3,}", q.split("(why:")[0].lower())}
+    if not words or "?" not in reply:
+        return False
+    have = set(re.findall(r"[a-z0-9][a-z0-9'-]{3,}", reply.lower()))
+    return len(words & have) / len(words) >= 0.6
+
+
 def hook() -> None:
     h = json.load(sys.stdin)
     ev, sid, rl = h.get("hook_event_name", ""), h.get("session_id", ""), role()
     if ev == "UserPromptSubmit":
         prompt = h.get("prompt") or ""
+        said = REMINDER_RE.sub("", prompt).strip()
+        interp_why, gap_txt = "", ""
+        if rl == "session" and get("engines.interpretation", True) is True:
+            last = user_last_words(now())
+            gap_h = (now() - last).total_seconds() / 3600 if last else None
+            first = not (SEEN / (re.sub(r"[^A-Za-z0-9-]", "", sid) or "none")).exists()
+            if "[relay " in prompt and "fakechat" in prompt:
+                interp_why = "a relayed message"
+            elif not AUTO.match(SAID + said) and (gap_h is None or gap_h >= GAP_H):
+                interp_why = f"first words after {gap_h:.0f} h" if gap_h is not None else "first words in 3+ days"
+            elif first and not AUTO.match(SAID + said):
+                interp_why = "first prompt of this session"
+            gap_txt = (f"{gap_h:.1f} h since {USER} last wrote" if gap_h is not None
+                       else f"more than 3 days since {USER} last wrote")
         if rl == "bot":
             for m in CHANNEL_RE.findall(prompt):
                 add(SAID + m, "bot", sid)
+                log_correction(m)
         elif rl == "session":
             p = REMINDER_RE.sub("", prompt)
             m = CMD_RE.search(p)
             p = f"/{m.group(1).strip().lstrip('/')} {m.group(2).strip()}" if m else p.strip()
             if p and not p.startswith("<"):
                 add(SAID + p, "session", sid)
+                log_correction(p)
         SEEN.mkdir(parents=True, exist_ok=True)
         seen_f = SEEN / (re.sub(r"[^A-Za-z0-9-]", "", sid) or "none")
         try:
@@ -118,7 +239,21 @@ def hook() -> None:
             since = now() - timedelta(hours=FIRST_HOURS)
         rows = [r for r in read_since(since) if r.get("sid") != sid[:8]]
         seen_f.write_text(now().isoformat())
+        head = interpretation(said, interp_why, gap_txt, rows) if interp_why else ""
+        theirs = rl == "session" and not said.startswith("<")      # the user's words, not a notification
+        q = todays_question() if theirs else None
+        if q and not asked_today() and not interp_why.startswith("first words"):   # carry it until asked
+            head += (f"Today's question (curiosity, not asked yet): {q}\nAsk it once, at the end of a reply at a natural "
+                     "pause (a task just finished, the conversation slowed): not a greeting after a gap, not mid-incident or "
+                     "during a long run of work. Plain words, no preamble. The Stop hook logs it as asked; if today has no "
+                     "good moment, it waits for tomorrow.\n\n")
+        if theirs and ASKS_STATE.search(said):                    # prompt-side nudge for the epistemic engine
+            head += ("Epistemic: this prompt asks why / whether / what state. If your reply states a cause, a negative "
+                     "(down, missing, never, not exposed) or a current state, run anna-epistemic on your draft first "
+                     "(draft + this turn's evidence lines). The Stop hook logs it as a miss otherwise.\n\n")
         if not rows:
+            if head:
+                print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": head}}))
             return
         brain = [r for r in rows if r.get("for") == "brain"] if rl != "bot" else []
         rest = [r for r in rows if r not in brain]
@@ -128,7 +263,7 @@ def hook() -> None:
         lines = "\n".join(fmt(r) for r in brain + rest)
         hidden = len(rows) - len(brain) - len(rest)
         more = f" ({hidden} older lines not shown: `anna-stream recent`)" if hidden else ""
-        ctx = (f"Anna's stream: what other parts of Anna (the bot, the main session, scripts, scheduled runs) saw or did "
+        ctx = head + (f"Anna's stream: what other parts of Anna (the bot, the main session, scripts, scheduled runs) saw or did "
                f"since your last turn{more}. Background, true when written; times are {TZ.key}. Lines marked "
                f"'for the brain' are handed to you to pick up.\n{lines}")
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": ctx}}))
@@ -136,6 +271,9 @@ def hook() -> None:
         if rl == "session":                             # Stop input carries the reply; the transcript may not have it yet
             if h.get("last_assistant_message"):
                 add("Anna: " + h["last_assistant_message"], "session", sid)
+                q = todays_question()
+                if q and not asked_today() and asked_in(q, h["last_assistant_message"]):
+                    add(f"asked (in session): {q}", "curiosity", sid)
             return
         tp = Path(h.get("transcript_path") or "")
         if not tp.is_file():

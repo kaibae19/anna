@@ -34,6 +34,14 @@ record as it is) and put the question in the 📌 handoff line under **Ask**. Pu
    `anna-curiosity` with the open questions for the user, `anna-rhythm` and recent answers (`anna-stream recent --hours
    72`). Feed them tool output, never your own date math. Interactively, a question it returns may be asked now (log it:
    `anna-stream add --from curiosity "<question>"`); overnight, it goes under **Ask** in the handoff instead.
+3c. **Wonders and takeaways** (the day's reflection): with the session in mind, look for where Anna's picture of the user
+   didn't predict them (a correction, a choice she'd have made differently), a deliberate choice whose *why* the record
+   doesn't have, or something that keeps coming up across days. Check the record first (memory, the project's docs). Add
+   0–2 lines to `planning/wonders.md`: dated, the question, what prompted it. An answer the user gave today goes where it
+   belongs (memory, a thing's record, a project doc) and its wonder gets ✅ and a pointer. Things Anna can look up herself
+   don't go there: look them up. The day's takeaways (what Anna learned about the user, the things she looks after or
+   herself, a correction worth keeping) go into her own journal now, one line each: `anna-log learned|takeaway "<line>"`
+   (the nightly dream sorts them).
 4. **Handoff:** update the 📌 line at the top of `memory/MEMORY.md`: what's live, what's mid-flight, what's next,
    **Ask** (questions for the user). If nothing is mid-flight, say so on that line.
 5. **Mark folded:** `anna-session-draft --mark-folded <draft>` for the drafts you journaled, so the evening fold doesn't

@@ -6,7 +6,7 @@ description: "What's designed or prototyped in the deployment Anna came from but
 
 Designed and partly prototyped in the deployment this scaffold came from; not in the scaffold yet.
 
-**Done:** engines as subagents (`agents/`, [architecture](concepts/architecture.md) § Engines) with the action gate enforced by a hook. Pushed senses: the sense intake (`anna-senses`; contract v1 over HTTP, a drop folder or MQTT; [Senses](concepts/senses.md)).
+**Done:** engines as subagents (`agents/`, [architecture](concepts/architecture.md) § Engines) with the action gate enforced by a hook. Pushed senses: the sense intake (`anna-senses`; contract v1 over HTTP, a drop folder or MQTT; [Senses](concepts/senses.md)). Engines that run themselves (interpretation by the prompt hook, epistemic counted; [Engines](reference/engines.md#engines-that-run-themselves)). An own journal and a nightly dream ([Her own journal](concepts/own-journal.md)).
 Next for them: replay a day's stream through each engine and score the blocks in the nightly fold, so prompt changes are
 measured rather than guessed; then the local-model shadow below, engine by engine (interpretation and epistemic first: no
 tool calls, fixed labels).
@@ -19,9 +19,6 @@ tool calls, fixed labels).
   gather context. The system's own alert always reaches the person first.
 - **The canon off-site.** Client-side encrypted backups of the record and state (restic, append-only) to a second location.
   Running in the home this came from since 2026-11; not in the scaffold yet.
-- **An own journal and a nightly dream.** Anna keeps a short raw log of what registered with her (a lesson about herself,
-  something she noticed or wonders about); a nightly run sorts it into what stays with her lately, open questions, and
-  proposed lessons. Running in one home; not in the scaffold yet.
 - **Memory that fades by disuse.** Topics nobody has needed for a long while turn into a short gist with a pointer to the
   full detail, which stays archived; seasonal topics wait instead of fading, and anything comes back the moment it's
   used. Corrections, decisions and their reasons never fade. Designed, not built.

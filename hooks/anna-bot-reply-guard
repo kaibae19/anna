@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""anna-bot-reply-guard — Stop hook that acts in the bot only ($ANNA_ROLE=bot, set by anna-tg): a turn that started with a
+Telegram message must not end without a reply. Text the bot writes in its terminal never reaches the person, and now and
+then a turn ends that way (in the home this came from: 3 of ~370 turns over a week, 2026-11).
+
+Reads the hook input (transcript_path, stop_hook_active). Finds the turn's prompt (the last user entry that isn't a tool
+result). If it carries a `source="plugin:telegram…"` channel block and no tool call since then is a Telegram reply/react
+or a fakechat reply (the hand-off to the brain), it blocks the stop with a reason telling the bot to send its answer.
+Never blocks twice in a row (stop_hook_active), never fails the turn: any error → allow. Logs each block to the stream.
+"""
+import json
+import os
+import subprocess
+import sys
+
+SENT = ("mcp__plugin_telegram_telegram__reply", "mcp__plugin_telegram_telegram__react",
+        "mcp__plugin_telegram_telegram__edit_message", "mcp__plugin_fakechat_fakechat__reply")
+
+
+def prompt_text(c) -> str | None:
+    if isinstance(c, str):
+        return c
+    if isinstance(c, list):
+        if any(isinstance(x, dict) and x.get("type") == "tool_result" for x in c):
+            return None
+        return " ".join(x.get("text", "") for x in c if isinstance(x, dict) and x.get("type") == "text")
+    return None
+
+
+def main() -> int:
+    if os.environ.get("ANNA_ROLE") != "bot":
+        return 0
+    try:
+        inp = json.load(sys.stdin)
+        if inp.get("stop_hook_active"):
+            return 0
+        lines = open(inp["transcript_path"], encoding="utf-8", errors="replace").read().splitlines()
+    except Exception:  # noqa: BLE001
+        return 0
+    sent = False
+    for l in reversed(lines):
+        try:
+            d = json.loads(l)
+        except ValueError:
+            continue
+        c = (d.get("message") or {}).get("content")
+        if d.get("type") == "assistant" and isinstance(c, list):
+            if any(isinstance(x, dict) and x.get("type") == "tool_use" and x.get("name") in SENT for x in c):
+                sent = True
+        elif d.get("type") == "user":
+            t = prompt_text(c)
+            if t is None or (d.get("isMeta") and "<channel " not in t):   # channel messages arrive as isMeta entries
+                continue
+            if 'source="plugin:telegram' in t and not sent:
+                subprocess.run(["anna-stream", "add", "--from", "bot-guard",
+                                "⚠ bot turn ended without a Telegram reply; blocked the stop so it sends one"],
+                               timeout=5, check=False, capture_output=True)
+                print(json.dumps({"decision": "block", "reason":
+                      "This turn began with a Telegram message and you haven't replied: text in this terminal never "
+                      "reaches the person. Send your answer now with the telegram reply tool (or react, or hand off to the "
+                      "brain with the fakechat reply tool if that was your intent)."}))
+            return 0
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

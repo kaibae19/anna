@@ -23,6 +23,8 @@ for f in "$R"/bot/context/*; do
   [ -f "$f" ] && [[ $(basename "$f") != README* ]] || continue   # the README explains the folder; it is not context
   prompt+=$(printf '\n\n## %s (%s)\n```\n%s\n```' "$(basename "${f%.*}")" "$f" "$(cat "$f")")
 done
+la=$R/self/lately.md                                            # what the nightly dream kept (background)
+[ -s "$la" ] && prompt+=$(printf '\n\n## Lately (%s)\n%s' "$la" "$(cat "$la")")
 [ "${2:-}" = --print-prompt ] && { printf '%s\n' "$prompt"; exit 0; }   # see what the bot is told
 export TELEGRAM_STATE_DIR=$STATE/telegram-$I
 [ -s "$SEC/telegram-$I" ] || { echo "anna-tg: no bot token at $SEC/telegram-$I" >&2; exit 2; }

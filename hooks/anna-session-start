@@ -8,16 +8,17 @@ the latest headless report's "Needs action" section, and how many session drafts
 import glob
 import json
 import os
+import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "bin"))   # repo layout: hooks/ next to bin/
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(os.path.expanduser("~/bin"))))
 try:
-    from anna_cfg import RECORD, STATE, get
+    from anna_cfg import RECORD, STATE, TZ, get
 except ImportError:
     sys.exit(0)
 
@@ -89,3 +90,21 @@ if reports:
     print("\n".join(out[:15]))
 drafts = len(glob.glob(str(STATE / "drafts/*.md")))
 print(f"Unfolded session drafts (folded by the {get('runs.evening', '01:00')} run): {drafts}")
+# Engine habits: runs and misses per engine yesterday and today, from the stream's `from: engines` lines
+# (a miss = due by its trigger, not run). Counted by anna-engine --stats.
+_here = Path(__file__).resolve().parent
+eng = next((p for p in (_here / "anna-engine", _here.parent / "bin/anna-engine") if p.exists()), _here / "anna-engine")
+for d in ((datetime.now(TZ) - timedelta(days=1)).date().isoformat(), datetime.now(TZ).date().isoformat()):
+    try:
+        r = subprocess.run([str(eng), "--stats", d], capture_output=True, text=True, timeout=5)
+        if r.stdout.startswith("engines ") and "no runs" not in r.stdout:
+            print("E" + r.stdout.strip()[1:])
+    except Exception:  # noqa: BLE001
+        pass
+# Lately: what last night's dream kept from the last few days (background, never recited)
+lately = RECORD / "self/lately.md"
+if lately.is_file():
+    keep = [l for l in lately.read_text(errors="replace").splitlines() if l.startswith("- ")][:12]
+    if keep:
+        print("Lately (self/lately.md, from the nightly dream; background, don't recite):")
+        print("\n".join(keep))

@@ -121,11 +121,11 @@ done
 for t in "$SRC"/systemd/*.timer.in; do
   n=$(basename "$t" .in)
   sed -e "s|@CLOSE@|$(cfg day.close)|g" -e "s|@OPEN@|$(cfg day.open)|g" -e "s|@MORNING@|$(cfg runs.morning)|g" \
-      -e "s|@EVENING@|$(cfg runs.evening)|g" -e "s|@TZ@|$TZ_|g" "$t" > "$U/$n"
+      -e "s|@EVENING@|$(cfg runs.evening)|g" -e "s|@DREAM@|$(cfg runs.dream)|g" -e "s|@TZ@|$TZ_|g" "$t" > "$U/$n"
 done
 systemctl --user daemon-reload; say "units → $U"
 if [ $NOENABLE = 0 ]; then
-  systemctl --user enable --now anna-clock.timer anna-morning.timer anna-evening.timer anna-day-close.timer anna-day-open.timer
+  systemctl --user enable --now anna-clock.timer anna-morning.timer anna-evening.timer anna-dream.timer anna-day-close.timer anna-day-open.timer
   [ "$RELAY" = true ] && systemctl --user enable --now anna-relay.service
   [ "$SENSES" = true ] && systemctl --user enable --now anna-senses.service
   [ "$BOT" = true ] && say "bot: start it when the token is in place: systemctl --user enable --now anna-tg@$INST"

@@ -1,0 +1,113 @@
+#!/usr/bin/env python3
+"""anna-engine — run one of Anna's engines (a ~/.claude/agents/anna-<name>.md subagent) headless, so a hook can make it
+run instead of hoping the brain calls it (docs: reference/engines.md § Engines that run themselves).
+
+    anna-engine NAME [--trigger WHY] < input     the engine's ```anna-NAME``` block on stdout, exit 0
+                                                 failure/timeout: a one-line "engine unavailable" note, exit 3 (fails open)
+    anna-engine --stats [YYYY-MM-DD]             runs and misses per engine from the stream (default: yesterday)
+
+How: `claude -p --agent anna-NAME --tools ""` (the agent file is the session: its prompt and model), no MCP, no session
+saved, cwd <paths.state>/engine-cwd (no project CLAUDE.md), ANNA_HEADLESS=1 so Anna's hooks stay quiet inside it.
+Every run and every failure goes to the stream as `from: engines` (the audit session start shows).
+Timeout: engines.timeout (s, default 30), or ANNA_ENGINE_TIMEOUT. ANNA_ENGINE_CLAUDE overrides the claude binary (tests).
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from collections import Counter
+from datetime import datetime, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from anna_cfg import STATE, TZ, get  # noqa: E402
+
+HOME = Path.home()
+CWD = STATE / "engine-cwd"
+STREAM_DIR = STATE / "stream"
+STREAM = str(Path(__file__).resolve().parent / "anna-stream")
+
+
+def log(text: str) -> None:
+    try:
+        subprocess.run([STREAM, "add", "--from", "engines", text], timeout=5, check=False,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def run(name: str, trigger: str, data: str) -> int:
+    short = name.removeprefix("anna-")
+    if not re.fullmatch(r"[a-z]+", short) or not (HOME / f".claude/agents/anna-{short}.md").is_file():
+        print(f"anna-engine: no engine anna-{short}", file=sys.stderr)
+        return 2
+    CWD.mkdir(parents=True, exist_ok=True)
+    env = {k: v for k, v in os.environ.items() if k not in ("CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION")}
+    env["ANNA_HEADLESS"] = "1"
+    t0 = time.time()
+    why = ""
+    try:
+        p = subprocess.run([os.environ.get("ANNA_ENGINE_CLAUDE", "claude"), "-p", "--agent", f"anna-{short}", "--tools", "", "--strict-mcp-config",
+                            "--no-session-persistence", "--output-format", "text"],
+                           input=data, capture_output=True, text=True, cwd=CWD, env=env,
+                           timeout=float(os.environ.get("ANNA_ENGINE_TIMEOUT") or get("engines.timeout", 30)))
+        m = re.search(rf"```anna-{short}\s*\n.*?```", p.stdout, re.S)
+        if m:
+            dt = time.time() - t0
+            body = " · ".join(l.strip() for l in m.group(0).splitlines()[1:-1] if l.strip())
+            log(f"{short} ran ({trigger}, {dt:.0f} s): {body}"[:500])
+            print(m.group(0))
+            return 0
+        why = f"no anna-{short} block (exit {p.returncode}): {(p.stdout or p.stderr).strip()[:120]}"
+    except subprocess.TimeoutExpired:
+        why = f"timed out after {time.time() - t0:.0f} s"
+    except Exception as e:  # noqa: BLE001
+        why = f"{type(e).__name__}: {e}"
+    log(f"⚠ {short} failed ({trigger}): {why}"[:400])
+    print(f"anna-{short} engine unavailable ({why}): apply its rules yourself this turn.")
+    return 3
+
+
+def stats(day: str) -> int:
+    f = STREAM_DIR / f"{day}.jsonl"
+    ran, missed, failed = Counter(), Counter(), Counter()
+    if f.is_file():
+        for line in f.read_text(errors="replace").splitlines():
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            if r.get("from") != "engines":
+                continue
+            t = r.get("text", "")
+            if "(test," in t or "(by hand," in t:          # trials by hand: not the habit
+                continue
+            m = re.match(r"(?:⚠ )?(\w+) (ran|failed|due, not run)", t)
+            if not m:
+                continue
+            {"ran": ran, "failed": failed, "due, not run": missed}[m.group(2)][m.group(1)] += 1
+    names = sorted(set(ran) | set(missed) | set(failed))
+    if not names:
+        print(f"engines {day}: no runs, no misses logged")
+        return 0
+    print(f"engines {day}: " + "; ".join(f"{n} {ran[n]} ran, {missed[n]} missed" + (f", {failed[n]} failed" if failed[n] else "")
+                                          for n in names))
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    if argv[:1] == ["--stats"]:
+        return stats(argv[1] if len(argv) > 1 else (datetime.now(TZ) - timedelta(days=1)).date().isoformat())
+    if not argv or argv[0].startswith("-"):
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    trigger = argv[argv.index("--trigger") + 1] if "--trigger" in argv[1:-1] else "by hand"
+    return run(argv[0], trigger, sys.stdin.read())
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

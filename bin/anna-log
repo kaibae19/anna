@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""anna-log — Anna's own journal: a raw log for the nightly dream (docs: concepts/own-journal.md). Not a diary: material.
+
+    anna-log KIND TEXT      append one entry to today's file; KIND: observed | learned | wondering | felt | correction |
+                            takeaway (anything else is refused, so the dream can sort by kind)
+    anna-log --today        print today's file (or yesterday's with --yesterday)
+
+File: <paths.record>/self/journal/YYYY/MM/YYYY-MM-DD.md (local day in anna.timezone), one line per entry:
+    - 14:07 [learned] (brain) My curiosity was a to-do list: it only ranked open asks.
+Written by the brain, the bot ($ANNA_ROLE=bot → "bot") and the prompt hook (corrections, "hook"; $ANNA_LOG_BY).
+First person, short. Not committed here: the nightly dream (anna-dream) and wrap-ups commit it. Text is redacted like
+the stream.
+"""
+from __future__ import annotations
+
+import fcntl
+import os
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from anna_cfg import RECORD, TZ, redact  # noqa: E402
+
+ROOT = RECORD / "self/journal"
+KINDS = ("observed", "learned", "wondering", "felt", "correction", "takeaway")
+
+
+def day_file(d: datetime) -> Path:
+    return ROOT / f"{d:%Y/%m/%Y-%m-%d}.md"
+
+
+def main(argv: list[str]) -> int:
+    now = datetime.now(TZ)
+    if argv[:1] in (["--today"], ["--yesterday"]):
+        f = day_file(now - timedelta(days=1) if argv[0] == "--yesterday" else now)
+        print(f.read_text() if f.is_file() else f"(no entries: {f})")
+        return 0
+    if len(argv) < 2 or argv[0] not in KINDS:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    who = os.environ.get("ANNA_LOG_BY") or ("bot" if os.environ.get("ANNA_ROLE") == "bot" else "brain")
+    text = " ".join(redact(" ".join(argv[1:]))[0].split())
+    if not text:
+        return 2
+    f = day_file(now)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with open(f, "a+") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        fh.seek(0)
+        if not fh.read(1):
+            fh.write(f"# Own journal — {now:%Y-%m-%d}\n\nRaw log for the nightly dream: first person, short, written when "
+                     "something registers (`anna-log`).\n\n")
+        fh.write(f"- {now:%H:%M} [{argv[0]}] ({who}) {text[:1000]}\n")
+    print(f"logged [{argv[0]}] → {f}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

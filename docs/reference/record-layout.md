@@ -39,8 +39,9 @@ versioned in the record.
 │   ├── YYYY/MM/         one file per day
 │   └── handoffs/        reports from the headless runs
 ├── memory/              lessons, one per file, plus the MEMORY.md index
-├── planning/            backlog.md and ideas.md
+├── planning/            backlog.md, ideas.md and wonders.md
 ├── runbooks/            how to do things, one folder per topic
+├── self/                Anna's own journal (anna-log) and lately.md (from the nightly dream)
 └── senses/              your anna-body senses (executables)
 ```
 
@@ -185,6 +186,14 @@ what the record holds elsewhere.
 
 - `backlog.md`: newest at the top, `- **(YYYY-MM-DD) title:** what, why, where it stands.` Done items get ✅ and a pointer.
 - `ideas.md`: things worth doing someday, dated, with who suggested them and why.
+- `wonders.md`: what Anna wonders about that the record can't answer, dated, with what prompted it. The nightly dream and
+  the wrap-up add to it; the curiosity engine picks from it. Answered ones get ✅ and a pointer.
+
+### self/
+
+Anna's own side of the record ([Her own journal](../concepts/own-journal.md)): `journal/YYYY/MM/<day>.md`, the raw log
+written with `anna-log` (and the user's corrections, logged by the prompt hook), each day ending with the dream's
+`## Night` reflection; and `lately.md`, what the dream kept from the last few days, shown at session start and to the bot.
 
 ### clock/
 

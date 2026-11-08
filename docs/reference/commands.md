@@ -291,6 +291,24 @@ anna-stream recent --from anna-day --max 3
 - Thu 08:20 [anna-day] open: Anna-20261105 started in screen anna
 ```
 
+## `anna-engine`
+
+Runs one engine (`~/.claude/agents/anna-<name>.md`) headless, so a hook can make it run instead of leaving it to the
+brain's judgment. Used by the stream hook (interpretation) and `anna-epistemic-hook` (relay replies); session start
+shows its `--stats`. Background: [Engines that run themselves](engines.md#engines-that-run-themselves).
+
+```text
+anna-engine NAME [--trigger WHY] < input
+anna-engine --stats [YYYY-MM-DD]
+```
+
+| Form | What it does |
+|---|---|
+| `NAME [--trigger WHY]` | Runs `claude -p --agent anna-NAME` with no tools and no MCP, input on stdin, cwd `<paths.state>/engine-cwd`, `ANNA_HEADLESS=1`. Prints the engine's fenced block and exits 0. No block, an error or a timeout (`engines.timeout`, default 30 s) prints "engine unavailable … apply its rules yourself this turn" and exits 3: it fails open. Every run and failure goes to the stream (`from: engines`). |
+| `--stats [DAY]` | Runs, misses (`due, not run`) and failures per engine for that day (default: yesterday), from the stream. Runs with trigger `test` or `by hand` aren't counted. |
+
+`ANNA_ENGINE_TIMEOUT` overrides the timeout; `ANNA_ENGINE_CLAUDE` the `claude` binary (tests).
+
 ## `anna-evening`
 
 The nightly fold (Anna's sleep). No arguments.
@@ -319,6 +337,20 @@ anna-evening
 ```text
 2026-11-06T01:00:02+00:00 evening: no drafts, no stream, no run
 ```
+
+## `anna-log`
+
+Anna's own journal: a raw log for the nightly dream. Background: [Her own journal](../concepts/own-journal.md).
+
+```text
+anna-log KIND TEXT
+anna-log --today | --yesterday
+```
+
+`KIND` is one of `observed`, `learned`, `wondering`, `felt`, `correction`, `takeaway` (anything else is refused, so the
+dream can sort by kind). One line goes to `<paths.record>/self/journal/YYYY/MM/<day>.md`:
+`- 14:07 [learned] (brain) <text>`. The writer is `brain`, `bot` (`ANNA_ROLE=bot`) or `$ANNA_LOG_BY` (the stream hook
+logs the user's corrections as `hook`). Text is redacted like the stream. It doesn't commit: the dream and wrap-ups do.
 
 ## `anna-notify`
 

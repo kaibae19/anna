@@ -41,6 +41,8 @@ without it, `anna-memory` and `anna-action-gate` read the record's files instead
 | Engine | Enforced? |
 |---|---|
 | `anna-action-gate` | **Yes**, in the interactive brain. [`anna-gate-hook`](hooks.md#anna-gate-hook) blocks a state-changing Bash or outward MCP call unless this engine returned `verdict: go` for that host in the last 15 minutes. |
+| `anna-interpretation` | **Run by a hook** when `engines.interpretation = true` (the default): see below. The brain can still call it. |
+| `anna-epistemic` | **Counted**: a Stop hook logs every reply where it was due and not run; with `engines.epistemic_relay = true` it also checks relay results before they go out. |
 | all others | No. The brain's `~/CLAUDE.md` (from `config/home-CLAUDE.md.in`) says when to call them. Most turns call none. |
 
 In headless runs the engines are allowed by name in `~/.claude/anna-headless-settings.json` (`Agent(anna-memory)` and so
@@ -50,6 +52,26 @@ Order, when several apply: interpretation → memory → action gate (per state 
 morning: goals → curiosity → report.
 
 ---
+
+## Engines that run themselves
+
+What's left to judgment doesn't reliably happen: in the home this came from, the brain skipped the epistemic check far
+more often than it ran it. So two engines are now made to run, through [`anna-engine`](commands.md#anna-engine), which
+starts the engine headless (no tools, about 10 s) and fails open:
+
+- **Interpretation, by the prompt hook** (`engines.interpretation`, on by default). On the first words after 8 hours,
+  on a relayed message and on a new session's first prompt, `anna-stream hook` gives the engine the message and the items
+  that could ride into the reply (the 📌 handoff, this morning's Needs action and question, the stream lines it's about to
+  show) and puts the engine's block on top of the context.
+- **Epistemic, counted and optionally enforced** ([`anna-epistemic-hook`](hooks.md#anna-epistemic-hook)). Every reply
+  that states a cause, a negative or a state without a check is logged as a miss. With `engines.epistemic_relay = true`
+  relay results are checked before they go out; it's off by default because the check can take up to `engines.timeout`
+  and sometimes times out.
+- **Curiosity, delivered.** The morning run writes `Question for today: …`; the prompt hook carries it into the session
+  until it's asked at a natural pause, and logs it as asked when a reply contains it.
+
+Session start shows each engine's runs and misses for yesterday and today (`anna-engine --stats`), so the habit is
+visible.
 
 ## anna-memory
 

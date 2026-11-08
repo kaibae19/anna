@@ -83,4 +83,18 @@ old=$(date -u -d '-10 hours' +%Y-%m-%dT%H:%M:%S.000Z)
 sed "s/$now/$old/g" "$TR" > "$TR.x" && mv "$TR.x" "$TR"; echo '{"type":"summary","leafUuid":"x"}' >> "$TR"   # mtime: now
 out=$(echo '{"session_id":"other"}' | hooks/anna-session-start)
 ok "session-start: gap from the last timestamp (10 h), not the mtime" 'echo "$out" | grep -qE "activity: (9\.9|10\.[0-9]) h ago"'
+# anna-bot-reply-guard: a Telegram turn in the bot can't end without a reply
+G=hooks/anna-bot-reply-guard; BT=$T/bot.jsonl
+tg='{"type":"user","isMeta":true,"message":{"role":"user","content":"<channel source=\"plugin:telegram:telegram\" chat_id=\"1\">hi</channel>"}}'
+said='{"type":"assistant","message":{"content":[{"type":"text","text":"hello there"}]}}'
+sent='{"type":"assistant","message":{"content":[{"type":"tool_use","name":"mcp__plugin_telegram_telegram__reply","input":{}}]}}'
+guard() { jq -nc --arg p "$BT" --argjson a "${2:-false}" '{transcript_path:$p,stop_hook_active:$a}' | ANNA_ROLE=$1 $G; }
+printf '%s\n%s\n' "$tg" "$said" > "$BT"
+ok "reply guard: bot, Telegram turn without a reply → block" 'guard bot | grep -q "\"block\""'
+ok "reply guard: never blocks twice" '[ -z "$(guard bot true)" ]'
+ok "reply guard: not the bot → nothing" '[ -z "$(guard "")" ]'
+printf '%s\n%s\n%s\n' "$tg" "$sent" "$said" > "$BT"
+ok "reply guard: Telegram reply sent → nothing" '[ -z "$(guard bot)" ]'
+printf '%s\n' '{"type":"user","message":{"role":"user","content":"typed in the terminal"}}' "$said" > "$BT"
+ok "reply guard: typed prompt → nothing" '[ -z "$(guard bot)" ]'
 exit $fail

@@ -1,0 +1,9 @@
+# anna-dream: the nightly dream (own journal → lately, wonders, proposals), after the evening fold. User unit, installed by install.sh.
+[Unit]
+Description=Anna: nightly dream
+After=network-online.target anna-evening.service
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/anna-run /anna-dream dream
+TimeoutStartSec=40min

@@ -22,6 +22,8 @@ refusal applies only to that one command, never to Bash as a whole: rerun it as 
      Watch (they're Anna's own follow-ups: say which ones this session should do). Ping/run items fire by themselves; one
      still open and past due means the tick failed → ⛔.
    - The newest `journal/handoffs/*-evening.md`: its **Proposed for the next session** list. Open ones go under Watch.
+   - The newest `journal/handoffs/*-dream.md` (the nightly dream): its **Proposed for a reviewed session** items go under
+     Watch as "Dream proposes: …" (memory and lesson changes wait for a session to apply them).
    - If merlin is configured, its `index_status`: say whether the index is fresh.
 3. **Drop items that are already done.** Check later journal days for completion and cite where ("done 10-04, journal §3").
 4. **Verify each remaining item live**, read-only: run `anna-checks` first (your fixed, read-only checks; a check you're
@@ -38,9 +40,11 @@ refusal applies only to that one command, never to Bash as a whole: rerun it as 
      none`), and `raised: none`. Its `mine_due` are Anna's own follow-ups: list them under Watch as "Anna's to do". The
      backlog is one line, `Backlog: <n> open items older than 14 d` (`backlog-age --min-days 14`), never the list: an
      entry's age isn't how long it sat untouched. No nudge from here.
-   - `anna-curiosity` with the open "Ask the user" items (handoff lines, backlog) each with the date first noted and how
-     often asked, `recent_answers` each with the question it answered (`anna-stream recent --hours 72`), `anna-rhythm`,
-     and today's state. If it returns a question, add a last line `Question for today: <question> (why: <why>)`. Its
+   - `anna-curiosity` with `wonders:` = the open lines of `planning/wonders.md` (not ✅; each with its date and what
+     prompted it), the open "Ask the user" items (handoff lines, backlog) each with the date first noted and how often
+     asked, `recent_answers` each with the question it answered (`anna-stream recent --hours 72`), `anna-rhythm`, and
+     today's state. It prefers a wonder unless an ask is time-critical. If it returns a question, add a last line, exactly
+     `Question for today: <question> (why: <why>)`: the prompt hook carries that line into the session until it's asked. Its
      `drop` entries go under Watch ("stop asking: …").
    - If either engine is refused or errors, say so under Could not verify and carry on.
 5. **Output** one screen. First line, if `anna-body --line` works: `How I feel: <its output>`. That's Anna's felt summary

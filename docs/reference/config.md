@@ -189,6 +189,7 @@ Each run is one `claude -p` session through `anna-run`, with deny-by-default set
 |---|---|---|---|
 | `morning` | `"04:00"` | Time of the morning run, `/anna-morning`: a read-only check, written to `journal/handoffs/<date>-morning.md` in the record. ⛔ lines under `## Needs action` notify you. | `install.sh` (`anna-morning.timer`) |
 | `evening` | `"01:00"` | Time of the evening run, `anna-evening`: folds the day's session drafts and yesterday's stream into the journal. | `install.sh` (`anna-evening.timer`) |
+| `dream` | `"01:30"` | Time of the nightly dream, `/anna-dream`: sorts the own journal into `self/lately.md`, wonders and proposals. Keep it after `evening`. | `install.sh` (`anna-dream.timer`) |
 
 ## `[drafts]`: session drafts
 
@@ -213,6 +214,17 @@ The relay moves requests from the Telegram bot to the brain and results back, ov
 
 !!! note
     The relay and the Telegram bot have not yet been walked through on a clean machine. Expect rough edges.
+
+## `[engines]`: engines that run themselves
+
+Hooks that run an engine instead of leaving it to the brain's judgment. See
+[Engines that run themselves](engines.md#engines-that-run-themselves).
+
+| Key | Default | What it does | Who reads it |
+|---|---|---|---|
+| `interpretation` | `true` | The prompt hook runs the interpretation engine on the first words after 8 h, on a relayed message and on a new session's first prompt, and puts its block on top of the context. About 10 s each time. | `anna-stream` |
+| `epistemic_relay` | `false` | Check a relay result with the epistemic engine before it goes to the bot (`check-first` or `ship-with-labels` blocks it once). Adds up to `timeout` seconds before the result goes out. | `anna-epistemic-hook` |
+| `timeout` | `30` | Seconds one headless engine run may take; after that it fails open. | `anna-engine`, `anna-stream`, `anna-epistemic-hook` |
 
 ## `[senses]`: the sense intake
 

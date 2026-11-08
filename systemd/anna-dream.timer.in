@@ -1,0 +1,10 @@
+# install.sh fills @DREAM@ (runs.dream) and @TZ@ (anna.timezone) and installs this as anna-dream.timer.
+[Unit]
+Description=Anna: nightly dream at @DREAM@
+
+[Timer]
+OnCalendar=*-*-* @DREAM@:00 @TZ@
+Persistent=true
+
+[Install]
+WantedBy=timers.target

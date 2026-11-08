@@ -59,12 +59,12 @@ echo "my tweak" >> "$HOME/.claude/agents/anna-goals.md"; cp "$HOME/.claude/agent
 jq '.permissions.allow += ["Bash(my-wrapper*)"]' "$HOME/.claude/anna-tg-ops-settings.json" > "$T/x" && mv "$T/x" "$HOME/.claude/anna-tg-ops-settings.json"
 ./install.sh --no-systemd >/dev/null 2>&1; rc=$?
 ok "a second install exits 0" '[ $rc -eq 0 ]'
-ok "hooks are not duplicated" '[ "$(jq "[.hooks.UserPromptSubmit[].hooks[]] | length" "$S")" -eq 1 ] && [ "$(jq "[.hooks.Stop[].hooks[]] | length" "$S")" -eq 2 ]'
+ok "hooks are not duplicated" '[ "$(jq "[.hooks.UserPromptSubmit[].hooks[]] | length" "$S")" -eq 1 ] && [ "$(jq "[.hooks.Stop[].hooks[]] | length" "$S")" -eq 4 ]'
 ok "the record is left alone" 'grep -q "my notes" "$HOME/anna-record/CLAUDE.md"'
 ok "~/CLAUDE.md is left alone (template beside it)" 'grep -qx "# mine" "$HOME/CLAUDE.md" && [ -f "$HOME/CLAUDE.md.anna-new" ]'
 ok "an engine you edited is left alone (new one beside it)" 'grep -q "my tweak" "$HOME/.claude/agents/anna-goals.md" && [ -f "$HOME/.claude/agents/anna-goals.md.anna-new" ]'
 ok "an unedited engine is updated in place, no .anna-new" 'cmp -s "$T/mem.before" "$HOME/.claude/agents/anna-memory.md" && [ ! -e "$HOME/.claude/agents/anna-memory.md.anna-new" ]'
-ok "the gate hook is not duplicated" '[ "$(jq "[.hooks.PreToolUse[].hooks[]] | length" "$S")" -eq 1 ]'
+ok "the gate hook is not duplicated" '[ "$(jq "[.hooks.PreToolUse[].hooks[]] | length" "$S")" -eq 2 ]'
 ok "your bot allowlist is left alone" 'grep -q my-wrapper "$HOME/.claude/anna-tg-ops-settings.json"'
 ok "relay + bot: fakechat and telegram plugins installed at user scope" 'grep -qx "claude plugin install fakechat@claude-plugins-official -s user" "$STUBLOG" && grep -qx "claude plugin install telegram@claude-plugins-official -s user" "$STUBLOG"'
 ok "a plugin already installed is not installed again" '[ "$(grep -c "plugin install telegram" "$STUBLOG")" -eq 1 ]'

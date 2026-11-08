@@ -204,6 +204,22 @@ for the next session** (file, change, evidence line), plus a **Proposed → memo
 **Output:** what it folded where, the proposals, ⚠ anything odd, and a last line exactly `FOLDED: <path> <path> …`. A
 draft left off that line stays and is retried the next night; `anna-evening` notifies you if any are left.
 
+## anna-dream
+
+**Runs:** headless only, as `/anna-dream` (`anna-dream.timer` at `runs.dream`, default `01:30`, after the evening fold),
+or `/anna-dream dry-run` to print what it would write. A `YYYY-MM-DD` argument dreams that day instead of yesterday.
+
+**Reads:** the day's own journal (`self/journal/`), the six days before and their `## Night` sections, `self/lately.md`,
+`planning/wonders.md`, the memory index, the work journal's headlines, and the stream (curiosity, engines, bot).
+
+**Sorts** every entry into one of: **Lately** (colors how Anna sees things for a few days), **Wonder** (a gap the record
+can't explain; at most two a night), **Proposed** (a lasting fact or lesson, only if seen 3+ times over 2+ days or backed
+by the user's explicit words; a reviewed session applies it), or **let go** (most entries).
+
+**Writes:** `self/lately.md` (rewritten; lines fade after three days unless seen again), a `## Night` reflection in the
+day's own-journal file, new lines in `planning/wonders.md`; commits those files and pushes if the record has a remote.
+Never edits memory, thing records, runbooks, skills or the work journal. The morning run lists its proposals under Watch.
+
 ## Related
 
 - [Hooks](hooks.md): the session draft, idle checkpoint and session-start hooks the skills rely on.

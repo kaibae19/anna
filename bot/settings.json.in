@@ -31,7 +31,8 @@
       "Bash(anna-clock done *)",
       "Bash(anna-clock cancel *)",
       "Bash(anna-stream add *)",
-      "Bash(anna-stream recent*)"
+      "Bash(anna-stream recent*)",
+      "Bash(anna-log *)"
     ],
     "deny": [
       "Read(/@SECRETS@/**)",

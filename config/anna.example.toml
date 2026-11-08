@@ -34,6 +34,7 @@ remote_control = false              # type /remote-control after open (needs a c
 [runs]                              # scheduled headless runs (anna-run, deny-by-default settings)
 morning = "04:00"                   # /anna-morning: read-only check, report to journal/handoffs/ (⛔ lines notify you)
 evening = "01:00"                   # /anna-evening: fold the day's session drafts into the journal
+dream = "01:30"                     # /anna-dream: sort the own journal into lately, wonders and proposals (after the evening fold)
 
 [drafts]                            # session drafts (anna-session-draft): raw, redacted, outside the record
 secret_commands = ["bw", "bw-session", "op", "pass", "vault", "secret-tool", "secret-put"]   # their output is never drafted
@@ -47,6 +48,11 @@ alarm_min = 30                      # warn when a hand-off has no result after t
 [bot]                               # Telegram (the claude-plugins-official telegram channel)
 enabled = false
 instance = "ops"                    # anna-tg INSTANCE: state dir, settings file and prompt are per instance
+
+[engines]                           # engines that run themselves, from hooks (anna-engine; docs: Engines)
+interpretation = true               # the prompt hook runs the interpretation engine after a gap, on a relay, on a new session
+epistemic_relay = false             # check relay results with the epistemic engine before they go out (adds up to `timeout` s)
+timeout = 30                        # seconds one headless engine run may take; it fails open after that
 
 [senses]                            # pushed senses: the sense intake (anna-senses; docs: Senses). Contract v1 on every transport
 enabled = false                     # install.sh starts the anna-senses unit when true
