@@ -6,6 +6,7 @@ cd "$(dirname "$0")/.."
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
 STUB=$T/stub; mkdir -p "$STUB"; export STUBLOG=$T/stub.log
+printf '#!/bin/bash\necho "bun $*" >> "$STUBLOG"\n' > "$STUB/bun"; chmod +x "$STUB/bun"   # install.sh requires bun for the relay; the tests never run it
 printf '#!/bin/bash\necho "$(basename "$0") $*" >> "$STUBLOG"\n' > "$STUB/claude"
 cp "$STUB/claude" "$STUB/systemctl"; cp "$STUB/claude" "$STUB/loginctl"; chmod +x "$STUB"/*; export PATH=$STUB:$PATH
 fail=0; ok() { if eval "$2"; then echo "ok   $1"; else echo "FAIL $1"; fail=1; fi; }

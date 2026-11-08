@@ -45,7 +45,7 @@ What the template sets:
 | `Read(/<record>/**)` | read the whole record |
 | `Read(/<state>/telegram-<instance>/inbox/**)` | read photos and files you send it |
 | `Edit(/<record>/<things>/**)` | update the records of things (the folder named by `record.things`, default `hosts/`; the template writes it as `@THINGS@`) |
-| `Edit(/<record>/memory/**)`, `Write(/<record>/memory/**)` | save lessons and preferences |
+| `Edit(/<record>/memory/**)` | save lessons and preferences (an `Edit` rule covers writing new files too) |
 | `mcp__plugin_telegram_telegram__*` | talk to you on Telegram |
 | `mcp__plugin_fakechat_fakechat__reply` | hand work to the brain over the relay (only if the relay is on) |
 | `mcp__merlin__*` | search the record, if [merlin](merlin.md) is set up |

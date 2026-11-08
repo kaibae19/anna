@@ -12,6 +12,7 @@ printf '[anna]\nname = "Nova"\nuser = "Sam"\ntimezone = "UTC"\n[relay]\nenabled 
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
 # stubs: claude (plugin list/install, logged; never the network) and systemctl/loginctl (logged; never real units)
 STUB=$T/stub; mkdir -p "$STUB"; export STUBLOG=$T/stub.log
+printf '#!/bin/bash\necho "bun $*" >> "$STUBLOG"\n' > "$STUB/bun"; chmod +x "$STUB/bun"   # install.sh requires bun for the relay; the tests never run it
 cat > "$STUB/claude" <<'S'
 #!/bin/bash
 echo "claude $*" >> "$STUBLOG"
@@ -57,8 +58,13 @@ ok "brain memory is a symlink into the record, under Claude Code's folder name" 
 echo "my notes" >> "$HOME/anna-record/CLAUDE.md"; echo "# mine" > "$HOME/CLAUDE.md"
 echo "my tweak" >> "$HOME/.claude/agents/anna-goals.md"; cp "$HOME/.claude/agents/anna-memory.md" "$T/mem.before"
 jq '.permissions.allow += ["Bash(my-wrapper*)"]' "$HOME/.claude/anna-tg-ops-settings.json" > "$T/x" && mv "$T/x" "$HOME/.claude/anna-tg-ops-settings.json"
-./install.sh --no-systemd >/dev/null 2>&1; rc=$?
+rm -rf "$HOME/anna-record/self" "$HOME/anna-record/planning/wonders.md" "$HOME/anna-record/.git"   # an older record: its
+( cd "$HOME/anna-record" && git init -q -b main && git add -A && git commit -qm "an older record" )   # history never had them
+git -C "$HOME/anna-record" rm -q runbooks/README.md && git -C "$HOME/anna-record" commit -qm "remove a template file on purpose"
+out2=$(./install.sh --no-systemd 2>&1); rc=$?
 ok "a second install exits 0" '[ $rc -eq 0 ]'
+ok "update: a template file you removed (in git history) is not added back" '[ ! -e "$HOME/anna-record/runbooks/README.md" ]'
+ok "update: new template files are added to an existing record" '[ -f "$HOME/anna-record/self/README.md" ] && [ -f "$HOME/anna-record/planning/wonders.md" ] && echo "$out2" | grep -q "added what.s new in the template"'
 ok "hooks are not duplicated" '[ "$(jq "[.hooks.UserPromptSubmit[].hooks[]] | length" "$S")" -eq 1 ] && [ "$(jq "[.hooks.Stop[].hooks[]] | length" "$S")" -eq 4 ]'
 ok "the record is left alone" 'grep -q "my notes" "$HOME/anna-record/CLAUDE.md"'
 ok "~/CLAUDE.md is left alone (template beside it)" 'grep -qx "# mine" "$HOME/CLAUDE.md" && [ -f "$HOME/CLAUDE.md.anna-new" ]'

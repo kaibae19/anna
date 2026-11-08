@@ -76,7 +76,7 @@ These are yours; `install.sh` never overwrites them:
 | What | What happens on an update |
 |---|---|
 | Your config, `~/.config/anna/anna.toml` | Left alone. It's only created (from the example) if it doesn't exist. |
-| Anna's record, `paths.record` | Left alone (`record exists at … (left as is)`). |
+| Anna's record, `paths.record` | Never overwritten. Files that are new in the template and missing from your record (for example `self/README.md` and `planning/wonders.md` when the own journal arrived) are added, not committed (a file your record's git history ever had is left out: you removed it on purpose): `record exists at …: added what's new in the template: …`. Look at them, then commit them in the record. |
 | `~/CLAUDE.md` (the brain's home instructions) | Left alone. The new template is written beside it as `~/CLAUDE.md.anna-new`. |
 | The bot's allowlist, `~/.claude/anna-tg-<instance>-settings.json` | Left alone (`exists (left as is: your allowlist)`). |
 | An engine you edited in `~/.claude/agents/` | Left alone, with the new version beside it as `<name>.md.anna-new` and a `⚠ you edited: …` line. |
@@ -113,7 +113,8 @@ ls ~/CLAUDE.md.anna-new ~/.claude/agents/*.anna-new 2>/dev/null
 diff ~/CLAUDE.md ~/CLAUDE.md.anna-new
 ```
 
-Copy over the parts you want, then delete the `.anna-new` file. (If you've never edited `~/CLAUDE.md` yourself, you can
+Copy over the parts you want, then delete the `.anna-new` file. New features often come with a line or two for the
+brain here (when to log to the own journal, which engines now run by themselves), so don't skip this diff. (If you've never edited `~/CLAUDE.md` yourself, you can
 simply replace it: `mv ~/CLAUDE.md.anna-new ~/CLAUDE.md`.)
 
 Your bot allowlist is kept as it is, so new entries added to the scaffold's `bot/settings.json.in` don't reach it by

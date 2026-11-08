@@ -63,7 +63,17 @@ if [ ! -e "$REC" ]; then                                           # the record:
   { git -C "$REC" init -q -b main && git -C "$REC" add -A && git -C "$REC" commit -q -m "record: start from the Anna template"; } \
     || { echo "install.sh: created $REC but couldn't commit it (git user.name/email set?)" >&2; exit 1; }
   say "record created at $REC (git init; add a remote when you want it backed up)"
-else say "record exists at $REC (left as is)"; fi
+else                                                               # existing record: yours, never overwritten; only
+  added=""                                                         # what's new in the template and missing here is added
+  while IFS= read -r f; do
+    rel=${f#"$SRC/record-template/"}; case $rel in hosts/*) rel="$THINGS/${rel#hosts/}" ;; esac
+    [ -e "$REC/$rel" ] && continue
+    [ -n "$(git -C "$REC" log -1 --format=%h -- "$rel" 2>/dev/null)" ] && continue   # it was there once: you removed it
+    install -d "$(dirname "$REC/$rel")"; fill "$f" > "$REC/$rel"; added="$added $rel"
+  done < <(find "$SRC/record-template" -type f | sort)
+  if [ -n "$added" ]; then say "record exists at $REC: added what's new in the template:$added (not committed: look, then commit)"
+  else say "record exists at $REC (left as is)"; fi
+fi
 
 fill "$SRC/config/headless-settings.json.in" > "$HOME/.claude/anna-headless-settings.json"; say "~/.claude/anna-headless-settings.json"
 if [ "$RELAY" = true ]; then

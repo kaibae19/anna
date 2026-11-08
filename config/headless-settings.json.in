@@ -7,7 +7,6 @@
       "Glob",
       "Grep",
       "Edit(/@RECORD@/**)",
-      "Write(/@RECORD@/**)",
       "mcp__merlin__*",
       "Bash(git -C @RECORD@ *)",
       "Bash(git status*)",
