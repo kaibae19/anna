@@ -27,6 +27,9 @@ tool calls, fixed labels).
   used. Corrections, decisions and their reasons never fade. Designed, not built.
 - **A record access log.** Which parts of her record get read, searched or written, by which part of her, so fading,
   search and the always-loaded index can follow real use. Running in one home since 2026-11; not in the scaffold yet.
+- **Pushed senses.** One standard for events reaching Anna: contract v1 over MQTT on `anna/senses/<name>`, one sense
+  intake that logs every event and hands `tell`/`ask`/`check` to the working session ([Senses](concepts/senses.md)).
+  Running in one home, with a home-automation hub as the first sense; not in the scaffold yet.
 - **Secrets without a terminal.** A small local web form for giving Anna a token or password, for people who don't work
   in a terminal. Designed, not built.
 - **Proof of memory.** OpenTimestamps over the record's commits, so the history provably existed when it says it did.

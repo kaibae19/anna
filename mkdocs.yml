@@ -65,6 +65,7 @@ nav:
       - Timers: reference/timers.md
   - Concepts:
       - How Anna is built: concepts/architecture.md
+      - Senses: concepts/senses.md
       - A record that grows: concepts/a-record-that-grows.md
       - The relay: concepts/relay.md
       - Security model: concepts/security.md

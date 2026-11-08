@@ -25,7 +25,7 @@ and stay in step. The [philosophy pages](philosophy/README.md) say why; this pag
 | **Goals** | What's due, what's moving, what stalled; momentum, never nagging | Haiku | `agents/anna-goals.md` |
 | **Curiosity** | At most one real question a day | Sonnet | `agents/anna-curiosity.md` |
 | **Clock** | Her own schedule: notes, pings, headless tasks | no model | `bin/anna-clock` |
-| **Senses and checks** | How things feel (sensations) and whether they're right (OK / ⚠ / ⛔) | no model | `bin/anna-body`, `bin/anna-checks` |
+| **Senses and checks** | How the world reaches her ([Senses](senses.md)) and whether things are right (OK / ⚠ / ⛔) | no model | `bin/anna-body`, `bin/anna-checks`; pushed senses: designed |
 | **Short-term memory** (stream) | What every part did today, so they stay in step | no model | `bin/anna-stream` |
 
 "Runs on today" is the honest state: apart from merlin's embeddings, every model is Claude. Smaller and local models for
