@@ -54,6 +54,7 @@ What the template sets:
 | `Bash(anna-checks*)`, `Bash(anna-body*)` | run your checks and senses |
 | `Bash(anna-clock add *)`, `list*`, `due*`, `done *`, `cancel *` | manage Anna's clock |
 | `Bash(anna-stream add *)`, `recent*` | read and write the stream |
+| `Bash(anna-log *)` | write a line in Anna's own journal |
 
 In the file, `<record>` and `<state>` are your real absolute paths, so `Read(/<record>/**)` becomes something like
 `Read(//home/you/anna-record/**)`. In Claude Code's permission rules, a path starting with `//` is absolute.

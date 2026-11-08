@@ -105,7 +105,7 @@ These override or add to the config file. Most are for tests or are set by Anna'
   (`anna.timezone`), `@RECORD@`, `@STATE@`, `@SECRETS@` (the paths), `@INSTANCE@` (`bot.instance`) and `@HOME@`.
   That covers the engines in `~/.claude/agents/`, the record's `CLAUDE.md` and `memory/MEMORY.md`, `~/CLAUDE.md`, the
   headless settings and the bot settings.
-- It renders the timers from your times: `day.close`, `day.open`, `runs.morning`, `runs.evening` and `anna.timezone`
+- It renders the timers from your times: `day.close`, `day.open`, `runs.morning`, `runs.evening`, `runs.dream` and `anna.timezone`
   (see [Timers](timers.md)).
 - `relay.enabled = true` writes `~/.claude/anna-brain-settings.json` and enables `anna-relay.service`;
   `bot.enabled = true` writes `~/.claude/anna-tg-<instance>-settings.json` (only if it doesn't exist yet). Either one

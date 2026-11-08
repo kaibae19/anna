@@ -17,7 +17,7 @@ described below, so a home-automation hub, a calendar bridge or a phone app talk
 !!! note "Status"
     The sense intake ships in the scaffold (`anna-senses`, off until you set `senses.enabled = true`). It came from the
     deployment this scaffold grew out of, where a home-automation hub has been the first pushed sense since 2026-11
-    (over MQTT there).
+    (over MQTT at first, over HTTP since it moved to this intake).
 
 ## The standard
 

@@ -20,6 +20,7 @@ something didn't.
 | `anna-clock.timer` | `anna-clock.service` → `~/bin/anna-clock tick` | every 5 minutes (`*:0/5`) | fixed |
 | `anna-morning.timer` | `anna-morning.service` → `~/bin/anna-run /anna-morning morning` | 04:00 | `runs.morning` |
 | `anna-evening.timer` | `anna-evening.service` → `~/bin/anna-evening` | 01:00 | `runs.evening` |
+| `anna-dream.timer` | `anna-dream.service` → `~/bin/anna-run /anna-dream dream` | 01:30 | `runs.dream` |
 | `anna-day-close.timer` | `anna-day-close.service` → `~/bin/anna-day close` | 00:30 | `day.close` |
 | `anna-day-open.timer` | `anna-day-open.service` → `~/bin/anna-day open` | 04:15 | `day.open` |
 
@@ -28,6 +29,7 @@ All times are in `anna.timezone`. With the defaults, one night looks like this:
 ```text
 00:30  anna-day close     wrap up the brain's session (if idle) and close it; relay paused
 01:00  anna-evening       fold the day's session drafts and yesterday's stream into the journal
+01:30  anna-dream         sort the own journal into lately, wonders and proposals
 04:00  anna-morning       read-only morning check → journal/handoffs/<date>-morning.md
 04:15  anna-day open      start the new day's brain session; relay released
 every 5 min  anna-clock tick   fire due pings and scheduled runs
@@ -108,11 +110,12 @@ systemctl --user enable --now anna-tg@ops
     | `@OPEN@` | `day.open` | `anna-day-open.timer` |
     | `@MORNING@` | `runs.morning` | `anna-morning.timer` |
     | `@EVENING@` | `runs.evening` | `anna-evening.timer` |
-    | `@TZ@` | `anna.timezone` | all four |
+    | `@DREAM@` | `runs.dream` | `anna-dream.timer` |
+    | `@TZ@` | `anna.timezone` | all five |
 
     The result is a line like `OnCalendar=*-*-* 04:15:00 Europe/Berlin`.
 3. Runs `systemctl --user daemon-reload`.
-4. Unless you pass `--no-enable`: enables and starts the five timers, enables `anna-relay.service` when
+4. Unless you pass `--no-enable`: enables and starts the six timers, enables `anna-relay.service` when
    `relay.enabled = true`, and prints the command to start the bot when `bot.enabled = true`.
 5. Warns if user lingering is off.
 
@@ -188,5 +191,5 @@ Or run the script directly, for example `anna-day open`, `anna-clock tick` or `a
 schedules:
 
 ```bash
-systemctl --user disable --now anna-clock.timer anna-morning.timer anna-evening.timer anna-day-close.timer anna-day-open.timer
+systemctl --user disable --now anna-clock.timer anna-morning.timer anna-evening.timer anna-dream.timer anna-day-close.timer anna-day-open.timer
 ```

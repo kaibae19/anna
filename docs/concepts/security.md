@@ -38,6 +38,9 @@ Anna runs with real access to real systems. The design assumes a model can be wr
 - The stream and the session drafts are redacted (merlin's patterns if available, else built-in ones), and commands listed in
   `drafts.secret_commands` never have their output drafted.
 - Every skill that commits scans the staged diff for secret-shaped strings first.
+- The record access log (`anna-access`) holds paths and search queries, never file contents, and never logs anything in
+  the secrets store, `~/.ssh`, `~/.gnupg`, `.env`, `*.key` or `*.pem`; a command that names one logs nothing at all.
+  It stays in `paths.state` (mode 700/600), outside the record.
 
 ## At rest
 The record and Anna's state are as sensitive as anything on the machine: host names and how to reach them, routines,

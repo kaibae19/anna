@@ -72,9 +72,9 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
 | stream | `bin/anna-stream` (+ hook) | short-term memory: a JSONL log per day; each session sees what the others did since its last turn |
 | clock | `bin/anna-clock`, `systemd/anna-clock.*` | notes, pings and headless tasks with dates, in the record (`clock/YYYY-MM.md`); a 5-minute tick fires them |
 | brain | `bin/anna-brain`, `bin/anna-day`, `systemd/anna-day-*` | the long-running session in `screen`; a resume loop for stray exits; close (wrap up overnight) and open (fresh session) |
-| hooks | `hooks/` | session start (what happened while away), session drafts (raw, redacted journal material), idle checkpoint |
+| hooks | `hooks/` | session start (what happened while away, engine habits, Lately), session drafts (raw, redacted journal material), idle checkpoint, the bot's reply guard, the epistemic hook |
 | headless | `bin/anna-run`, `bin/anna-evening`, `config/headless-settings.json.in` | `claude -p` with a deny-by-default allowlist; reports to `journal/handoffs/` |
-| skills | `skills/anna-*` | setup, morning, wrap-up, checkpoint, evening fold |
+| skills | `skills/anna-*` | setup, morning, wrap-up, checkpoint, evening fold, dream |
 | bot | `bin/anna-tg`, `bot/` | a channel session (Telegram by default; [another app](../getting-started/telegram.md#using-another-chat-app)); prompt template + your `bot/context/` |
 | relay | `bin/anna-relay`, [the relay](relay.md) | bot ↔ brain over two fakechat channels and a file queue |
 | notify | `bin/anna-notify` | Telegram messages from scripts (alerts, clock pings); logged to the stream |
@@ -83,11 +83,15 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
 | engines | `agents/anna-*.md` → `~/.claude/agents/` | subagents the brain calls: memory, interpretation, epistemic, action-gate, goals, curiosity (sensors: they return a block, the brain acts) |
 | gate hook | `hooks/anna-gate-hook` | PreToolUse: in the brain, a state change needs a recent `go` from the action-gate engine |
 | engine inputs | `bin/anna-rhythm`, `bin/backlog-age` | precomputed numbers (active windows, gaps, ages) so no model does date arithmetic |
+| engine runner | `bin/anna-engine` | runs an engine headless from a hook (interpretation after a gap, the epistemic relay check); counts runs and misses |
+| own journal | `bin/anna-log`, `skills/anna-dream`, `record/self/` | a raw log of what registered with her; the nightly dream sorts it into Lately, wonders and proposals ([Her own journal](own-journal.md)) |
+| access log | `bin/anna-access` (PostToolUse hook) | which record files get used, by which part of her (paths only): the measurement for memory that fades by disuse |
 
 ## Engines and their order
 
 The engines are Claude Code subagents with short prompts, fixed output blocks and no tools that change anything. The brain
-decides when to call them (`~/CLAUDE.md` says when); most turns call none.
+decides when to call most of them (`~/CLAUDE.md` says when); the prompt hook runs interpretation itself when it's due
+([Engines that run themselves](../reference/engines.md#engines-that-run-themselves)).
 
 ```
 you → bot ── chat / allowlisted actions / quick check ──→ answers itself (the bot has no engines)
@@ -102,7 +106,8 @@ you → brain directly: the same, without the relay
 morning run: anna-clock due · backlog-age · anna-rhythm → goals → curiosity → the report (+ "Question for today")
 ```
 
-Only the gate is enforced by code. Interpretation and the epistemic check are judgment calls and stay instructions. The
+The gate is enforced by code. Interpretation is run by the prompt hook after a gap, on a relay and on a new session; the
+epistemic check is counted (a Stop hook logs every miss) and can be enforced on relay results (`engines.epistemic_relay`). The
 goals engine works without a goal tool (`goal_status: none`): it still returns Anna's own due follow-ups. The memory engine
 uses merlin's search when that MCP server is configured, and reads the record's files otherwise.
 
@@ -112,6 +117,8 @@ uses merlin's search when that MCP server is configured, and reads the record's 
   wrap-up to finish, then exits it. Relay hand-offs wait meanwhile.
 - **`runs.evening`:** `anna-evening` drafts any session the hooks missed and runs `/anna-evening` headless: the drafts and
   yesterday's stream are folded into the journal; record changes are only *proposed*.
+- **`runs.dream`:** `/anna-dream` sorts the day's own journal into `self/lately.md`, wonders and proposals, and writes the
+  night's reflection.
 - **`runs.morning`:** `anna-run /anna-morning`: a read-only check of the handoff, the journal, the clock and `anna-checks`,
   plus the goals and curiosity engines (Anna's own to-dos, one question for the day). A ⛔ notifies you.
 - **`day.open`:** `anna-day open` starts a fresh brain session for the day; queued hand-offs go in.

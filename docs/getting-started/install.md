@@ -296,9 +296,9 @@ You should see her name and `/home/you/.config/anna/anna.toml`.
 systemctl --user list-timers 'anna-*'
 ```
 
-You should see five timers with their next run time: `anna-clock.timer` (every 5 minutes), `anna-day-close.timer`,
-`anna-evening.timer`, `anna-morning.timer` and `anna-day-open.timer`. With the default times, close is 00:30, the
-evening fold 01:00, the morning check 04:00 and open 04:15, in your timezone. What each does: [Timers](../reference/timers.md).
+You should see six timers with their next run time: `anna-clock.timer` (every 5 minutes), `anna-day-close.timer`,
+`anna-evening.timer`, `anna-dream.timer`, `anna-morning.timer` and `anna-day-open.timer`. With the default times, close
+is 00:30, the evening fold 01:00, the dream 01:30, the morning check 04:00 and open 04:15, in your timezone. What each does: [Timers](../reference/timers.md).
 
 **Checks.**
 

@@ -145,7 +145,7 @@ the session is left open, and the 04:15 open tries the close again.
 
 Go through this the morning after your first night:
 
-- [ ] `systemctl --user list-timers 'anna-*'` lists five timers, each with a next run time.
+- [ ] `systemctl --user list-timers 'anna-*'` lists six timers, each with a next run time.
 - [ ] `ls ~/anna-record/journal/handoffs/` has today's `-morning.md` (and an `-evening.md` if there was anything to fold).
 - [ ] `head -1` of the morning report ends in `exit 0`.
 - [ ] `git -C ~/anna-record log --oneline -5` shows last night's commits (the wrap-up, the headless runs).

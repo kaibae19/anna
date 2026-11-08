@@ -24,6 +24,28 @@ for f in hooks/*; do
   ok "hooks.md names $n" "grep -qF '$n' $R/hooks.md"
 done
 
+# Every feature is documented where people look for it (2026-11-08: "every time we introduce a feature to the scaffold,
+# we need to confirm it is properly documented"): each timer on Timers, each hook command on Hooks, each command in the
+# Commands index table, and the "N timers" counts in the getting-started pages match the units that ship.
+for t in systemd/*.timer systemd/*.timer.in; do
+  [ -f "$t" ] || continue; n=$(basename "${t%.in}")
+  ok "timers.md names $n" "grep -qF '$n' $R/timers.md"
+done
+for c in $(jq -r '.hooks[][].hooks[].command' hooks/settings.hooks.json | sed 's|^~/bin/||; s| .*||' | sort -u); do
+  ok "hooks.md names $c" "grep -qF '$c' $R/hooks.md"
+done
+for f in bin/*; do
+  n=$(basename "$f"); case $n in __pycache__|*.pyc|*.py) continue;; esac
+  ok "commands index lists $n" "grep -qF '](#$n) |' $R/commands.md"
+done
+nt=$(ls systemd/*.timer systemd/*.timer.in 2>/dev/null | wc -l)
+words=(zero one two three four five six seven eight nine ten); w=${words[$nt]:-$nt}
+for f in docs/getting-started/install.md docs/getting-started/first-day.md; do
+  bad=$(grep -oiE '\b(one|two|three|four|five|six|seven|eight|nine|ten|[0-9]+) timers\b' "$f" | grep -vi "^$w timers$" || true)
+  ok "$(basename "$f") counts $w timers" '[ -z "$bad" ]'
+done
+ok "no stale 'not in the scaffold yet' outside the roadmap" '! grep -rli "not in the scaffold yet" docs www README.md | grep -v roadmap.md'
+
 # Coffee Logic: no session links, and no person, home or host of yours. Your own names live outside the repo, one
 # extended regex per line (case-insensitive): $ANNA_LEAK_PATTERNS, default ~/.config/anna/leak-patterns.
 LP=${ANNA_LEAK_PATTERNS:-$HOME/.config/anna/leak-patterns}
