@@ -1,3 +1,7 @@
+---
+description: "Anna is a scaffold for a personal agent that lives with you: one voice on your phone, a working mind behind it, and a memory of plain files."
+---
+
 # Anna
 
 A scaffold for a personal agent that lives with you: one voice on your phone, a working mind behind it, and a memory

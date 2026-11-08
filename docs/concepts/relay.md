@@ -1,3 +1,7 @@
+---
+description: "The relay gives Anna one voice: the Telegram bot talks with you, and real work goes to the brain, which has the record and the tools."
+---
+
 # The relay: one voice
 
 Anna has two long-running sessions. The **bot** is the conversation: it lives in Telegram, answers quickly, controls the

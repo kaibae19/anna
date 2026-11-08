@@ -1,3 +1,7 @@
+---
+description: "Anna's record folder by folder: what goes where, how files are named, and the conventions its CLAUDE.md sets."
+---
+
 # The record's layout
 
 This page goes through the record folder by folder: what goes where, how files are named, and the conventions the

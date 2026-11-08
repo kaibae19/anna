@@ -1,3 +1,7 @@
+---
+description: "How Anna's record starts small and grows from the work you do together: things, checks, runbooks, history, and names that last."
+---
+
 # A record that grows
 
 Anna doesn't arrive knowing what your life or work looks like, and the scaffold doesn't pretend to. It gives her a small

@@ -1,3 +1,7 @@
+---
+description: "Every skill the scaffold ships: when it runs, what it reads and writes, and the arguments it takes."
+---
+
 # Skills
 
 This page lists every skill the scaffold ships: when it runs, what it reads, what it writes and which arguments it takes.

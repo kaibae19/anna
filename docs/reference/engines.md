@@ -1,3 +1,7 @@
+---
+description: "Each engine in agents/: its job, when the brain calls it, the input it expects and the block it returns."
+---
+
 # Engines
 
 This page describes each engine in `agents/`: its job, when the brain calls it, the input it expects and the block it

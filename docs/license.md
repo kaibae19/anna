@@ -1,3 +1,7 @@
+---
+description: "Anna is released under the PolyForm Noncommercial License 1.0.0: free to run, change and study for noncommercial use."
+---
+
 # License
 
 Anna is released under the **PolyForm Noncommercial License 1.0.0**. You may run, change and study her for personal,

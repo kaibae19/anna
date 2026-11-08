@@ -1,0 +1,21 @@
+{#- Link previews for the docs pages. Absolute URLs come from site_url (set at build time); without it, no og:url/og:image. -#}
+{% extends "base.html" %}
+{% block extrahead %}
+  {%- set desc = page.meta.description if page and page.meta and page.meta.description else config.site_description -%}
+  {%- set title = (page.title ~ " - " ~ config.site_name) if page and page.title and not page.is_homepage else config.site_name ~ " docs" -%}
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Anna">
+  <meta property="og:title" content="{{ title }}">
+  <meta property="og:description" content="{{ desc }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ title }}">
+  <meta name="twitter:description" content="{{ desc }}">
+  {%- if config.site_url %}
+  {%- set root = config.site_url | replace("/docs/", "/") %}
+  <meta property="og:url" content="{{ page.canonical_url }}">
+  <meta property="og:image" content="{{ root }}og-card.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:image" content="{{ root }}og-card.png">
+  {%- endif %}
+{% endblock %}

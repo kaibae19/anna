@@ -1,3 +1,7 @@
+---
+description: "Install Anna: clone the scaffold, let /anna-setup interview you, and check that everything is in place."
+---
+
 # Install
 
 This page takes you from an empty machine to a running Anna: clone the scaffold, let `/anna-setup` interview you, and

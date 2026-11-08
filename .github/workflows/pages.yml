@@ -21,10 +21,16 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements-docs.txt
+      # The site URL (custom domain) comes from the Pages settings, so it never sits in the repo.
+      - id: pages
+        uses: actions/configure-pages@v5
       - name: Build
+        env:
+          SITE_URL: ${{ steps.pages.outputs.base_url }}/docs/
         run: |
           mkdocs build --strict -d _site/docs
           cp -r www/. _site/
+          python3 .github/site-meta.py _site "${{ steps.pages.outputs.base_url }}"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

@@ -1,3 +1,7 @@
+---
+description: "When you want Anna to do something new, don't look for a plugin: talk to the brain and build it together."
+---
+
 # Help her do more: build it with the brain
 
 This page is for when you want your Anna to do something she can't yet: a new check, a new sense, a skill, a script,

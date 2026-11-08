@@ -1,3 +1,7 @@
+---
+description: "Anna's engines are small parts that each handle one aspect of understanding and acting well, designed with brain systems as a compass."
+---
+
 # Engines
 
 Anna's engines are specialized parts that each handle one aspect of understanding and acting well. They're designed against

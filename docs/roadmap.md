@@ -1,3 +1,7 @@
+---
+description: "What's designed or prototyped in the deployment Anna came from but not in the scaffold yet, and what's done."
+---
+
 # Roadmap
 
 Designed and partly prototyped in the deployment this scaffold came from; not in the scaffold yet.

@@ -1,3 +1,7 @@
+---
+description: "Every Claude Code hook Anna installs: the event that runs it, what it does, what it reads and writes, and how to turn it off."
+---
+
 # Hooks
 
 This page lists every Claude Code hook Anna installs: which event runs it, what it does, what it reads and writes, and how

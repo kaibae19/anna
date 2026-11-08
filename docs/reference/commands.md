@@ -1,3 +1,7 @@
+---
+description: "Every script Anna installs: what it's for, its usage, the files it touches, who runs it, and an example."
+---
+
 # Commands
 
 This page describes every script Anna installs into `paths.bin` (default `~/bin`): what it's for, its exact usage, the

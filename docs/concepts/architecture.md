@@ -1,3 +1,7 @@
+---
+description: "How Anna fits together: the bot, the brain, the relay, the engines, the record and the timers that run on their own."
+---
+
 # Architecture
 
 ```

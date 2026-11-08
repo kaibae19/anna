@@ -1,3 +1,7 @@
+---
+description: "What merlin, Anna's memory search, adds; what the scaffold expects from it; and when to add it as the record grows."
+---
+
 # Add merlin
 
 This guide explains what merlin adds to Anna, what the scaffold expects from it, and where its setup lives.

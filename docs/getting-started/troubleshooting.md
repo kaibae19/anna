@@ -1,3 +1,7 @@
+---
+description: "What can go wrong with Anna, as symptom, check and fix, with the scripts' own messages quoted so you can search for them."
+---
+
 # Troubleshooting
 
 This page lists what can go wrong, as symptom, check and fix. The messages are quoted from the scripts, so you can

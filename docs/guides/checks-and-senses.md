@@ -1,3 +1,7 @@
+---
+description: "Give Anna a new check (something she verifies) or a new sense (something she notices), from the examples to your own."
+---
+
 # Write a check or a sense
 
 This guide shows you how to give Anna a new **check** (something she verifies, like "is last night's backup there?") and

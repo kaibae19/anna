@@ -1,3 +1,7 @@
+---
+description: "A first day with Anna in order: the morning check, working together, saving progress, the wrap-up and what runs overnight."
+---
+
 # Your first day
 
 This page walks through one day with Anna in order: the morning, working with her, saving progress, the wrap-up and what

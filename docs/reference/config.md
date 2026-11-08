@@ -1,3 +1,7 @@
+---
+description: "Every setting in anna.toml: what it does, its default, and which part of Anna reads it."
+---
+
 # Configuration
 
 This page lists every setting in Anna's configuration file: what it does, its default, and which part of Anna reads it.

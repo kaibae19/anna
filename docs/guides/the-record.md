@@ -1,3 +1,7 @@
+---
+description: "Read Anna's record, correct something she has wrong, and see how a file changed over time. No git experience needed."
+---
+
 # Read and correct the record
 
 This guide shows you how to read Anna's record, fix something she has wrong, and see how a file changed over time. It

@@ -1,3 +1,7 @@
+---
+description: "Bring your Anna up to date with the scaffold: git pull, ./install.sh, run the tests, and know what an update keeps."
+---
+
 # Update after git pull
 
 This guide shows you how to bring your Anna up to date with the scaffold: get the new version with `git pull`, install

@@ -1,3 +1,7 @@
+---
+description: "The systemd user timers Anna installs: what each runs and when, how to change the time, and how to read their logs."
+---
+
 # Timers
 
 This page lists the systemd user units and timers Anna installs: what each one runs, when, which setting controls the

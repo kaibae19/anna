@@ -1,3 +1,7 @@
+---
+description: "Anna's security model: who can talk to her, what she may do, and why any text she reads is treated as data, not instructions."
+---
+
 # Security model
 
 Anna runs with real access to real systems. The design assumes a model can be wrong, and that any text she reads

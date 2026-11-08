@@ -1,3 +1,7 @@
+---
+description: "New to servers, SSH or git? What Anna needs, why, and how to check you have each piece before you install."
+---
+
 # New to this?
 
 This page is for you if you haven't run a server, used SSH or worked with git before. It explains what Anna needs, why,

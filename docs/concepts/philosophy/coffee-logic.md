@@ -1,3 +1,7 @@
+---
+description: "Coffee Logic, the design test every part of Anna must pass: would it still work for someone else, in another home, with another life?"
+---
+
 # Coffee Logic
 
 > *"If I gave this to my neighbor who has a dog named Potato and lives in Tokyo, would it still work?"*

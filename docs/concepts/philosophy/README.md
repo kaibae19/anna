@@ -1,3 +1,7 @@
+---
+description: "The ideas behind Anna, built three times: an agent that lives with someone, remembers honestly, and doesn't pretend to be more than she is."
+---
+
 # Philosophy
 
 Anna is an idea that has been built three times: an agent that lives *with* someone, remembers honestly, and helps run

@@ -1,3 +1,7 @@
+---
+description: "Why Anna uses several small parts on focused tasks, each on the smallest model that does its job well, instead of one large model for everything."
+---
+
 # Distributed intelligence: small models, focused tasks
 
 The industry's default is one model, as large as possible, for everything. Anna takes the other path: **specialized parts

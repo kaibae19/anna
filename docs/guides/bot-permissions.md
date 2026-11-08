@@ -1,3 +1,7 @@
+---
+description: "What Anna's Telegram bot is allowed to do, how to allow one more action, and how confirmations work for bigger asks."
+---
+
 # What the bot may do
 
 This guide explains what Anna's Telegram bot is allowed to do, how to allow it one more action, and how confirmations
