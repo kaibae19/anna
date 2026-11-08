@@ -1,0 +1,28 @@
+# Runs every test suite (tests/run-all) on each push and pull request: the scripts, the hooks, the install against
+# stand-ins, the relay (with bun), and the docs checks with a strict MkDocs build. Nothing here needs a secret or a
+# network service: claude, systemctl and Telegram are stand-ins in the tests.
+name: tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  run-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.19"
+      - name: Tools
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q jq screen
+          pip install -r requirements-docs.txt
+      - name: tests/run-all
+        run: tests/run-all -v
