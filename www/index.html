@@ -162,6 +162,7 @@ code, .mono { font-family: var(--mono); font-size: .9em }
 .msg.you { background: var(--paper); justify-self: end; border-bottom-right-radius: 4px }
 .msg.her { background: var(--spark-soft); border-bottom-left-radius: 4px }
 .msg.sys { justify-self: center; max-width: 100%; font: 400 .78rem/1.5 var(--mono); color: var(--muted); background: transparent; border: 1px dashed var(--line); border-radius: 8px }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0 }
 .who { font: 500 .72rem var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: block; margin-bottom: .15rem }
 
 /* halves */
@@ -365,11 +366,11 @@ footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(-
       <p>This isn't a polite habit she might forget. A hook in front of her tools blocks a state-changing command unless the gate said go in the last few minutes, and every verdict lands in an audit line.</p>
     </div>
     <div class="chat" aria-label="Example exchange">
-      <div class="msg you"><span class="who">You</span>The media server feels slow, can you sort it?</div>
+      <div class="msg you"><span class="who">You<span class="sr-only">: </span></span>The media server feels slow, can you sort it?</div>
       <div class="msg sys">read-only checks · disk 41% · 2 transcodes running · CPU 96%</div>
       <div class="msg sys">gate: confirm-first · "sort it" doesn't name a restart</div>
-      <div class="msg her"><span class="who">Anna</span>It's busy with two transcodes, nothing's broken. I could stop the second one, which ends someone's movie. Want me to?</div>
-      <div class="msg you"><span class="who">You</span>Leave it, it'll finish.</div>
+      <div class="msg her"><span class="who">Anna<span class="sr-only">: </span></span>It's busy with two transcodes, nothing's broken. I could stop the second one, which ends someone's movie. Want me to?</div>
+      <div class="msg you"><span class="who">You<span class="sr-only">: </span></span>Leave it, it'll finish.</div>
     </div>
   </div>
 </section>
