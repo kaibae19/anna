@@ -28,7 +28,8 @@ refusal applies only to that one command, never to Bash as a whole: rerun it as 
 3. **Drop items that are already done.** Check later journal days for completion and cite where ("done 10-04, journal §3").
 4. **Verify each remaining item live**, read-only: run `anna-checks` first (your fixed, read-only checks; a check you're
    missing becomes a new section there, never a widened allowlist). A `⛔` line from it goes under Needs action as ⛔, a
-   `⚠` line under Watch. Interactively, also use whatever access the records in the folder
+   `⚠` line under Watch. The `access` line (the record access log) goes under Watch on **Mondays** as one line
+   ("Access last 7 d: …"); other days only if it's `⚠` (the hook went quiet). Interactively, also use whatever access the records in the folder
    of things (`record.things`, default `hosts/`) describe. Record the exact command.
    - **VERIFIED**: the live output confirms it; quote the proving line.
    - **HYPOTHESIS**: reasoned but not confirmed live.

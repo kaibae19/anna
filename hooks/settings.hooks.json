@@ -1,5 +1,5 @@
 {
-  "_comment": "Anna's Claude Code hooks. install.sh merges this into ~/.claude/settings.json (paths assume paths.bin = ~/bin). The bot gets the stream hook too (ANNA_ROLE=bot); headless runs set ANNA_HEADLESS=1 and the hooks stay quiet. Stop also runs anna-bot-reply-guard, which acts in the bot only (a Telegram turn can't end without a reply). anna-epistemic-hook (Stop: logs epistemic checks that were due and not run; PreToolUse on the relay reply: checks it first when engines.epistemic_relay = true). PreToolUse = the action gate (anna-gate-hook): in the brain, a state change needs a recent go from the anna-action-gate engine; the bot and headless runs pass.",
+  "_comment": "Anna's Claude Code hooks. install.sh merges this into ~/.claude/settings.json (paths assume paths.bin = ~/bin). The bot gets the stream hook too (ANNA_ROLE=bot); headless runs set ANNA_HEADLESS=1 and the hooks stay quiet. Stop also runs anna-bot-reply-guard, which acts in the bot only (a Telegram turn can't end without a reply). anna-epistemic-hook (Stop: logs epistemic checks that were due and not run; PreToolUse on the relay reply: checks it first when engines.epistemic_relay = true). PostToolUse = anna-access (the record access log: paths and queries only). PreToolUse = the action gate (anna-gate-hook): in the brain, a state change needs a recent go from the anna-action-gate engine; the bot and headless runs pass.",
   "hooks": {
     "SessionStart": [
       {
@@ -95,6 +95,18 @@
             "type": "command",
             "command": "~/bin/anna-epistemic-hook",
             "timeout": 45
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Read|Edit|Write|MultiEdit|Bash|mcp__merlin__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/bin/anna-access hook",
+            "timeout": 5
           }
         ]
       }

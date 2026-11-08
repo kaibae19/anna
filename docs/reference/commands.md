@@ -17,20 +17,43 @@ All scripts read your settings through [`anna-config`](#anna-config); the keys a
 
 | Command | In one line |
 |---|---|
+| [`anna-access`](#anna-access) | the record access log: which files get used, by which part of Anna, and its weekly line |
 | [`anna-body`](#anna-body) | how Anna feels, from your senses (read-only) |
 | [`anna-brain`](#anna-brain) | runs the brain's `claude` in its screen window, resuming after a stray exit |
-| [`anna-checks`](#anna-checks) | fixed, read-only checks: relay, clock, disk, plus yours |
+| [`anna-checks`](#anna-checks) | fixed, read-only checks: relay, clock, disk, access, plus yours |
 | [`anna-clock`](#anna-clock) | Anna's own schedule: notes, pings, scheduled runs |
 | [`anna-config`](#anna-config) | read the configuration |
 | [`anna-day`](#anna-day) | the brain's daily rollover: close overnight, open in the morning |
+| [`anna-engine`](#anna-engine) | runs one engine headless, so a hook can make it run; its daily stats |
 | [`anna-evening`](#anna-evening) | the nightly fold of session drafts into the journal |
+| [`anna-log`](#anna-log) | Anna's own journal: one raw line for the nightly dream |
 | [`anna-notify`](#anna-notify) | send you a Telegram message (or a stream line with no bot) |
 | [`anna-relay`](#anna-relay) | the bot-to-brain relay: bridge daemon and queue tools |
 | [`anna-rhythm`](#anna-rhythm) | when you're usually around, computed from the stream |
 | [`anna-run`](#anna-run) | one headless Anna session with deny-by-default settings |
+| [`anna-sense-send`](#anna-sense-send) | send one sense event the way a sense would (tests, local scripts) |
+| [`anna-senses`](#anna-senses) | the sense intake: HTTP, a drop folder or MQTT, one contract |
 | [`anna-stream`](#anna-stream) | Anna's shared log of the day, and its hook |
 | [`anna-tg`](#anna-tg) | the Telegram bot session |
 | [`backlog-age`](#backlog-age) | open backlog items with their age in days |
+
+## `anna-access`
+
+The record access log: which files in the record get read, searched or written, when, and by which part of Anna. Paths
+and queries only, never contents. It's the measurement for memory that fades by disuse: what's used and what isn't.
+
+```text
+anna-access hook
+anna-access stats [--days N] [--week]
+```
+
+| Form | What it does |
+|---|---|
+| `hook` | The `PostToolUse` hook (Read, Edit, Write, MultiEdit, Bash, merlin tools): one line per access to `<paths.state>/access/YYYY-MM.jsonl` (dir 700, files 600). Fields: `ts`, `sid`, `actor` (`brain`, `bot`, `scheduled`, `subagent:<type>`), `tool`, `kind`, `paths` (record-relative, prefixed with the record folder's name), and for merlin searches `q` and `top` (the top-3 result paths). Nothing in the secrets store, `~/.ssh`, `~/.gnupg`, `.env`, `*.key` or `*.pem` is logged; a Bash command that names one logs nothing at all. Any error exits 0 silently. |
+| `stats` | A summary for the last N days (default 7): uses by actor, hot files, areas, untouched areas, repeated searches, searches whose top hits were never opened. |
+| `stats --week` | The same as one line, for `anna-checks access` and the morning report (Mondays). |
+
+`ANNA_ACCESS_DIR` overrides the log folder (tests).
 
 ## `anna-body`
 
@@ -119,6 +142,7 @@ With no arguments it runs every section: the built-ins, then yours. Name section
 | `relay` | If `relay.enabled`: `anna-relay.service` active, `anna-relay status` readable, bot side online, brain side online outside the nightly window (`day.close` to `day.open` + 5 min), and no hand-off waiting longer than `relay.alarm_min`. Disabled: `OK relay: not enabled`. |
 | `clock` | No `ping`/`run` clock items past due and still open (that would mean `anna-clock.timer` isn't running). |
 | `disk` | This machine's root filesystem: ⚠ from 85%, ⛔ from 95%. |
+| `access` | One line from `anna-access stats --week` (uses, hot files, searches). ⚠ when the log has nothing for 7 days (the hook went quiet); never ⛔. |
 
 **Your checks:** every executable in `<paths.record>/checks/` is a section named after the file. A check must be
 read-only, print one line per finding starting with `OK `, `⚠ ` or `⛔ ` (⛔ = needs you today: the morning run notifies

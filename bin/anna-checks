@@ -1,7 +1,7 @@
 #!/bin/bash
 # anna-checks [section...] — fixed, read-only checks for Anna (the morning report, the bot, you). Default: all sections.
 # Built-in sections: relay (bridge + both sides + queue, if relay.enabled), clock (ping/run items that should have fired),
-# disk (this machine's root filesystem). Yours: every executable in <record>/checks/ is a section named after the file.
+# disk (this machine's root filesystem), access (the record access log: one weekly line; ⚠ when it logged nothing). Yours: every executable in <record>/checks/ is a section named after the file.
 # Contract for a check: read-only; print one line per finding starting with "OK ", "⚠ " or "⛔ " (⛔ = needs the user
 # today: the morning run notifies on it); exit 0. It gets 60 s. A check that fails to run is reported as ⚠ (unverified),
 # never as OK. Allowlist this one command for headless runs and the bot, never the commands inside the checks.
@@ -18,7 +18,7 @@ in_night() {
 export TZ; TZ=$(cfg anna.timezone); export PATH="$HOME/.bun/bin:$(cfg paths.bin):$PATH"
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}   # clean environments (headless) have no user bus otherwise
 R=$(cfg paths.record); CK=$R/checks
-builtin=(relay clock disk)
+builtin=(relay clock disk access)
 mine=(); for f in "$CK"/*; do [ -f "$f" ] && [ -x "$f" ] && mine+=("$(basename "$f")"); done
 want=("$@"); [ ${#want[@]} -eq 0 ] && want=("${builtin[@]}" "${mine[@]}")
 echo "# anna-checks $(date '+%F %T %Z') from $(hostname -s)"; echo
@@ -46,6 +46,11 @@ clock() {  # a ping/run item still open well past due = the tick isn't running
 disk() {
   local p; p=$(df --output=pcent / | tail -1 | tr -dc 0-9)
   if [ "$p" -ge 95 ]; then echo "⛔ disk: / is $p% full"; elif [ "$p" -ge 85 ]; then echo "⚠ disk: / is $p% full"; else echo "OK disk: / $p%"; fi
+}
+
+access() {                                          # never ⛔: a measurement, and a sign the hook went quiet
+  local l; l=$("$D/anna-access" stats --week 2>&1 || true)
+  case "$l" in *"no entries"*) echo "⚠ $l" ;; *) echo "OK $l" ;; esac
 }
 
 for m in "${mine[@]}"; do                          # yours can't replace a built-in: the built-in would run instead, silently

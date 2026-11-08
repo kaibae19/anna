@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""anna-access — which record files get used, when and by whom (paths and queries only, never contents).
+
+  anna-access hook            PostToolUse hook: reads the hook JSON on stdin, appends one line per access. Fails open:
+                              any error → exit 0, no output, the tool call is never affected.
+  anna-access stats [--days N] [--week]
+                              one summary (default 7 days): accesses by actor, hot files, cold top-level areas,
+                              repeated searches, searches whose top hits were never opened. --week: one line for
+                              the 04:00 report (fleet-check section `access`).
+
+Log: <paths.state>/access/YYYY-MM.jsonl (dir 700, files 600). Fields: ts, sid, actor (brain|bot|scheduled|
+subagent:<type>), tool, kind (read|edit|write|bash|search|history|doc), paths (record-relative, prefixed with the record
+folder's name, as merlin names them), and for merlin searches: q + top (top-3 result paths). Nothing under the secrets
+store (paths.secrets), ~/.ssh, ~/.gnupg, .env, *.key or *.pem is ever logged. It's the measurement for memory that fades
+by disuse (docs: roadmap): which parts of the record are used, and which aren't.
+"""
+import json, os, re, sys, time, collections, datetime
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from anna_cfg import RECORD, STATE, get  # noqa: E402
+
+HOME = os.path.expanduser("~")
+_REC = str(RECORD)
+ROOTS = {_REC: os.path.basename(_REC.rstrip("/")) or "record"}
+LOGDIR = os.environ.get("ANNA_ACCESS_DIR") or str(STATE / "access")
+_SEC = re.escape(os.path.basename(str(get("paths.secrets", "~/.config/anna/secrets")).rstrip("/")) or "secrets")
+SECRET = re.compile(r"(^|/)(\.secrets|\.ssh|\.gnupg|" + _SEC + r")(/|$)|(^|/)\.env(\.|$)|(^|/)[^/]*\.(key|pem)$")
+_NAMES = "|".join(re.escape(n) for n in ROOTS.values())
+PATHISH = re.compile(r"""(?:~|/[^\s'";|&<>()`*?]*|\$HOME)/(?:""" + _NAMES + r""")/[^\s'";|&<>()`*?]+"""
+                     r"""|[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.@-]+)+\.(?:md|toml|ya?ml|json|py|sh|txt|tsv)""")
+TOPHIT = re.compile(r"^\s*\d+\.\s+\[[\w-]+\]\s+((?:" + _NAMES + r")/\S+)", re.M)
+
+
+def rel(path, cwd):
+    """Record-relative path ('<record name>/…'), or None if outside the record or secret-looking."""
+    if not path or SECRET.search(path):
+        return None
+    p = path.replace("$HOME", HOME)
+    p = os.path.expanduser(p)
+    if not os.path.isabs(p):
+        p = os.path.join(cwd or HOME, p)
+    p = os.path.normpath(p)
+    for root, name in ROOTS.items():
+        if p == root or p.startswith(root + os.sep):
+            r = name + p[len(root):]
+            return None if SECRET.search(r) or "/.git/" in r + "/" else r
+    return None
+
+
+def actor(ev):
+    if ev.get("agent_type") or ev.get("agent_id"):
+        return "subagent:" + str(ev.get("agent_type") or "?")
+    if os.environ.get("ANNA_ROLE") == "bot":
+        return "bot"
+    if os.environ.get("ANNA_HEADLESS"):
+        return "scheduled"
+    return "brain"
+
+
+def entry(ev):
+    tool = ev.get("tool_name") or ""
+    ti = ev.get("tool_input") or {}
+    cwd = ev.get("cwd") or os.getcwd()
+    e = {"tool": tool}
+    if tool in ("Read", "Edit", "Write", "MultiEdit", "NotebookEdit"):
+        r = rel(ti.get("file_path") or ti.get("notebook_path"), cwd)
+        if not r:
+            return None
+        e.update(kind={"Read": "read"}.get(tool, "write" if tool == "Write" else "edit"), paths=[r])
+    elif tool == "Bash":
+        cmd = ti.get("command") or ""
+        if SECRET.search(cmd):            # a command touching the secrets store: log nothing about it
+            return None
+        seen = []
+        for tok in PATHISH.findall(cmd):
+            r = rel(tok.rstrip(".,:"), cwd)
+            if r and r not in seen and os.path.exists(os.path.join(os.path.dirname(_REC.rstrip("/")), r)):
+                seen.append(r)
+        if not seen:
+            return None
+        e.update(kind="bash", paths=seen[:20])
+    elif tool.startswith("mcp__merlin__"):
+        op = tool.rsplit("__", 1)[-1]
+        q = ti.get("query") or ti.get("entity") or ti.get("path") or ""
+        if SECRET.search(str(q)):
+            return None
+        e.update(kind={"search": "search", "history": "history", "host_history": "history",
+                       "get_document": "doc"}.get(op, op), q=str(q)[:200])
+        for k in ("types", "entity", "since", "exact"):
+            if ti.get(k) not in (None, "", []):
+                e[k] = ti[k]
+        resp = ev.get("tool_response")
+        text = json.dumps(resp) if not isinstance(resp, str) else resp
+        text = text.replace("\\n", "\n")
+        e["top"] = TOPHIT.findall(text)[:3]
+        if op == "get_document" and ti.get("path"):
+            r = str(ti["path"])
+            e["paths"] = [r] if not SECRET.search(r) else []
+    else:
+        return None
+    return e
+
+
+def hook():
+    try:
+        ev = json.load(sys.stdin)
+        e = entry(ev)
+        if not e:
+            return
+        e = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "sid": (ev.get("session_id") or "")[:8], "actor": actor(ev), **e}
+        os.makedirs(LOGDIR, mode=0o700, exist_ok=True)
+        old = os.umask(0o077)
+        try:
+            with open(os.path.join(LOGDIR, time.strftime("%Y-%m") + ".jsonl"), "a", encoding="utf-8") as f:
+                f.write(json.dumps(e, ensure_ascii=False) + "\n")
+        finally:
+            os.umask(old)
+    except Exception:
+        pass                              # fail open, always
+
+
+def load(days):
+    since = datetime.datetime.now().astimezone() - datetime.timedelta(days=days)
+    rows = []
+    if not os.path.isdir(LOGDIR):
+        return rows
+    for name in sorted(os.listdir(LOGDIR)):
+        if not name.endswith(".jsonl"):
+            continue
+        for line in open(os.path.join(LOGDIR, name), encoding="utf-8", errors="replace"):
+            try:
+                r = json.loads(line)
+                if datetime.datetime.strptime(r["ts"], "%Y-%m-%dT%H:%M:%S%z") >= since:
+                    rows.append(r)
+            except Exception:
+                continue
+    return rows
+
+
+def area(p):
+    parts = p.split("/")
+    return "/".join(parts[:2]) if len(parts) > 2 else parts[0]
+
+
+def stats(days, week):
+    rows = load(days)
+    if not rows:
+        print(f"access: no entries in {days} d" + ("" if os.path.isdir(LOGDIR) else " (no log yet)"))
+        return
+    by_actor = collections.Counter(r.get("actor", "?").split(":")[0] for r in rows)
+    files = collections.Counter(p for r in rows if r.get("kind") != "search" for p in r.get("paths", []))
+    areas = collections.Counter(area(p) for p in files.elements())
+    searches = [r for r in rows if r.get("kind") == "search"]
+    rep = collections.Counter(r.get("q", "").strip().lower() for r in searches)
+    opened = set(files)
+    unused = [r for r in searches if r.get("top") and not any(t in opened for t in r["top"])]
+    known = set()
+    for root, name in ROOTS.items():
+        try:
+            for d in sorted(os.listdir(root)):
+                if not d.startswith(".") and os.path.isdir(os.path.join(root, d)):
+                    known.add(f"{name}/{d}")
+        except OSError:
+            pass
+    cold = sorted(a for a in known if a not in areas)
+    if week:
+        hot = ", ".join(f"{p.split('/', 1)[1]} {n}" for p, n in files.most_common(3)) or "none"
+        print(f"access {days} d: {len(rows)} uses ({', '.join(f'{a} {n}' for a, n in by_actor.most_common())}); "
+              f"hot: {hot}; {len(searches)} searches, {sum(1 for n in rep.values() if n > 1)} repeated, "
+              f"{len(unused)} with no top hit opened; untouched areas: {len(cold)}")
+        return
+    print(f"== access, last {days} days: {len(rows)} entries")
+    print("by actor: " + ", ".join(f"{a} {n}" for a, n in by_actor.most_common()))
+    print("hot files:"); [print(f"  {n:4d}  {p}") for p, n in files.most_common(12)]
+    print("areas:"); [print(f"  {n:4d}  {a}") for a, n in areas.most_common(12)]
+    print("untouched areas: " + (", ".join(cold) or "none"))
+    print(f"searches: {len(searches)}; repeated:"); [print(f"  {n:3d}× {q[:80]}") for q, n in rep.most_common(8) if n > 1]
+    print(f"searches with no top hit opened afterwards: {len(unused)}")
+    for r in unused[-5:]:
+        print(f"  {r['ts'][:16]}  {r.get('q', '')[:70]}")
+
+
+if __name__ == "__main__":
+    a = sys.argv[1:]
+    if a[:1] == ["hook"]:
+        hook()
+        sys.exit(0)
+    if a[:1] == ["stats"]:
+        d = int(a[a.index("--days") + 1]) if "--days" in a else 7
+        stats(d, "--week" in a)
+        sys.exit(0)
+    print(__doc__.strip())
+    sys.exit(2)

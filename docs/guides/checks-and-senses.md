@@ -46,7 +46,7 @@ From `bin/anna-checks` and `record-template/checks/README.md`:
   run (exit N): …`. One that prints a finding and then exits non-zero gets an extra `⚠ <name>: check exited N`.
 - **Finish within 60 seconds.** `anna-checks` kills it after that.
 - A check that can't tell is never `OK`: print `⚠ … (unverified)` instead.
-- The file name is the section name. Don't name one `relay`, `clock` or `disk`: those are built in, and a check with a
+- The file name is the section name. Don't name one `relay`, `clock`, `disk` or `access`: those are built in, and a check with a
   built-in's name never runs (`anna-checks` warns about it).
 
 !!! warning "Why read-only matters"
@@ -120,7 +120,7 @@ Then run them all, the way the morning run does:
 anna-checks
 ```
 
-That prints the built-in sections (`relay`, `clock`, `disk`) and then each of yours. If you see `⚠ backup: no such
+That prints the built-in sections (`relay`, `clock`, `disk`, `access`) and then each of yours. If you see `⚠ backup: no such
 section`, the file isn't executable or isn't in `<record>/checks/`.
 
 Try the failure path too: set `MAX_H` to `0` for one run and you should get the `⛔` line.

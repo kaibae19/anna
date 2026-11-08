@@ -25,9 +25,10 @@ to turn it off. It's for anyone who sees hook output in a session and wants to k
 | `Stop` | (all) | `anna-epistemic-hook` | 10 s | In the brain: logs a reply that stated a cause, negative or state without an epistemic check. |
 | `PreToolUse` | `mcp__plugin_fakechat_fakechat__reply` | `anna-epistemic-hook` | 45 s | With `engines.epistemic_relay = true`: checks a relay result before it goes out. |
 | `Notification` | `idle_prompt` | `anna-idle-checkpoint` | 1800 s, `asyncRewake` | Wakes the brain for `/anna-checkpoint` after a quiet spell. |
+| `PostToolUse` | `Read`, `Edit`, `Write`, `MultiEdit`, `Bash`, `mcp__merlin__.*` | `anna-access hook` | 5 s | Logs which record files were used (paths and queries only). |
 | `PreToolUse` | `Bash` or `mcp__.*` | `anna-gate-hook` | 5 s | Blocks a state change without a recent `go` from the action gate. |
 
-The six `anna-*` hook scripts live in `hooks/`; `anna-stream` lives in `bin/`. `install.sh` copies all of them into
+The six `anna-*` hook scripts live in `hooks/`; `anna-stream` and `anna-access` live in `bin/`. `install.sh` copies all of them into
 `paths.bin` (default `~/bin`).
 
 ## Which session each hook acts in

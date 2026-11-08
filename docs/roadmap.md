@@ -6,7 +6,7 @@ description: "What's designed or prototyped in the deployment Anna came from but
 
 Designed and partly prototyped in the deployment this scaffold came from; not in the scaffold yet.
 
-**Done:** engines as subagents (`agents/`, [architecture](concepts/architecture.md) § Engines) with the action gate enforced by a hook. Pushed senses: the sense intake (`anna-senses`; contract v1 over HTTP, a drop folder or MQTT; [Senses](concepts/senses.md)). Engines that run themselves (interpretation by the prompt hook, epistemic counted; [Engines](reference/engines.md#engines-that-run-themselves)). An own journal and a nightly dream ([Her own journal](concepts/own-journal.md)).
+**Done:** engines as subagents (`agents/`, [architecture](concepts/architecture.md) § Engines) with the action gate enforced by a hook. Pushed senses: the sense intake (`anna-senses`; contract v1 over HTTP, a drop folder or MQTT; [Senses](concepts/senses.md)). Engines that run themselves (interpretation by the prompt hook, epistemic counted; [Engines](reference/engines.md#engines-that-run-themselves)). An own journal and a nightly dream ([Her own journal](concepts/own-journal.md)). A record access log (`anna-access`): which parts of the record are used, the measurement for memory that fades by disuse.
 Next for them: replay a day's stream through each engine and score the blocks in the nightly fold, so prompt changes are
 measured rather than guessed; then the local-model shadow below, engine by engine (interpretation and epistemic first: no
 tool calls, fixed labels).
@@ -22,8 +22,6 @@ tool calls, fixed labels).
 - **Memory that fades by disuse.** Topics nobody has needed for a long while turn into a short gist with a pointer to the
   full detail, which stays archived; seasonal topics wait instead of fading, and anything comes back the moment it's
   used. Corrections, decisions and their reasons never fade. Designed, not built.
-- **A record access log.** Which parts of her record get read, searched or written, by which part of her, so fading,
-  search and the always-loaded index can follow real use. Running in one home since 2026-11; not in the scaffold yet.
 - **Secrets without a terminal.** A small local web form for giving Anna a token or password, for people who don't work
   in a terminal. Designed, not built.
 - **Proof of memory.** OpenTimestamps over the record's commits, so the history provably existed when it says it did.
