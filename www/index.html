@@ -417,12 +417,15 @@ footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(-
       <div class="col">
         <h3><span class="dot" style="background:var(--file)"></span>In the scaffold today</h3>
         <ul>
-          <li><strong>Six engines</strong>: interpretation, memory, epistemic, action gate, goals, curiosity</li>
+          <li><strong>Six engines</strong>: interpretation, memory, epistemic, action gate, goals, curiosity; hooks run the interpretation engine and count the epistemic checks, so they don't depend on remembering</li>
           <li><strong>The gate hook</strong> that blocks unapproved changes</li>
           <li><strong>Her clock</strong>: follow-ups with dates, pings and scheduled runs</li>
           <li><strong>The stream</strong>: one log of what every part of her did</li>
           <li><strong>Session bookends</strong>: morning check, checkpoint, wrap-up, evening fold</li>
-          <li><strong>Phone voice + relay</strong> to the brain (works, still rough at the edges)</li>
+          <li><strong>Her own journal and a nightly dream</strong> that sorts what she noticed into what stays with her for a while, what she wonders about, and lessons she proposes</li>
+          <li><strong>Pushed senses</strong>: one standard for events, over HTTP, a drop folder or MQTT</li>
+          <li><strong>A record access log</strong>: which parts of her record get used (paths only, never contents)</li>
+          <li><strong>Phone voice + relay</strong> to the brain (walked on a clean machine; the newest part)</li>
           <li><strong>merlin</strong> search over her record (separate open project)</li>
         </ul>
       </div>
@@ -527,7 +530,7 @@ footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(-
     ["Sense of time", "Her clock + daily rhythm", "Dated follow-ups, morning and evening runs.", "ships", "ships"],
     ["Language", "The voice", "Anna on your phone. Works; the newest part.", "ships", "ships, rough"],
     ["Sleep", "Dreaming", "A nightly pass that sorts what she noticed into what stays with her for a while, what she wonders about, and lessons she proposes.", "ships", "ships, young"],
-    ["Feeling", "Her own journal", "What would feelings even mean for an agent? An open question, being explored carefully.", "home", "open question"],
+    ["Feeling", "Her own journal", "She keeps a log of what registers with her, and it ships. What feelings would even mean for an agent is an open question, explored carefully.", "ships", "open question"],
     ["Something new", "Your part", "Senses, checks and engines nobody has thought of yet.", "open", "yours"]
   ];
   var rg = document.getElementById("regions");
