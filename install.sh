@@ -101,14 +101,17 @@ if [ $NOPLUG = 0 ] && [ ${#want[@]} -gt 0 ]; then
   done
 fi
 
-# hooks into ~/.claude/settings.json: add each hook command once; fakechat/telegram off at user scope
+# hooks into ~/.claude/settings.json: add each hook command once (an Anna hook already there gets the template's timeout);
+# fakechat/telegram off at user scope
 S=$HOME/.claude/settings.json; [ -f "$S" ] || echo '{}' > "$S"
 cp -p "$S" "$S.bak.$(date +%Y%m%d%H%M%S)"
 jq --slurpfile h "$SRC/hooks/settings.hooks.json" --arg bin "$BIN" '
   def add_hooks($new): reduce ($new | to_entries[]) as $e (.;
-    (.hooks[$e.key] // []) as $cur | [$cur[].hooks[]?.command] as $have
-    | .hooks[$e.key] = $cur + [ $e.value[] | (.hooks |= map(.command |= sub("^~/bin"; $bin)))
-                                | select(.hooks[0].command as $c | $have | index([$c]) | not) ]);
+    ([ $e.value[] | (.hooks |= map(.command |= sub("^~/bin"; $bin))) ]) as $want
+    | ([ $want[].hooks[] | {key: .command, value: .timeout} ] | from_entries) as $tmo
+    | ((.hooks[$e.key] // []) | map(.hooks |= map(if $tmo[.command] then .timeout = $tmo[.command] else . end))) as $cur
+    | [$cur[].hooks[]?.command] as $have
+    | .hooks[$e.key] = $cur + [ $want[] | select(.hooks[0].command as $c | $have | index([$c]) | not) ]);
   add_hooks($h[0].hooks)
   | .enabledPlugins["fakechat@claude-plugins-official"] = false
   | .enabledPlugins["telegram@claude-plugins-official"] = false' \
@@ -124,6 +127,8 @@ elif [ -L "$M" ]; then say "brain memory symlink exists → $(readlink "$M")"
 else say "⚠ $M is a real directory: move its files into $REC/memory and replace it with a symlink by hand"; fi
 
 if [ $NOSYS = 1 ]; then echo "Skipped systemd units (--no-systemd)."; echo "Done."; exit 0; fi
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}   # a shell without a login session (e.g. Claude Code's)
+[ -S "$XDG_RUNTIME_DIR/bus" ] && export DBUS_SESSION_BUS_ADDRESS=${DBUS_SESSION_BUS_ADDRESS:-unix:path=$XDG_RUNTIME_DIR/bus}   # has no user bus otherwise
 U=$HOME/.config/systemd/user; install -d "$U"
 for f in "$SRC"/systemd/*.service "$SRC"/systemd/*.timer; do       # the units call the scripts where paths.bin put them
   sed "s|%h/bin/|$BIN/|g; s|:%h/bin:|:$BIN:|g" "$f" > "$U/$(basename "$f")"

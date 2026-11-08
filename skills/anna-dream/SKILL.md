@@ -15,7 +15,10 @@ working. Tonight you sort it, so the Anna who starts tomorrow knows what the day
 
 ## 1. Read (the dreamt day = yesterday: this runs after midnight)
 - **The day's log:** `self/journal/YYYY/MM/<day>.md` (Read). Every entry: `- HH:MM [kind] (who) text`. Missing or empty
-  file → still dream from the rest below (a day with nothing logged still gets dreamt).
+  file → still dream from the rest below (a day with nothing logged still gets dreamt). But if the day is before the
+  record's first commit (`git rev-list --max-parents=0 HEAD`, then `git log -1 --format=%as <that sha>`), there's
+  nothing to dream: write nothing, commit
+  nothing, and say so under `## Dreamt`.
 - **The week before:** the own-journal files of the 6 days before (Read the ones that exist), and their `## Night` sections.
 - **Now:** `self/lately.md`, `planning/wonders.md`, `memory/MEMORY.md` (the lesson index: what's already known).
 - **The day around it:** the work journal `journal/YYYY/MM/<day>.md`: its headlines and **Day index** lines only.

@@ -61,7 +61,9 @@ jq '.permissions.allow += ["Bash(my-wrapper*)"]' "$HOME/.claude/anna-tg-ops-sett
 rm -rf "$HOME/anna-record/self" "$HOME/anna-record/planning/wonders.md" "$HOME/anna-record/.git"   # an older record: its
 ( cd "$HOME/anna-record" && git init -q -b main && git add -A && git commit -qm "an older record" )   # history never had them
 git -C "$HOME/anna-record" rm -q runbooks/README.md && git -C "$HOME/anna-record" commit -qm "remove a template file on purpose"
+jq '(.hooks.UserPromptSubmit[].hooks[] | select(.command | endswith("anna-stream hook")) | .timeout) = 5' "$S" > "$T/s" && mv "$T/s" "$S"   # an older install's timeout
 out2=$(./install.sh --no-systemd 2>&1); rc=$?
+ok "update: an Anna hook already there gets the template's timeout" '[ "$(jq "[.hooks.UserPromptSubmit[].hooks[] | select(.command | endswith(\"anna-stream hook\")) | .timeout][0]" "$S")" = 45 ]'
 ok "a second install exits 0" '[ $rc -eq 0 ]'
 ok "update: a template file you removed (in git history) is not added back" '[ ! -e "$HOME/anna-record/runbooks/README.md" ]'
 ok "update: new template files are added to an existing record" '[ -f "$HOME/anna-record/self/README.md" ] && [ -f "$HOME/anna-record/planning/wonders.md" ] && echo "$out2" | grep -q "added what.s new in the template"'

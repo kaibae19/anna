@@ -40,6 +40,13 @@ Explain each in a sentence and let them choose. Defaults in brackets.
   fresh in the morning (`day.open`). Remote Control (`day.remote_control`) lets them reach it from the Claude app.
 - **Morning check and evening fold** [yes]: headless runs at `runs.morning` / `runs.evening`. For unattended auth, they can
   create a long-lived token with `claude setup-token` and save it as `<paths.secrets>/claude-oauth` (mode 600).
+- **Her own journal and the nightly dream** [yes, nothing to set up]: Anna logs what registers with her while working
+  (`anna-log`; their corrections are logged automatically), and `/anna-dream` at `runs.dream` sorts it into
+  `self/lately.md`, wonders and proposals (`docs/concepts/own-journal.md`). Say what it is in a line; it's on by default.
+- **Engines that run themselves** [yes]: the prompt hook runs the interpretation engine after a gap and on a new session
+  (`engines.interpretation`); the epistemic relay check is off (`engines.epistemic_relay`). A line is enough.
+- **Pushed senses** [later, unless they have something that sends events]: the sense intake (`senses.enabled`) takes
+  events over HTTP or a drop folder, e.g. from a home-automation hub (`docs/concepts/senses.md`). Off until they want it.
 - **The bot** [their call]: Anna on Telegram. They create a bot with @BotFather, save the token as
   `<paths.secrets>/telegram-<bot.instance>`, then allow only their account: `anna-notify --learn`, then write
   `access.json` by hand as `docs/getting-started/telegram.md` § 5 shows (the plugin's pairing flow is untested under the

@@ -19,7 +19,7 @@ to turn it off. It's for anyone who sees hook output in a session and wants to k
 |---|---|---|---|---|
 | `SessionStart` | `startup` or `resume` | `anna-session-start` | 10 s | Tells a new session what happened while no one was looking. |
 | `SessionEnd` | (all) | `anna-session-draft` | 30 s | Turns the session's transcript into a redacted draft for the journal. |
-| `UserPromptSubmit` | (all) | `anna-stream hook` | 5 s | Logs your message to the stream; shows the session what other parts did; runs the interpretation engine when due (`engines.interpretation`), carries today's question, logs your corrections to the own journal. |
+| `UserPromptSubmit` | (all) | `anna-stream hook` | 45 s | Logs your message to the stream; shows the session what other parts did; runs the interpretation engine when due (`engines.interpretation`), carries today's question, logs your corrections to the own journal. |
 | `Stop` | (all) | `anna-stream hook` | 5 s | Logs Anna's reply to the stream. |
 | `Stop` | (all) | `anna-bot-reply-guard` | 10 s | In the bot only: a turn that began with a Telegram message can't end without a reply. |
 | `Stop` | (all) | `anna-epistemic-hook` | 10 s | In the brain: logs a reply that stated a cause, negative or state without an epistemic check. |

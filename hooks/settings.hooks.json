@@ -30,7 +30,7 @@
           {
             "type": "command",
             "command": "~/bin/anna-stream hook",
-            "timeout": 5
+            "timeout": 45
           }
         ]
       }
