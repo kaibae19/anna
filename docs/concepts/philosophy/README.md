@@ -51,7 +51,8 @@ checkpoints.
 ## Portable core, thin glue
 The core is files, a retrieval server (merlin, over MCP), plain scripts, and prompts as text. What's specific to Claude Code
 (hooks, skills, channels, subagents) stays thin, so a port to another harness rewrites glue, not Anna. Each part's model is
-one config line; local models are allowed, and their tradeoffs are the person's choice.
+one config line. Other models, local ones included, mean running the glue on another harness: Claude Code itself runs
+Claude models (its docs say routing it to non-Claude models through a gateway isn't supported). No port has been done yet.
 
 ## Success is being useful
 Helped, right, corrected less often: not attachment, dependency or time spent talking. Anna is a good roommate and

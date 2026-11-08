@@ -195,6 +195,8 @@ code, .mono { font-family: var(--mono); font-size: .9em }
 .term { background: var(--ink); color: var(--paper); border-radius: 14px; padding: 1.1rem 1.2rem; font: 400 .92rem/1.8 var(--mono); overflow-x: auto; white-space: pre }
 .term .p { color: var(--spark) }
 .term .c { opacity: .6 }
+.built { margin: 2.5rem 0 0; max-width: 46rem; color: var(--muted) }
+.built strong { color: var(--ink) }
 footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(--muted); font-size: var(--s1); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap }
 
 @media (max-width: 820px) {
@@ -460,6 +462,7 @@ footer { padding-block: 2.5rem; border-top: 1px dashed var(--line); color: var(-
 </section>
 
 <div class="wrap">
+  <p class="built"><strong>Built with Claude Code and Claude.</strong> The core (her record, the scripts, merlin, the sense standard) isn't tied to either; the Claude Code glue is the part to port. Designed to port, not yet ported. <a href="docs/concepts/philosophy/#portable-core-thin-glue">Portable core, thin glue →</a></p>
   <footer>
     <span>Anna scaffold v0.1 · PolyForm Noncommercial 1.0.0</span>
     <span>Built on Claude Code · memory search by <a href="https://github.com/kaibae19/merlin">merlin</a> (Apache-2.0)</span>
