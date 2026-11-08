@@ -1,7 +1,7 @@
 # Anna's configuration. Copy to ~/.config/anna/anna.toml (or set ANNA_CONFIG) and edit; /anna-setup writes it for you.
 # Every script reads it through `anna-config KEY` (dotted keys, e.g. `anna-config relay.brain_port`). Unset keys fall
-# back to the defaults shown here. Nothing about your home, your hosts or your people belongs in the scaffold's code:
-# it lives here and in your record.
+# back to the defaults shown here. Nothing about your home, your things or your people belongs in the scaffold's code:
+# it lives here and in her record.
 
 [anna]
 name = "Anna"                       # what she's called (the bot speaks as this name)
@@ -9,7 +9,7 @@ user = "you"                        # the person she works with, as she should a
 timezone = "UTC"                    # all times she writes and reads (journal, clock, nightly window)
 
 [paths]
-record = "~/anna-record"            # your record: journal, memory, planning, clock, your things (record.things), runbooks (a git repo; see record-template/)
+record = "~/anna-record"            # her record: journal, memory, planning, clock, the things she looks after (record.things), runbooks (a git repo; see record-template/)
 state = "~/.local/state/anna"       # runtime state: stream, clock lock, relay queue, drafts
 bin = "~/bin"                       # where install.sh puts the scripts
 secrets = "~/.config/anna/secrets"  # mode 700; files: claude-oauth (optional: headless auth), telegram-<instance> (bot token)

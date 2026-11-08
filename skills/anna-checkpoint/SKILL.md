@@ -18,7 +18,8 @@ The record is at `anna-config paths.record`. Read `journal/README.md` and the `/
    **Copy commands and output verbatim from the draft** (trimmed to the evidence lines, never paraphrased); the user's
    decisions in their words. Never copy `[REDACTED]`, credentials or vault output. Work done by subagents: the result they
    reported plus what you verified yourself, marked as such.
-3. **Other layers**: usually done already (commit as you go). Add only what's missing: a host fact, a runbook step, a
+3. **Other layers**: usually done already (commit as you go). Add only what's missing: a fact about a thing (in the folder of
+   things, `record.things`, default `hosts/`), a runbook step, a
    memory lesson (pointer first, plus the MEMORY.md line), a backlog item, or a dated follow-up on `anna-clock`.
 4. **Handoff:** update the 📌 line at the top of `memory/MEMORY.md`: session id, `checkpoint N`, what's live, what's
    mid-flight, **Ask**. Keep the older lines' open items unless shown done.

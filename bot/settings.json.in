@@ -12,7 +12,7 @@
     "allow": [
       "Read(/@RECORD@/**)",
       "Read(/@STATE@/telegram-@INSTANCE@/inbox/**)",
-      "Edit(/@RECORD@/hosts/**)",
+      "Edit(/@RECORD@/@THINGS@/**)",
       "Edit(/@RECORD@/memory/**)",
       "Write(/@RECORD@/memory/**)",
       "mcp__plugin_telegram_telegram__*",

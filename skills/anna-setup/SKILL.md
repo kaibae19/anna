@@ -1,12 +1,12 @@
 ---
 name: anna-setup
-description: First run of a new Anna — interview the person, write ~/.config/anna/anna.toml, run install.sh, start the record (who they are, what they run, the first host records), add a first check and sense, and write day one's journal entry so the morning check has something to read tomorrow. Use when someone says "set up Anna", runs /anna-setup, or has the scaffold checked out with no config yet. Safe to rerun: it fills gaps and never overwrites.
+description: First run of a new Anna — interview the person, write ~/.config/anna/anna.toml, run install.sh, start the record (who they are, what she'll help with, the first things that come up), optionally a first check and sense, and write day one's journal entry so the morning check has something to read tomorrow. Use when someone says "set up Anna", runs /anna-setup, or has the scaffold checked out with no config yet. Safe to rerun: it fills gaps and never overwrites.
 ---
 
 # Setting up a new Anna
 
-You're helping someone start their own agent from the Anna scaffold. By the end they have: a config, an installed Anna,
-a record that knows who they are and what they run, at least one check and one sense, and a first journal entry. Go at
+You're helping someone start their own Anna from the scaffold. By the end they have: a config, an installed Anna,
+a record that knows who they are and what she'll help with, a first check and sense if they want them, and a first journal entry. Go at
 their pace; this is a conversation, not a form. Ask a few things at a time, not a wall of questions.
 
 **Ground rules.** Read the scaffold's `README.md` and `docs/` first (the checkout: the directory holding `install.sh`;
@@ -17,7 +17,7 @@ fill what's missing.
 
 ## 1. Who and where
 Ask, then confirm back in one short summary:
-- What should their agent be called (`anna.name`; "Anna" is fine), and how should she address them (`anna.user`)?
+- What should she be called (`anna.name`; "Anna" is fine), and how should she address them (`anna.user`)?
 - Their timezone (`anna.timezone`, an IANA name: suggest from `timedatectl` if they're on the machine).
 - **What will she help with?** In their words (a home lab, a book, a research project, a small business, just company).
   From the answer, name the folder for the things she'll keep a record of (`record.things`, plural, e.g. `hosts`,
@@ -29,7 +29,7 @@ Ask, then confirm back in one short summary:
 - **Is its disk encrypted?** Check, read-only, on Anna's machine: `lsblk -no TYPE -s "$(findmnt -no SOURCE /)"` lists the
   devices under `/`; a `crypt` line means LUKS. Also check the record's filesystem if it's elsewhere
   (`findmnt -no SOURCE -T <paths.record>`). No `crypt`: say plainly that we highly recommend full-disk encryption before
-  the record fills up (it will hold their machines, routines and household), and point them to `docs/getting-started/new-to-this.md`
+  the record fills up (it will hold their routines, their work and what she looks after), and point them to `docs/getting-started/new-to-this.md`
   § A machine that's always on (it covers unlocking after a reboot). Inside a VM, ZFS native encryption or encrypted host
   storage won't show here: ask whether the host encrypts it. It's their call, not a blocker; note their answer in day
   one's journal entry. Recommend encrypted off-machine backups in the same breath (restic or Borg; the scaffold has none yet).
@@ -70,10 +70,13 @@ In `paths.record`:
   --failed`) and only with their OK; paste what you saw under `## Notes` with today's date.
 - `planning/backlog.md`: anything they mention wanting to do.
 
-## 5. A first check and a first sense
-Pick, with them, the one thing they'd most want to hear about if it broke (a backup, a disk, a service). Copy the closest
+## 5. A first check and a first sense (optional)
+Offer, don't require: many Annas start without one, and checks come naturally later, when something matters enough to
+watch. If they want one, pick together the one thing they'd most want to hear about if it went wrong (a backup, a disk,
+a deadline, a document nobody has touched in weeks). Copy the closest
 example from the scaffold's `examples/checks/` into `checks/<name>`, adapt it, make it executable, run `anna-checks` and
-show the output. Same for one sense from `examples/senses/` (`anna-body --line`). Explain the contract: checks print
+show the output. Same for one sense from `examples/senses/` (`anna-body --line`). The shipped examples are machine-flavoured;
+adapt one or write a small script of their own. If they'd rather wait, say where the examples are and move on. Explain the contract: checks print
 `OK`/`⚠`/`⛔` lines, senses print JSON sensations; a check that can't run is never OK.
 
 ## 6. If the bot is on

@@ -39,7 +39,7 @@ yesterday's session if one is still open.
 
 ### Read the morning report
 
-It lands in your record as `journal/handoffs/<date>-morning.md`:
+It lands in her record as `journal/handoffs/<date>-morning.md`:
 
 ```bash
 ls -t ~/anna-record/journal/handoffs/ | head -3
@@ -72,7 +72,7 @@ remote). How the check works: [Skills § anna-morning](../reference/skills.md).
 
 ## During the day: brain or bot?
 
-**The brain** is the long-running Claude Code session that does real work: files, hosts, fixes, the record. Reach it:
+**The brain** is the long-running Claude Code session that does real work: files, the things she looks after, fixes, the record. Reach it:
 
 ```bash
 screen -r anna
@@ -123,7 +123,7 @@ When you're done, type in the brain:
 /anna-wrapup
 ```
 
-It writes the day's journal entry (with the real commands and output), updates host records, runbooks, memory and the
+It writes the day's journal entry (with the real commands and output), updates the records of things, runbooks, memory and the
 backlog where something changed, refreshes the 📌 handoff line at the top of `memory/MEMORY.md`, and commits. It asks
 you before pushing.
 

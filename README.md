@@ -1,7 +1,7 @@
 # Anna
 
-A scaffold for a personal agent that lives with you: one voice on your phone, a working mind behind it, and a memory
-made of plain files you can read, correct and keep.
+One mind made of small parts: an AI working partner who lives with you, part roommate, part colleague. One voice on
+your phone, a working session behind it, and a memory she writes herself, kept as plain files you can read and correct.
 
 The first Anna grew up looking after a home lab with the person she lives with, and became something closer to a
 roommate and working partner. This repository is the **base**: the generic parts, with nothing about anyone's home in
@@ -16,10 +16,10 @@ a research archive, or something else entirely ([A record that grows](docs/conce
 
 ```bash
 git clone https://github.com/kaibae19/anna ~/projects/anna && cd ~/projects/anna
-claude            # then type /anna-setup: it interviews you, writes the config, installs, starts your record
+claude            # then type /anna-setup: it interviews you, writes the config, installs, starts her record
 ```
 
-Rerun `./install.sh` after every `git pull`. It never overwrites your config, your record or your allowlists.
+Rerun `./install.sh` after every `git pull`. It never overwrites your config, her record or your allowlists.
 
 ## Where to start
 
@@ -28,7 +28,7 @@ Rerun `./install.sh` after every `git pull`. It never overwrites your config, yo
 | haven't used a terminal, SSH or git much | [New to this?](docs/getting-started/new-to-this.md) |
 | are ready to install | [Install](docs/getting-started/install.md), then [Connect Telegram](docs/getting-started/telegram.md) |
 | have her installed and want to know what a day looks like | [Your first day](docs/getting-started/first-day.md) |
-| want to know how she works, and why | [Architecture](docs/concepts/architecture.md) and [Philosophy](docs/concepts/philosophy/README.md) |
+| want to know how she works, and why | [How Anna is built](docs/concepts/architecture.md) and [Philosophy](docs/concepts/philosophy/README.md) |
 | want her to do something she can't yet | [Help her do more](docs/guides/growing-anna.md): talk to the brain and build it together |
 | need the exact flag, setting or file | [Reference](docs/reference/config.md) |
 
@@ -37,7 +37,7 @@ Rerun `./install.sh` after every `git pull`. It never overwrites your config, yo
 Her **record** is a git repo of plain Markdown: the long-term memory. The **brain**, a long-running Claude Code
 session, does the real work and rolls over daily. The **bot** is Anna on your phone; the **relay** hands your requests
 to the brain and the answer comes back in her voice. Around them: a shared **stream** for the day, a **clock** for
-follow-ups, **engines** that check the brain's work, and **checks and senses** you write for your own systems. Every
+follow-ups, **engines** that check the brain's work, and **checks and senses** you write for what she looks after. Every
 piece is a module you can add, swap or leave out. The full picture: [docs home](docs/index.md).
 
 ## Requirements
@@ -55,7 +55,7 @@ python3 -m venv ~/.local/share/venvs/mkdocs
 ~/.local/share/venvs/mkdocs/bin/mkdocs serve      # then open http://127.0.0.1:8000
 ```
 
-Tests: `tests/run-all`. What's where in this repo: [Architecture § Where it lives](docs/concepts/architecture.md#where-it-lives-in-this-repo).
+Tests: `tests/run-all`. What's where in this repo: [How Anna is built § Where it lives](docs/concepts/architecture.md#where-it-lives-in-this-repo).
 
 ## License
 

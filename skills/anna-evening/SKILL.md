@@ -34,7 +34,8 @@ refused **per command**, not Bash as a whole: split them and carry on. Use `grep
      If the day file doesn't exist, create it: its first line is that `## …` block heading (no `#` title line).
    - Never copy anything `[REDACTED]`, credentials, vault output, account names or email addresses. If a draft looks like
      it holds a secret the redactor missed, leave that part out and flag it under ⚠.
-3. **Don't edit host records, runbooks, memory lessons or the backlog** unattended. List proposed updates under
+3. **Don't edit the records of things (the folder of things, `record.things`, default `hosts/`), runbooks, memory
+   lessons or the backlog** unattended. List proposed updates under
    **Proposed for the next session** (file, change, evidence line), so a reviewed session can apply them.
 3b. **Memory consolidation:** for each memory whose topic shows up in what you folded, compare the memory file and its
    MEMORY.md line with what the drafts and the journal say. Flag claims that are contradicted, transient ("currently",

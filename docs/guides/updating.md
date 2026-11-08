@@ -76,7 +76,7 @@ These are yours; `install.sh` never overwrites them:
 | What | What happens on an update |
 |---|---|
 | Your config, `~/.config/anna/anna.toml` | Left alone. It's only created (from the example) if it doesn't exist. |
-| Your record, `paths.record` | Left alone (`record exists at … (left as is)`). |
+| Anna's record, `paths.record` | Left alone (`record exists at … (left as is)`). |
 | `~/CLAUDE.md` (the brain's home instructions) | Left alone. The new template is written beside it as `~/CLAUDE.md.anna-new`. |
 | The bot's allowlist, `~/.claude/anna-tg-<instance>-settings.json` | Left alone (`exists (left as is: your allowlist)`). |
 | An engine you edited in `~/.claude/agents/` | Left alone, with the new version beside it as `<name>.md.anna-new` and a `⚠ you edited: …` line. |
@@ -212,5 +212,5 @@ If `git pull` says your branches **have diverged** and asks how to reconcile the
 
 !!! tip "Fewer edits in the checkout, fewer conflicts"
     Most of what makes your Anna yours doesn't belong in the checkout at all: settings go in `~/.config/anna/anna.toml`,
-    checks, senses, host records and lessons go in your record, and edits to an installed engine are kept by
+    checks, senses, the records of things and lessons go in her record, and edits to an installed engine are kept by
     `install.sh`. The checkout only needs changes for skills, the templates and the scripts.

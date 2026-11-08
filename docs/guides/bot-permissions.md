@@ -44,7 +44,7 @@ What the template sets:
 |---|---|
 | `Read(/<record>/**)` | read the whole record |
 | `Read(/<state>/telegram-<instance>/inbox/**)` | read photos and files you send it |
-| `Edit(/<record>/hosts/**)` | update host records |
+| `Edit(/<record>/<things>/**)` | update the records of things (the folder named by `record.things`, default `hosts/`; the template writes it as `@THINGS@`) |
 | `Edit(/<record>/memory/**)`, `Write(/<record>/memory/**)` | save lessons and preferences |
 | `mcp__plugin_telegram_telegram__*` | talk to you on Telegram |
 | `mcp__plugin_fakechat_fakechat__reply` | hand work to the brain over the relay (only if the relay is on) |
@@ -80,7 +80,7 @@ From the [security model](../concepts/security.md#allowlists):
 - **No HTTP-capable command in the list**: no `curl`, `wget`, `python`, `nc`, `bun`. With the relay on, the brain listens
   on a local port with no authentication (`relay.brain_port`). A restricted session that can make local HTTP requests can
   drive the brain, which runs with permissions off. See [the relay](../concepts/relay.md).
-- **Real work goes to the brain.** Anything bigger than a quick check (hosts, files, fixes) is handed over the relay, where
+- **Real work goes to the brain.** Anything bigger than a quick check (the things she looks after, files, fixes) is handed over the relay, where
   the brain does it under the gate and asks you before anything destructive. The bot's prompt tells it never to suggest
   widening its own allowlist.
 
@@ -105,7 +105,7 @@ Say you want the bot to switch a lamp on and off.
     ```
 
     Put the wrapper in `paths.bin` rather than in the checkout's `bin/`, so updates don't touch it. Keep a copy of it in
-    your record (for example under `runbooks/lamp/`), so it's versioned.
+    her record (for example under `runbooks/lamp/`), so it's versioned.
 
 2. **Allow it** in `~/.claude/anna-tg-<instance>-settings.json`, by adding one entry to `permissions.allow`:
 

@@ -10,3 +10,10 @@ practice lives here; the history of how it got that way lives in the journal.
 
 Start a new one from `_template.md`. Keep its front matter (`@THING@:`, `aliases:`, `ips:`): it's how a search index
 such as merlin learns which names mean this thing, so the history of a thing and the tags in search results work.
+
+**Names that last:** name a file after the stable thing, not a nickname (nicknames go in `aliases:`). Split a file only
+when one part has earned a story of its own. When a file moves or is renamed, add a dated line below, so old links and
+searches can still find it.
+
+## Moves
+<!-- one dated line per move or rename: YYYY-MM-DD: `old.md` → `new.md`. Why. -->

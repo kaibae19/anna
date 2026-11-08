@@ -58,15 +58,17 @@ storage, since that doesn't show from inside.
 - Runs `./install.sh`, which creates the record from `record-template/` and makes its first commit. If `git config
   user.name` / `user.email` are empty, it asks what the record's commits should be authored as and sets that in the record
   only (`git -C <record> config user.name …`), never in your global git config.
-- In the record: `memory/user-<slug>.md` (who you are) and its line in `memory/MEMORY.md`; rows in `CLAUDE.md` § Hosts at
-  a glance; `hosts/<name>.md` files (read-only probes such as `uname`, `uptime`, `df -h`, `systemctl --failed`, only with
-  your OK); `planning/backlog.md`.
-- A first check in `checks/` and a first sense in `senses/`, copied from `examples/`.
+- In the record: `memory/user-<slug>.md` (who you are) and its line in `memory/MEMORY.md`; rows in `CLAUDE.md` § Things at
+  a glance; `<things>/<name>.md` files (the folder named by `record.things`, default `hosts/`; for machines, read-only
+  probes such as `uname`, `uptime`, `df -h`, `systemctl --failed`, only with your OK); `planning/backlog.md`.
+- Optionally, a first check in `checks/` and a first sense in `senses/`, adapted from `examples/`. It offers them and
+  doesn't require them; checks often come later, when something matters enough to watch.
 - Day one's journal entry `journal/YYYY/MM/<today>.md`, the 📌 handoff line, a commit.
 - A clock note for tomorrow: `anna-clock add "tomorrow 09:00" "Read the first morning report with …"`.
 
-**Steps:** 1 who and where, 2 which parts (rollover, morning/evening runs, bot, relay, merlin), 3 config and install,
-4 start the record, 5 a first check and sense, 6 the bot (if on), 7 day one, 8 hand over.
+**Steps:** 1 who and where (including "What will she help with?", which names the folder of things, `record.things`
+and `record.thing`; not sure yet keeps the default), 2 which parts (rollover, morning/evening runs, bot, relay, merlin),
+3 config and install, 4 start the record, 5 a first check and sense (optional), 6 the bot (if on), 7 day one, 8 hand over.
 
 **Won't do:** ask you to paste a token (you create the files in `paths.secrets` yourself), run `sudo` (it gives you the
 `loginctl enable-linger` command), or accept Claude Code's Bypass Permissions dialog for you. The first `anna-day open` is
@@ -89,7 +91,7 @@ which runs `anna-run /anna-morning morning`. Also interactively when you ask for
 - The newest `journal/handoffs/*-evening.md`: its "Proposed for the next session" list.
 - merlin's `index_status`, if merlin is configured.
 - `anna-checks` (always tried), and `anna-body --line` for the first line.
-- The engines `anna-goals` (with `anna-clock due`, `backlog-age`, `goal_status: none` unless your record has a goal tool,
+- The engines `anna-goals` (with `anna-clock due`, `backlog-age`, `goal_status: none` unless her record has a goal tool,
   `raised: none`) and `anna-curiosity` (with the open "Ask" items, `anna-stream recent --hours 72`, `anna-rhythm`).
 
 **Writes:** nothing itself. Its output is one screen:
@@ -134,7 +136,7 @@ record has a remote. Its reply goes to the stream, not to you.
 1. The day file `journal/YYYY/MM/<day the session started>.md`: appends a `## YYYY-MM-DD (session N) — …` block with a
    Day index and one `###` per topic (`Did:` / `Hit:` / `Decided:` / `Open:`), with commands and output pasted verbatim.
    It never rewrites an earlier block.
-2. Other layers, only where the session produced something: `runbooks/<topic>/`, `hosts/<host>.md` § Notes, a lesson in
+2. Other layers, only where the session produced something: `runbooks/<topic>/`, `<things>/<name>.md` § Notes, a lesson in
    `memory/` plus its `MEMORY.md` line, `planning/backlog.md`, `planning/ideas.md`, `anna-clock add` for dated follow-ups,
    `(superseded YYYY-MM-DD: see § X)` on stale sections.
 3. Calls `anna-goals` and `anna-curiosity` (step 3b). Interactively, a question may be asked now and logged with
@@ -161,7 +163,7 @@ only what wasn't folded yet, so it starts where the last checkpoint ended.
 - Journal: the first checkpoint of a session writes `## YYYY-MM-DD (session N) — … · checkpoint in-session (<sid[:8]>;
   session stays open, later work appends)`; later ones write `## YYYY-MM-DD (session N, continued after checkpoint K) — …`.
   Other unfolded drafts from today are folded too, oldest first, as their own blocks.
-- Only missing layer updates (host fact, runbook step, lesson, backlog item, clock note).
+- Only missing layer updates (a fact about a thing, runbook step, lesson, backlog item, clock note).
 - The 📌 handoff line, with `checkpoint N`.
 - `anna-session-draft --mark-folded` for each draft it journaled.
 - A commit `YYYY-MM-DD checkpoint N: <topics>` after the same secret scan; pushes if the record has a remote.
@@ -195,7 +197,7 @@ the stream file, the day files it appends to, memory files whose topics come up.
 - The 📌 handoff line, only if a folded session left something mid-flight (marked `(evening run <date>)`).
 - A commit `evening fold <date> (<n> sessions)`, pushed if there's a remote.
 
-**Won't do:** edit host records, runbooks, memory lessons or the backlog. It lists what it would change under **Proposed
+**Won't do:** edit records of things, runbooks, memory lessons or the backlog. It lists what it would change under **Proposed
 for the next session** (file, change, evidence line), plus a **Proposed → memory** list from its memory consolidation step
 (contradicted, resolved-but-still-"pending" or duplicated claims). The next morning check carries those under Watch.
 

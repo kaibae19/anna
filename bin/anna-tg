@@ -18,6 +18,7 @@ tmpl=$D/../bot/prompt.md; [ -f "$tmpl" ] || tmpl=$HOME/.local/share/anna/bot/pro
 shopt -u patsub_replacement 2>/dev/null || true
 prompt=$(<"$tmpl"); v=$(cfg anna.name); prompt=${prompt//@NAME@/$v}; v=$(cfg anna.user); prompt=${prompt//@USER@/$v}
 prompt=${prompt//@RECORD@/$R}; prompt=${prompt//@TZ@/$TZ}
+v=$(cfg record.things); prompt=${prompt//@THINGS@/$v}; v=$(cfg record.thing); prompt=${prompt//@THING@/$v}
 for f in "$R"/bot/context/*; do
   [ -f "$f" ] && [[ $(basename "$f") != README* ]] || continue   # the README explains the folder; it is not context
   prompt+=$(printf '\n\n## %s (%s)\n```\n%s\n```' "$(basename "${f%.*}")" "$f" "$(cat "$f")")

@@ -37,7 +37,7 @@ Good starting points:
 
 - **"What's going on?"** The 📌 line at the top of `memory/MEMORY.md`, then the newest `journal/handoffs/*-morning.md`.
 - **"What happened on Tuesday?"** That day's file in `journal/YYYY/MM/`. Each session is a `## ` block; each topic a `###`.
-- **"What do we know about this thing?"** (a machine, a chapter, a client…) `hosts/<name>.md`.
+- **"What do we know about this thing?"** (a machine, a chapter, a client…) `<things>/<name>.md` (the folder named by `record.things`, default `hosts/`).
 - **"How do we do this?"** `runbooks/<topic>/README.md`.
 
 To find a word anywhere in the record:
@@ -60,11 +60,11 @@ When Anna has something wrong, fix the file. The file is the truth; there's no h
 
     | It's… | Fix it in |
     |---|---|
-    | a fact about a machine | `hosts/<name>.md`. Change the line, or add a dated line under `## Notes`. |
+    | a fact about a thing she looks after (a machine, a chapter…) | `<things>/<name>.md`. Change the line, or add a dated line under `## Notes`. |
     | a wrong lesson or preference | `memory/<slug>.md`. If the lesson is simply wrong, delete the file **and** its line in `memory/MEMORY.md`. |
     | an outdated procedure | `runbooks/<topic>/README.md`. Fix it, or mark the old section `(superseded YYYY-MM-DD: see § X)` on its first line. |
     | a wrong handoff item | the 📌 line at the top of `memory/MEMORY.md`. |
-    | a journal entry | Usually leave it: the journal is what was seen that day. Add the correction in today's file or in the host record instead. |
+    | a journal entry | Usually leave it: the journal is what was seen that day. Add the correction in today's file or in the thing's record instead. |
 
 3. **Commit it**, so Anna's next session (and the nightly runs) see a clean record and the history shows who changed it:
 
@@ -76,7 +76,7 @@ When Anna has something wrong, fix the file. The file is the truth; there's no h
 
     You should see a line like `[main 3f2a1c4] hosts/nas: 6 disks, not 4` followed by `1 file changed`.
 
-4. **Push it** if your record has a remote (a private repository it's backed up to). `git remote -v` shows whether it has
+4. **Push it** if her record has a remote (a private repository it's backed up to). `git remote -v` shows whether it has
    one.
 
     ```bash
@@ -88,7 +88,7 @@ When Anna has something wrong, fix the file. The file is the truth; there's no h
     lose track of. Commit as soon as you've made it.
 
 You can also just tell Anna, on Telegram or in the brain: "the NAS has 6 disks, not 4". The bot saves facts like that in
-`hosts/` or `memory/` and commits them as `bot: <what>`; the brain does the same in its wrap-up.
+`<things>/` or `memory/` and commits them as `bot: <what>`; the brain does the same in its wrap-up.
 
 !!! note "If you edit from another computer"
     All parts of Anna share one working copy of the record on Anna's machine. If you keep a second clone elsewhere, run
@@ -135,12 +135,12 @@ This makes a new commit that reverses it. Nothing is erased, so the history stil
 
 | Who | Writes | Doesn't |
 |---|---|---|
-| **The brain, in a session** | Anything the layer rules call for: journal, host records, runbooks, lessons, backlog, ideas, clock items, checks, senses. It commits as it goes and at wrap-up. | Rewrite an earlier session's journal block. Commit a credential (every committing skill scans the staged diff first). Put secrets in any file. |
+| **The brain, in a session** | Anything the layer rules call for: journal, records of things, runbooks, lessons, backlog, ideas, clock items, checks, senses. It commits as it goes and at wrap-up. | Rewrite an earlier session's journal block. Commit a credential (every committing skill scans the staged diff first). Put secrets in any file. |
 | **`/anna-wrapup overnight`** (at `day.close`) | Journal, layers, the 📌 line; commits and pushes. | Ask anything or guess: where a step would ask, it leaves the record as it is and puts the question under **Ask**. |
-| **The evening run** (`/anna-evening`) | The day's journal (drafts and the stream), the 📌 line if something is mid-flight; commits and pushes. | Edit host records, runbooks, lessons or the backlog. It lists them under **Proposed for the next session** for a reviewed session to apply. |
+| **The evening run** (`/anna-evening`) | The day's journal (drafts and the stream), the 📌 line if something is mid-flight; commits and pushes. | Edit records of things, runbooks, lessons or the backlog. It lists them under **Proposed for the next session** for a reviewed session to apply. |
 | **The morning run** (`/anna-morning`) | Nothing itself; `anna-run` saves and commits only the report file in `journal/handoffs/`. | Any other change. |
 | **Clock runs** (`anna-clock … --run`) | Their report in `journal/handoffs/<date>-clock-<id>.md`, through `anna-run`. | Anything outside their deny-by-default allowlist. |
-| **The bot** | `hosts/**` and `memory/**` (facts and preferences you tell it), committed as `bot: …`; clock items through `anna-clock`. | Other folders. It can read the whole record. |
+| **The bot** | `<things>/**` and `memory/**` (facts and preferences you tell it), committed as `bot: …`; clock items through `anna-clock`. | Other folders. It can read the whole record. |
 
 The headless runs can't force-push, `git reset --hard`, `git clean` or delete files (`rm`): their settings deny it. The
 bot's settings deny `rm` too.

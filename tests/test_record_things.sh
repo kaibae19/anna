@@ -15,6 +15,7 @@ install_as() {  # install_as DIR [things thing]: a throwaway HOME with its own c
   mkdir -p "$HOME/.claude" "$HOME/.config/anna"
   printf '[anna]\nname = "Nova"\nuser = "Sam"\ntimezone = "UTC"\n' > "$ANNA_CONFIG"
   [ $# -ge 3 ] && printf '[record]\nthings = "%s"\nthing = "%s"\n' "$2" "$3" >> "$ANNA_CONFIG"
+  printf '[bot]\nenabled = true\n' >> "$ANNA_CONFIG"
   ./install.sh --no-systemd >"$T/$1.out" 2>&1
 }
 
@@ -27,6 +28,8 @@ ok "CLAUDE.md points at chapters/" 'grep -q "chapters/<name>.md" "$R/CLAUDE.md" 
 ok "memory engine reads chapters/ and the chapter key" 'grep -q "chapters/<name>.md" "$A/anna-memory.md" && grep -q "chapter:" "$A/anna-memory.md" && ! grep -q "@THING" "$A/anna-memory.md"'
 ok "gate engine reads chapters/ and says one thing at a time" 'grep -q "chapters/<name>.md" "$A/anna-action-gate.md" && grep -q "one thing at a time" "$A/anna-action-gate.md"'
 ok "engines can use merlin's general history tool" 'grep -q "mcp__merlin__history" "$A/anna-memory.md" "$A/anna-action-gate.md"'
+ok "bot may edit chapters/, not hosts/" 'grep -q "@\?/[^\"]*anna-record/chapters/\*\*" "$HOME/.claude/anna-tg-ops-settings.json" && ! grep -q "/hosts/" "$HOME/.claude/anna-tg-ops-settings.json"'
+ok "bot prompt fills @THINGS@" 'out=$(./bin/anna-tg ops --print-prompt 2>/dev/null); echo "$out" | grep -q "anna-record/chapters/<name>.md" && ! echo "$out" | grep -q "@THINGS@"'
 
 install_as lab; rc=$?
 R=$T/lab/anna-record

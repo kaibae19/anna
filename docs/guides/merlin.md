@@ -13,7 +13,7 @@ recall is the first thing to suffer.
 ## When you'll want it
 
 The record only grows: every day adds a journal entry with real command output, and every project adds runbooks,
-host notes and lessons. In the deployment Anna came from, with daily use and several projects at once, the journal
+notes on things and lessons. In the deployment Anna came from, with daily use and several projects at once, the journal
 passed a megabyte in about five weeks, next to 80-odd lessons. At that size, searching by literal words stops working
 well. These are the signs:
 
@@ -26,7 +26,7 @@ When you notice the first of these, add merlin. It's easier while the record is 
 index finds what you expect.
 
 !!! tip "New to this?"
-    **merlin** is a search engine for your record. It reads the Markdown files, builds an index, and answers questions
+    **merlin** is a search engine for her record. It reads the Markdown files, builds an index, and answers questions
     like "when did we last change the backup schedule?" with the sections that match. It plugs into Claude Code as an
     **MCP server**: a small program that gives Claude Code extra tools, here tools named `search`, `history` and so on.
     The files stay the truth: the index is built from them and can always be rebuilt.
@@ -43,7 +43,7 @@ index finds what you expect.
 ## It's a separate project
 
 merlin has its own repository, its own install and its own documentation: <https://github.com/kaibae19/merlin>. The
-scaffold doesn't install it, start it or index your record. This page covers only what the Anna scaffold does with it.
+scaffold doesn't install it, start it or index her record. This page covers only what the Anna scaffold does with it.
 
 To set it up, follow merlin's [quick start](https://github.com/kaibae19/merlin#quick-start): Docker Compose runs the
 database, the embedder and merlin on one machine, and you keep the index fresh with a timer. In its `.env`:
@@ -54,8 +54,8 @@ MERLIN_TOML=../examples/anna/merlin.toml  # the layout made for an Anna record
 ```
 
 The [Anna layout](https://github.com/kaibae19/merlin/tree/main/examples/anna) knows the record's folders. Its one
-requirement: every `hosts/<name>.md` starts with front matter naming the host (new ones get it from
-`hosts/_template.md`; see [The record's layout](../reference/record-layout.md#hosts)). A first index of a new record
+requirement: every `<things>/<name>.md` (the folder named by `record.things`, default `hosts/`) starts with front
+matter naming the thing (new ones get it from `<things>/_template.md`; see [The record's layout](../reference/record-layout.md#hosts)). A first index of a new record
 takes a few minutes; merlin only indexes committed files, which the wrap-up takes care of.
 
 ## What the scaffold expects
@@ -101,7 +101,7 @@ claude mcp add --scope user merlin -- \
     session. A merlin server you register yourself in Claude Code isn't a claude.ai connector.
     <!-- TODO: verify on a clean machine that a user-scope merlin server loads in the bot session with that setting. -->
 
-### Pointed at your record
+### Pointed at her record
 
 merlin indexes the folder at `paths.record`. Print it with:
 
@@ -110,7 +110,7 @@ anna-config paths.record
 ```
 
 The record's conventions are written with an index in mind: one `###` per topic in the journal (a section is what gets
-embedded), hosts named the same everywhere, stale runbook sections marked `(superseded YYYY-MM-DD: see § X)` as their
+embedded), things named the same everywhere, stale runbook sections marked `(superseded YYYY-MM-DD: see § X)` as their
 first line rather than deleted ([The record's layout](../reference/record-layout.md)).
 
 ### Optional: merlin's redaction
@@ -138,5 +138,5 @@ The next morning report should also say whether the index is fresh.
 
 ## Without merlin
 
-Nothing breaks. `anna-memory` reads the files, `anna-action-gate` reads host records, the morning check skips the index
+Nothing breaks. `anna-memory` reads the files, `anna-action-gate` reads the records of things, the morning check skips the index
 line, and redaction uses the built-in patterns. `/anna-setup` suggests adding merlin later, once the record has grown.

@@ -1,5 +1,5 @@
 site_name: Anna
-site_description: A scaffold for a personal agent that lives with you, built on Claude Code.
+site_description: "One mind made of small parts: an AI working partner who lives with you, built on Claude Code."
 # The site URL comes from the Pages settings at build time (.github/workflows/pages.yml), so the repo carries no domain.
 # Empty in a local build: no canonical tags or sitemap URLs then.
 site_url: !ENV [SITE_URL, ""]
@@ -64,8 +64,8 @@ nav:
       - The record's layout: reference/record-layout.md
       - Timers: reference/timers.md
   - Concepts:
+      - How Anna is built: concepts/architecture.md
       - A record that grows: concepts/a-record-that-grows.md
-      - Architecture: concepts/architecture.md
       - The relay: concepts/relay.md
       - Security model: concepts/security.md
       - Philosophy:

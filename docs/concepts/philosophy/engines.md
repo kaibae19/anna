@@ -29,8 +29,10 @@ Each engine is a Claude Code subagent (`agents/`): a short prompt, a fixed outpu
 | curiosity | information-seeking, timed by the circadian clock | at most one real question a day, one that unblocks something, at a time the person is usually around | day open |
 
 Two more parts follow the same map without being engines:
-- **The voice** (executive function): the brain itself. It integrates what the engines return into one reply and does no
-  sensing of its own. In the second version this was the "personality engine"; here it's the session you talk to.
+- **The voice:** the chat bot, how Anna speaks. It says everything in her words, including what the working session
+  hands back. In the second version this was the "personality engine".
+- **The controls** (executive function): the working session. It integrates what the engines return and does the work,
+  with no sensing of its own. Together with the engines it's one entity: [How Anna is built](../architecture.md).
 - **Sleep** (consolidation): the nightly fold, a scheduled run that turns the day's stream and drafts into the journal.
 
 ## Sensors, not actors

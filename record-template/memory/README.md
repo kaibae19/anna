@@ -20,6 +20,9 @@ with [[their-name]].>
   approaches, with the why. `project`: ongoing work and constraints the code and git history don't show; absolute dates.
   `reference`: pointers to outside resources.
 - Before adding one, check whether a file already covers it: update that one instead. Delete a lesson that turned out wrong.
-- Don't store what the record already holds elsewhere (procedures, host facts, history).
+- Don't store what the record already holds elsewhere (procedures, facts about one thing, history).
+- **Decisions are defaults, not rules.** A "why we chose this" lesson records the decision in their words, the reason, and
+  when to look at it again (what would change it). When the reason no longer holds, say so and propose a revisit; never
+  treat an old decision as fixed just because it was written down.
 - Claude Code's own memory directory for the brain's session (`~/.claude/projects/<cwd>/memory`) is a symlink to this
   directory, so what the brain remembers is versioned here.

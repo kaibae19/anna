@@ -15,7 +15,7 @@ can be added, swapped or left out on its own:
 
 - **The chat app** is a channel plugin (Telegram by default; [another app](../getting-started/telegram.md#using-another-chat-app)).
 - **Engines** are separate subagents, one file each (`agents/`).
-- **Checks and senses** are small scripts you drop into your record.
+- **Checks and senses** are small scripts you drop into her record.
 - **Skills** are Markdown procedures; **the clock** takes any dated task.
 - **Retrieval** (merlin) is a separate server you can add or skip.
 - **The record** is plain Markdown in git: every index over it is derived and rebuildable.
@@ -26,7 +26,7 @@ enough to build in a session and test on its own.
 ## Why the brain
 
 The bot is all of Anna: it's who you talk to day to day, on your phone. The brain is her logic center: a full Claude
-Code session with your record, your machines and the scaffold's code in reach. That's where features get built.
+Code session with her record, your machines and the scaffold's code in reach. That's where features get built.
 
 !!! tip "Buzzy"
     In the deployment Anna came from, the brain is called **Buzzy**, after the little pilot at the controls of the brain
@@ -56,7 +56,7 @@ it, built it, tested it, and wrote it down.
    ahead; anything outward or irreversible waits for your yes.
 4. **Test it.** The brain checks the result live, adds a test if it changed code (`tests/run-all`), and tells you what
    it couldn't test yet and how you'll know it works.
-5. **Write it down.** A new procedure goes in a runbook, a fact about a machine in its host record, a lesson in memory,
+5. **Write it down.** A new procedure goes in a runbook, a fact about a thing she looks after in its record, a lesson in memory,
    and the day's journal gets the commands and output (see [The record's layout](../reference/record-layout.md)).
    That's what makes it hers: tomorrow's brain finds it in the record.
 
@@ -64,7 +64,7 @@ it, built it, tested it, and wrote it down.
 
 | You want… | It usually becomes… | Guide |
 |---|---|---|
-| her to verify something about your systems | a check | [Write a check or a sense](checks-and-senses.md) |
+| her to verify something about what she looks after | a check | [Write a check or a sense](checks-and-senses.md) |
 | her to *feel* something (load, heat, a service's health) | a sense | [Write a check or a sense](checks-and-senses.md) |
 | the bot to be allowed to do something | a small wrapper script + one allowlist line | [What the bot may do](bot-permissions.md) |
 | a routine she runs at a time, or a follow-up later | a clock item (`anna-clock add`) | [Commands § anna-clock](../reference/commands.md#anna-clock) |
@@ -76,7 +76,7 @@ it, built it, tested it, and wrote it down.
 Your clone of the scaffold is yours to change. When you and the brain improve something generic (a fix, a better
 check, a new engine), it belongs in the code: edit the clone, run `tests/run-all`, run `./install.sh`, and commit.
 If it would help everyone's Anna, offer it back upstream. Keep your own world out of it: no names, hosts or addresses
-in the scaffold, only in your record ([Coffee Logic](../concepts/philosophy/coffee-logic.md)).
+in the scaffold, only in her record ([Coffee Logic](../concepts/philosophy/coffee-logic.md)).
 
 After a `git pull`, your own changes and the upstream ones meet in git; [Update after git pull](updating.md) covers
 what to do if they collide.

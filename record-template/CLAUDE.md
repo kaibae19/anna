@@ -23,7 +23,8 @@ This repository is @NAME@'s long-term memory: plain Markdown, in git. Files are 
 - A fact about one thing she keeps a record of (a machine, a chapter, a client…) → `@THINGS@/<name>.md` (`## Notes`); a new
   one starts from `@THINGS@/_template.md`.
 - A step-by-step procedure, a config file, a script → `runbooks/<topic>/`.
-- A lesson, a gotcha, a "why we chose this" → `memory/`: short, **pointer first** to where the detail lives
+- A lesson, a gotcha, a "why we chose this" → `memory/`: short, **pointer first** to where the detail lives. Decisions
+  are defaults: write the reason and when to revisit, not a rule
   (`memory/README.md`).
 - A task → `planning/backlog.md` (newest at the top, dated); an idea → `planning/ideas.md`.
 - A follow-up with a date → `anna-clock add` (`clock/README.md`), not only prose.

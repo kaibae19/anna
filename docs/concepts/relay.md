@@ -4,9 +4,9 @@ description: "The relay gives Anna one voice: the Telegram bot talks with you, a
 
 # The relay: one voice
 
-Anna has two long-running sessions. The **bot** is the conversation: it lives in Telegram, answers quickly, controls the
-house, and runs on a cheaper model. The **brain** does the work: it has the record, the hosts, the tools. Without a relay
-they're two Annas who each know half the day. With it, you talk to the bot, real work goes to the brain, and the result
+Anna has two long-running sessions. The **bot** is the conversation: it lives in Telegram, answers quickly, does what its
+allowlist permits, and runs on a cheaper model. The **brain** does the work: it has the record, the things she looks
+after, the tools. Without a relay the bot and the working session would each know half the day. With it, you talk to the bot, real work goes to the brain, and the result
 comes back through the bot, which says it in its own voice.
 
 ```

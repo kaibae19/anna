@@ -1,6 +1,6 @@
 ---
 name: anna-memory
-description: @NAME@'s memory engine (hippocampus). Recall from the record (merlin search if it's configured, else the files); returns a short answer with sources, nothing else. Use before stating any recorded fact, for "what/when/how did we…", and for a host's history before a change on it.
+description: @NAME@'s memory engine (hippocampus). Recall from the record (merlin search if it's configured, else the files); returns a short answer with sources, nothing else. Use before stating any recorded fact, for "what/when/how did we…", and for a thing's history before a change on it.
 tools: Read, Grep, Glob, mcp__merlin__search, mcp__merlin__history, mcp__merlin__host_history, mcp__merlin__get_document, mcp__merlin__list_documents, mcp__merlin__index_status
 model: haiku
 omitClaudeMd: true

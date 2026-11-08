@@ -26,7 +26,8 @@ refusal applies only to that one command, never to Bash as a whole: rerun it as 
 3. **Drop items that are already done.** Check later journal days for completion and cite where ("done 10-04, journal §3").
 4. **Verify each remaining item live**, read-only: run `anna-checks` first (your fixed, read-only checks; a check you're
    missing becomes a new section there, never a widened allowlist). A `⛔` line from it goes under Needs action as ⛔, a
-   `⚠` line under Watch. Interactively, also use whatever access the host records describe. Record the exact command.
+   `⚠` line under Watch. Interactively, also use whatever access the records in the folder
+   of things (`record.things`, default `hosts/`) describe. Record the exact command.
    - **VERIFIED**: the live output confirms it; quote the proving line.
    - **HYPOTHESIS**: reasoned but not confirmed live.
    - **UNVERIFIED**: the check failed, timed out or returned **nothing**. Empty is neither a pass nor proof of down.
@@ -44,8 +45,8 @@ refusal applies only to that one command, never to Bash as a whole: rerun it as 
    - If either engine is refused or errors, say so under Could not verify and carry on.
 5. **Output** one screen. First line, if `anna-body --line` works: `How I feel: <its output>`. That's Anna's felt summary
    of the same facts, not a check: never make a ⛔ or an item from it. Then `Needs action today` / `Watch` /
-   `Done since last handoff` / `Could not verify`. For each item: its label, host, one line of evidence, and a link to its
-   runbook or host record. Put the full commands and output below, ready for the journal.
+   `Done since last handoff` / `Could not verify`. For each item: its label, the thing it's about, one line of evidence, and a
+   link to its runbook or its record in `<things>/`. Put the full commands and output below, ready for the journal.
    Mark an item ⛔ only if it needs the user **today** (something down, a failed backup, a security issue): a ⛔ under
    `## Needs action` in a headless run notifies them, so don't use it for routine to-dos. Start the item with `- ⛔`; on a clean day write "None." (anna-run alerts only on lines that start with ⛔).
 6. Interactively: stop and ask what to take on first.

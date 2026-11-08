@@ -16,8 +16,9 @@ writing a skill that reads or writes it. For how to read and correct it day to d
 ## Where it is and how it starts
 
 The record lives at `paths.record` (default `~/anna-record`). The first `./install.sh` copies the scaffold's
-`record-template/` there, fills `@NAME@`, `@USER@`, `@TZ@` and `@RECORD@` in `CLAUDE.md` and `memory/MEMORY.md`, runs
-`git init -b main` and makes the first commit, `record: start from the Anna template`. After that, `install.sh` never
+`record-template/` there, renames the folder of things to `record.things` (the default, `hosts/`, keeps its name), fills `@NAME@`,
+`@USER@`, `@TZ@`, `@RECORD@`, `@THINGS@` and `@THING@` in `CLAUDE.md`, `memory/MEMORY.md` and that folder's `README.md`
+and `_template.md`, runs `git init -b main` and makes the first commit, `record: start from the Anna template`. After that, `install.sh` never
 touches it again (`record exists at … (left as is)`).
 
 `install.sh` also links Claude Code's memory folder for the brain's home directory
@@ -63,7 +64,7 @@ Read first in every session. It has four parts:
 | What | Where |
 |---|---|
 | What was done, with the raw output | `journal/YYYY/MM/YYYY-MM-DD.md` |
-| A fact about one host or device | `hosts/<name>.md`, under `## Notes` |
+| A fact about one thing she looks after | `<things>/<name>.md`, under `## Notes` (the folder named by `record.things`, default `hosts/`) |
 | A procedure, a config file, a script | `runbooks/<topic>/` |
 | A lesson, a gotcha, a "why we chose this" | `memory/<slug>.md`, pointer first, plus a line in `memory/MEMORY.md` |
 | A task | `planning/backlog.md` (newest at the top, dated) |
@@ -86,7 +87,7 @@ checkpoints append another block. An earlier block is never rewritten.
 ## 2026-10-02 (session 1) — <headline: the 3–5 biggest things, separated by " · ">
 
 **Day index:**
- 1. <one line per topic, hosts by name, ⛔/⚠ if something broke>
+ 1. <one line per topic, things by name, ⛔/⚠ if something broke>
 
 ### <topic>
 Did: …
@@ -104,8 +105,8 @@ Block headings you'll also see:
 | `## YYYY-MM-DD (session N, folded by the evening run from <id>, not reviewed)` | `/anna-evening`, for a session nobody wrapped up |
 | `## The bot and the day (Anna's stream)` | `/anna-evening`, from the day's stream |
 
-Conventions: one `###` per topic (a search index embeds sections); name hosts by their record name; paste real output,
-never a summary of it. Conclusions belong in memory, runbooks or host records.
+Conventions: one `###` per topic (a search index embeds sections); name things by their record name; paste real output,
+never a summary of it. Conclusions belong in memory, runbooks or the records of things.
 
 **`journal/handoffs/`:** reports from headless runs, written by `anna-run` as `<date>-<label>.md`:
 `<date>-morning.md`, `<date>-evening.md`, `<date>-clock-<id>.md`. The first line of each records the host, time, prompt
@@ -113,20 +114,30 @@ and exit code. The template keeps the folder with a `.gitkeep`.
 
 ### hosts/
 
-`hosts/<name>.md`: one file per *thing* Anna keeps a record of. In a home lab that's a machine or device; elsewhere it
+`<things>/<name>.md` (default `hosts/<name>.md`): one file per *thing* Anna keeps a record of. In a home lab that's a machine or device; elsewhere it
 might be a chapter, a source, a client or a plant ([A record that grows](../concepts/a-record-that-grows.md)). Each file
 says what the thing is, how to reach it if that applies (no secrets), what matters about it, and `## Notes` with dated
 facts, newest first. The folder's name comes from `record.things` (default `hosts`) and the key from `record.thing`
-(default `host`); the engines read whatever you chose. Use the same name everywhere (journal, checks, senses) so a search ties them together. The host file
+(default `host`); the engines read whatever you chose. Use the same name everywhere (journal, checks, senses) so a search ties them together. A thing's file
 holds current practice; the history of how it got that way stays in the journal.
 
-New host files start from `hosts/_template.md`, whose front matter names the host and its other names:
+New files start from `<things>/_template.md`, whose front matter names the thing and its other names. With the default
+layout (`hosts/`, key `host:`), a machine:
 
 ```markdown
 ---
 host: nas
 aliases: [storage, nas.home.arpa]
 ips: [192.0.2.20]
+---
+```
+
+A writer's record with `things = "chapters"` and `thing = "chapter"`, `chapters/three.md`:
+
+```markdown
+---
+chapter: three
+aliases: [the lighthouse chapter, ch3]
 ---
 ```
 
@@ -141,7 +152,7 @@ goes stale, its first line becomes `(superseded YYYY-MM-DD: see § X)` rather th
 
 ### memory/
 
-One lesson per file, kebab-case filename, short, **pointer first** to the runbook, host record or repo that holds the
+One lesson per file, kebab-case filename, short, **pointer first** to the runbook, thing's record or repo that holds the
 detail. Each file has front matter:
 
 ```markdown

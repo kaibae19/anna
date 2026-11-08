@@ -55,7 +55,7 @@ morning: goals → curiosity → report.
 
 **Job:** recall from the record. Returns what the record says, with sources. Never states anything as live.
 
-**When the brain calls it:** before stating a recorded fact; for "I mentioned before…", "when did we…"; for a host's
+**When the brain calls it:** before stating a recorded fact; for "I mentioned before…", "when did we…"; for a thing's
 history before a change on it.
 
 **Input:**
@@ -70,7 +70,8 @@ since: <date>                               (optional)
 
 **How it searches:** with merlin, `index_status` once, then `search` (or `history` for one thing; an older merlin calls it `host_history`), then `get_document`
 on the hit it quotes; if the index is stale it reads the file. Without merlin: `memory/MEMORY.md` first, then Grep for the
-literal words, `hosts/<host>.md`, and the journal newest month first. It weighs host records and runbooks as current
+literal words, `<things>/<name>.md` (the folder named by `record.things`, default `hosts/`), and the journal newest
+month first. It weighs the records of things and runbooks as current
 practice, the journal as what was seen that day, planning as intent. Budget: about 6 tool calls. An empty result is
 rephrased once before it says `found: no`.
 
@@ -199,7 +200,7 @@ The brain's `~/CLAUDE.md` and the hook's block message call the `during` field "
 **Your typed words count as the confirmation.** If `asked` is something you typed that names this exact action and target
 ("go ahead and restart the web server"), a confirm-first class becomes `go` with the hold and rollback, unless the record
 shows something you may not know. Relayed asks get the same only when unambiguous. Standing permissions are learned from
-your memory lessons (`memory/MEMORY.md` and the lesson it points to); none are assumed.
+her lessons (`memory/MEMORY.md` and the lesson it points to); none are assumed.
 
 **Output:**
 

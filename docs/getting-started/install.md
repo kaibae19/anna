@@ -77,7 +77,10 @@ it changes anything. It never asks you to paste a token into the chat; it tells 
 ### What it asks
 
 1. **Who and where**
-    - What your agent is called (`anna.name`; "Anna" is fine) and how she should address you (`anna.user`).
+    - What she's called (`anna.name`; "Anna" is fine) and how she should address you (`anna.user`).
+    - **What will she help with?** In your words: a home lab, a book, a research project, a small business, just company.
+      From that it names the folder for the things she'll keep a record of (`record.things`, e.g. `hosts`, `chapters`,
+      `clients`; default `hosts`). Not sure yet is fine: the record grows later ([A record that grows](../concepts/a-record-that-grows.md)).
     - Your timezone (`anna.timezone`, an IANA name such as `Europe/Berlin`; it suggests one from `timedatectl`).
     - Where the record lives (`paths.record`, default `~/anna-record`) and whether you want it pushed to a private
       remote. Remotes are optional; backups are not, and it says so.
@@ -88,9 +91,11 @@ it changes anything. It never asks you to paste a token into the chat; it tells 
     - Morning check and evening fold [yes]: the headless runs at `runs.morning` and `runs.evening`.
     - The Telegram bot [your call] and the relay [yes if the bot]. It reads the relay's trust section with you.
     - merlin, retrieval over the record [later; you'll want it within weeks of daily use]. See [merlin](../guides/merlin.md).
-3. **Your machines**: one row per machine you mention, and for the ones that matter, a host record. It may offer
-   read-only probes (`uname`, `uptime`, `df -h`, `systemctl --failed`), only with your OK.
-4. **A first check and a first sense**: the one thing you'd most want to hear about if it broke.
+3. **What she'll look after**: whatever you mention, written down as it comes up. There's no inventory to fill in; she
+   learns over time, and takes a full list if you offer one. For machines it may offer read-only probes (`uname`,
+   `uptime`, `df -h`, `systemctl --failed`), only with your OK.
+4. **A first check and a first sense** (optional): the one thing you'd most want to hear about if it went wrong. Fine to
+   skip and add later.
 
 ### What it writes, and where
 
@@ -99,9 +104,9 @@ it changes anything. It never asks you to paste a token into the chat; it tells 
 | Your config, only the keys that differ from the defaults (shown to you first) | `~/.config/anna/anna.toml` |
 | Everything `install.sh` writes (next section) | see below |
 | Who you are and how you like to work | `<record>/memory/user-<you>.md` and its line in `memory/MEMORY.md` |
-| The things she looks after (machines, projects, …) | `<record>/CLAUDE.md` § Things at a glance, `<record>/hosts/<name>.md` |
+| The things she looks after (machines, chapters, clients, …) | `<record>/CLAUDE.md` § Things at a glance, `<record>/<things>/<name>.md` (`record.things`, default `hosts/`) |
 | Things you want to do | `<record>/planning/backlog.md` |
-| A first check and a first sense, from `examples/` | `<record>/checks/<name>`, `<record>/senses/<name>` |
+| A first check and a first sense, if you want them, from `examples/` | `<record>/checks/<name>`, `<record>/senses/<name>` |
 | Day one's journal entry and the handoff line | `<record>/journal/YYYY/MM/<today>.md`, the 📌 line in `memory/MEMORY.md` |
 | A clock note for tomorrow: read the first morning report together | `<record>/clock/YYYY-MM.md` |
 
@@ -283,7 +288,7 @@ anna-config anna.name
 anna-config --path
 ```
 
-You should see your agent's name and `/home/you/.config/anna/anna.toml`.
+You should see her name and `/home/you/.config/anna/anna.toml`.
 
 **Timers.**
 

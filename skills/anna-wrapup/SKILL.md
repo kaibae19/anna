@@ -1,6 +1,6 @@
 ---
 name: anna-wrapup
-description: End-of-session wrap-up — write or append the day's journal entry with verbatim output, update host records / runbooks / memory / backlog per the record's layer rules, refresh the handoff line, and commit. Use when the user says to wrap up, document the day, or close out a session; anna-day close types "/anna-wrapup overnight" into an idle brain at night.
+description: End-of-session wrap-up — write or append the day's journal entry with verbatim output, update records of things / runbooks / memory / backlog per the record's layer rules, refresh the handoff line, and commit. Use when the user says to wrap up, document the day, or close out a session; anna-day close types "/anna-wrapup overnight" into an idle brain at night.
 ---
 
 # Wrap-up
@@ -21,7 +21,8 @@ record as it is) and put the question in the 📌 handoff line under **Ask**. Pu
    work included. Start from the session draft if there is one (`anna-session-draft --scan 24`, then
    `<paths.state>/drafts/<session id>.md`): it has the commands and output.
 3. **Other layers**, only where this session produced something:
-   - A procedure → `runbooks/<topic>/`. A host fact → `hosts/<host>.md` `## Notes`.
+   - A procedure → `runbooks/<topic>/`. A fact about a thing → `<things>/<name>.md` `## Notes`, in
+     the folder of things (`record.things`, default `hosts/`).
    - A lesson → `memory/`: short, pointer first, and a line in `memory/MEMORY.md`.
    - A task → `planning/backlog.md`; an idea → `planning/ideas.md`; a follow-up with a date → `anna-clock add`.
    - Trim any memory whose topic was touched this session (judge while the context is fresh; never bulk-trim).

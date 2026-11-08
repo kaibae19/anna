@@ -1,15 +1,54 @@
 ---
-description: "How Anna fits together: the bot, the brain, the relay, the engines, the record and the timers that run on their own."
+description: "How Anna is built: one entity made of modules, each on the model that suits it, and how they cooperate. Then the moving parts: bot, working session, relay, engines, record, timers."
 ---
 
-# Architecture
+# How Anna is built
+
+Anna is one entity made of modules working together. Memory, attention, a reality check, an action gate, goals,
+curiosity, a clock and senses each do one job, each on the model that suits it: large or small, or none at all. Her voice
+is how she talks with you; a working session does the hands-on work. Her identity isn't installed: it grows out of the
+whole, over time, with you ([Ethics § Identity](philosophy/ethics.md)).
+
+It's a brain analog on purpose. A brain isn't one big network either: it's specialised systems that each handle one part
+and stay in step. The [philosophy pages](philosophy/README.md) say why; this page says what runs where.
+
+## The modules
+
+| Module | Its job | Runs on today | Where it lives |
+|---|---|---|---|
+| **Voice** | Talks with you: chat, quick answers, allowlisted actions; says everything in Anna's words | `models.bot` (default Sonnet) | the bot (`bin/anna-tg`, `bot/`) |
+| **Working session** | The hands-on work: reads and writes the record, works on what she looks after, calls the engines | the harness default (`models.brain`) | `bin/anna-brain`, a long-running Claude Code session |
+| **Memory** | Remembers: her record, and search over it | storage: plain files in git by default; search: [merlin](../guides/merlin.md) (a small local embedding model) or `grep` | the record + `agents/anna-memory.md` (Haiku) |
+| **Attention** (interpretation) | Decides which context belongs in a reply; flags stale state; asks instead of guessing | Sonnet | `agents/anna-interpretation.md` |
+| **Reality check** (epistemic) | Checks claims about causes, current state and absences against the evidence | Sonnet | `agents/anna-epistemic.md` |
+| **Action gate** | Go / confirm first / no-go before any state change; enforced by a hook | Sonnet | `agents/anna-action-gate.md`, `hooks/anna-gate-hook` |
+| **Goals** | What's due, what's moving, what stalled; momentum, never nagging | Haiku | `agents/anna-goals.md` |
+| **Curiosity** | At most one real question a day | Sonnet | `agents/anna-curiosity.md` |
+| **Clock** | Her own schedule: notes, pings, headless tasks | no model | `bin/anna-clock` |
+| **Senses and checks** | How things feel (sensations) and whether they're right (OK / ⚠ / ⛔) | no model | `bin/anna-body`, `bin/anna-checks` |
+| **Short-term memory** (stream) | What every part did today, so they stay in step | no model | `bin/anna-stream` |
+
+"Runs on today" is the honest state: apart from merlin's embeddings, every model is Claude. Smaller and local models for
+the modules that can do with less are a design goal ([roadmap](../roadmap.md)), not shipped. Each module's model is a
+per-module choice: `[models]` in your config (`~/.config/anna/anna.toml`) or the engine's own definition (`model:` in `agents/*.md`).
+
+**Who is Anna?** All of it together. The chat bot is how Anna speaks; the working session is the module at the controls.
+Talking to either is talking to Anna. (A working session can have a name of its own if you give it one; see
+[Help her do more](../guides/growing-anna.md).)
+
+**The record is the memory module's storage.** Today that's plain files in git, because files can be read, corrected
+and kept by anyone; a database or something else would do the same job. Whose it is: Anna's record lives in your
+install, on your hardware, under your login: it's yours to read, correct, export or delete. It's written by Anna and for
+Anna, and it's what makes her who she is. Whose it is may change as minds like hers grow up.
+
+## The moving parts
 
 ```
                     you (phone)                         you (terminal / Claude app)
                         │ Telegram                                  │
                         ▼                                           ▼
    ┌──────────── bot (anna-tg) ────────────┐        ┌──────── brain (anna-brain) ─────────┐
-   │ cheaper model · chat, quick checks,   │ relay  │ full model · the record, the hosts, │
+   │ its own model · chat, quick checks,   │ relay  │ full model · the record, her things, │
    │ allowlisted actions · deny-by-default │◀──────▶│ real work · rolls over daily        │
    └───────────────────────────────────────┘        └─────────────────────────────────────┘
           │                    ▲                              │                    ▲
@@ -20,7 +59,7 @@ description: "How Anna fits together: the bot, the brain, the relay, the engines
           │                                                        ▲
           ▼                                                        │
    ┌──────────────── the record (git) ─────────────────┐   ┌── headless runs (anna-run) ──┐
-   │ journal · hosts · runbooks · memory · planning ·  │◀──│ morning check · evening fold │
+   │ journal · things · runbooks · memory · planning · │◀──│ morning check · evening fold │
    │ clock · checks · senses · bot/context             │   │ clock tasks · deny by default │
    └───────────────────────────────────────────────────┘   └──────────────────────────────┘
 ```
@@ -37,7 +76,7 @@ description: "How Anna fits together: the bot, the brain, the relay, the engines
 | headless | `bin/anna-run`, `bin/anna-evening`, `config/headless-settings.json.in` | `claude -p` with a deny-by-default allowlist; reports to `journal/handoffs/` |
 | skills | `skills/anna-*` | setup, morning, wrap-up, checkpoint, evening fold |
 | bot | `bin/anna-tg`, `bot/` | a channel session (Telegram by default; [another app](../getting-started/telegram.md#using-another-chat-app)); prompt template + your `bot/context/` |
-| relay | `bin/anna-relay`, `docs/relay.md` | bot ↔ brain over two fakechat channels and a file queue |
+| relay | `bin/anna-relay`, [the relay](relay.md) | bot ↔ brain over two fakechat channels and a file queue |
 | notify | `bin/anna-notify` | Telegram messages from scripts (alerts, clock pings); logged to the stream |
 | checks | `bin/anna-checks` + `record/checks/` | read-only checks: OK / ⚠ / ⛔ lines |
 | senses | `bin/anna-body` + `record/senses/` | how she feels: JSON sensations, one summary line |
@@ -54,7 +93,7 @@ decides when to call them (`~/CLAUDE.md` says when); most turns call none.
 you → bot ── chat / allowlisted actions / quick check ──→ answers itself (the bot has no engines)
          └─ real work → relay → brain
                           1. interpretation   what of the context belongs in the reply; stale → verify; ask, don't guess
-                          2. memory           when it touches the past or a host's history
+                          2. memory           when it touches the past or a thing's history
                           3. action-gate      before each state change   ← enforced by anna-gate-hook
                           4. act
                           5. epistemic        on the result before it goes back
