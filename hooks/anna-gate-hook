@@ -7,8 +7,10 @@ habit of skipping the engines. This makes the gate step a rule (docs/concepts/se
 Scope: the interactive brain only. The bot ($ANNA_ROLE=bot) and headless runs ($ANNA_HEADLESS) have their own deny-by-default
 allowlists and are passed through.
 State change = the patterns in CHANGE below (sudo of anything outside READ_SUDO, systemctl/reboot, packages, docker lifecycle, qm/pct lifecycle,
-firewall, ha-do, tg-send, force push, gh pr/issue writes) plus outward MCP tools (mail send/reply/forward/trash). Reads, repo
-edits and plain `git push` to our Gitea pass.
+firewall, ha-do, tg-send, force push, gh pr/issue writes), the generic destructive/outward list in WIDE (rm outside /tmp,
+rsync --delete, scp, curl sends, git resets, prunes, other package managers, mail, …) plus outward MCP tools (mail
+send/reply/forward/trash). Reads, repo edits and plain `git push` pass. A known list, not everything: see
+docs/concepts/security.md § What it doesn't catch yet.
 Allowed when the session transcript shows an anna-gate block with `verdict: go` from the last WINDOW minutes, in a tool result
 or task notification (never the assistant's own text: it can't vouch for itself), whose audit target names this command's
 host (`ssh <host>` → host; otherwise any go in the window). On allow, the audit line goes to the stream (`from: gate`).
@@ -55,6 +57,52 @@ CHANGE = [re.compile(p) for p in (
 # a command run elsewhere (another host, a container, a guest) is a change when it writes; reading there passes
 REMOTE_WRITE = re.compile(r"\b(ssh|docker\s+(compose\s+)?exec|pct\s+exec|qm\s+guest\s+exec)\b.*"
                           r"\b(rm|mv|chmod|chown|setfacl|tee|truncate|dd|mkfs|kill|pkill)\s")
+# Generic destructive and outward commands (2026-11-09, after a review found `rm -rf`, `curl -X POST`, `rsync --delete`,
+# `mail`, `git reset --hard`, `crontab -r` … passing with no go). Matched against TEXTLESS(cmd): quoted text handed to
+# grep/echo/printf/sed/awk/jq/commit -m is blanked first, so a search for "rm -rf" isn't a delete; quoted remote scripts
+# (`ssh host '…'`, `sh -c '…'`) are kept and checked. Still a known-bad list, not everything (docs/concepts/security.md).
+WIDE = [re.compile(p) for p in (
+    r"\brsync\b[^|;&]*\s--(delete|remove-source-files)",
+    r"(?:^|[;&|(\s])scp\s",
+    r"\b(curl|wget)\b[^|;&]*(\s-X\s*['\"]?(POST|PUT|PATCH|DELETE)|\s--request\s+['\"]?(POST|PUT|PATCH|DELETE)|\s(-d|-F|-T)[\s'\"@]|\s--(data[\w-]*|form|upload-file|json|post-data|post-file|method)\b)",
+    r"\bgit\s+(reset\s+[^|;&]*--hard|clean\s+-\w*f|branch\s+-\w*D|checkout\s+(-f\s|--\s|\.(\s|$))|restore\s|stash\s+(drop|clear)|push\s+[^|;&]*(--delete|\s:\S)|filter-(branch|repo)|update-ref\s+-d|reflog\s+expire|gc\s+[^|;&]*--prune)",
+    r"\bcrontab\s+(-r|-e|-ri)\b",
+    r"\bdocker\s+((system|volume|image|container|network|builder)\s+(prune|rm)\b|rmi\b)",
+    r"\bpodman\s+(compose\s+)?(up|down|rm|rmi|stop|start|restart|kill|pull|run|create|(system|volume|image|container|network)\s+(prune|rm))\b",
+    r"\bkubectl\s+(delete|apply|create|replace|patch|scale|drain|cordon|uncordon|edit|label|annotate|rollout\s+(restart|undo))\b",
+    r"\b(dnf|yum|zypper)\s+(install|remove|erase|update|upgrade|autoremove|downgrade)\b",
+    r"\bpacman\s+-[A-Za-z]*[SRU]", r"\bbrew\s+(install|uninstall|remove|upgrade|cleanup|reinstall)\b",
+    r"\bpip3?\s+(install|uninstall)\b", r"\bnpm\s+(install|i|uninstall|update)\s+[^|;&]*(-g|--global)\b",
+    r"\b(snap|flatpak)\s+(install|remove|uninstall|refresh|update)\b", r"\bdpkg\s+(-i|-r|-P|--install|--remove|--purge)\b",
+    r"(?:^|[;&|(]\s*|\bsudo\s+)(mail|mailx|sendmail|mutt|msmtp|swaks)\s",
+    r"\b(shred|wipefs|mkfs(\.\w+)?)\b", r"\bdd\b[^|;&]*\bof=", r"\btruncate\s+-s",
+    r"\bfind\b[^|;&]*\s(-delete\b|-exec(dir)?\s+(rm|shred|mv)\b)",
+    r"\b(chmod|chown|chgrp)\s+(-\w*R|--recursive)\b",
+    r"(?:^|[;&|(]\s*|\bsudo\s+)(useradd|userdel|usermod|groupadd|groupdel|passwd|chpasswd)\b",
+    r"\bpython3?\b[^\n]*\s-c\s.*(os\.(remove|unlink|rmdir|removedirs)|shutil\.(rmtree|move)|\.unlink\(|\.rmdir\()",
+)]
+RM = re.compile(r"(?:^|[;&|(\s'\"])rm\s+((?:-\S+\s+)*)([^;&|\n)]*)")
+TEXT_TOOLS = re.compile(r"\b(grep|egrep|fgrep|rg|ugrep|echo|printf|sed|awk|jq|anna-stream|anna-log|anna-clock)\b(?:'[^']*'|\"(?:\\.|[^\"\\])*\"|[^|;&\n'\"])*|\s-m\s+('[^']*'|\"(?:\\.|[^\"\\])*\")")
+
+
+def textless(cmd: str) -> str:
+    """Blank the quoted arguments of text tools (a grep for 'rm -rf' isn't a delete) and commit messages."""
+    def blank(m: re.Match) -> str:
+        return re.sub(r"'[^']*'|\"(?:\\.|[^\"\\])*\"", lambda q: "''", m.group(0))
+    return TEXT_TOOLS.sub(blank, cmd)
+
+
+def wide_change(cmd: str) -> bool:
+    t = textless(cmd)
+    if any(p.search(t) for p in WIDE):
+        return True
+    for m in RM.finditer(t):                      # any rm, unless every target is under /tmp (scratch space)
+        targets = m.group(2).split()
+        if not targets or not all(x.strip("'\"").startswith("/tmp/") and ".." not in x for x in targets):
+            return True
+    return False
+
+
 SUDO_CMD = re.compile(r"\bsudo\s+(?:-\S+\s+)*([\w./-]+)")
 READ_SUDO = {"cat", "ls", "head", "tail", "grep", "find", "stat", "sha256sum", "md5sum", "wc", "du", "df", "getfacl", "id",
              "journalctl", "dpkg", "apt", "apt-cache", "iptables", "ip6tables", "nft", "ufw", "wg", "docker", "sshd", "nginx",
@@ -146,7 +194,7 @@ def is_change(tool: str, inp: dict) -> tuple[bool, str]:
     cmd = strip_heredocs(str(inp.get("command", "")))
     host = ssh_host(cmd)
     sudo_write = any(w not in READ_SUDO and w.split("/")[-1] not in READ_SUDO for w in SUDO_CMD.findall(cmd))
-    hit = any(p.search(cmd) for p in CHANGE) or bool(REMOTE_WRITE.search(cmd)) or sudo_write
+    hit = any(p.search(cmd) for p in CHANGE) or bool(REMOTE_WRITE.search(cmd)) or sudo_write or wide_change(cmd)
     return (hit, host)
 
 

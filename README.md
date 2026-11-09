@@ -12,6 +12,10 @@ a research archive, or something else entirely ([A record that grows](docs/conce
 > and the tests run on every push. Walked end to end on a clean VM: setup, the brain's daily rollover, the nightly and
 > morning runs, the Telegram bot and the relay. Not yet: headless login with a long-lived token, the bot's pairing flow
 > and merlin in the bot's session. Expect rough edges there.
+>
+> **Very early, and the brain runs with permission prompts off.** The action gate blocks a known list of destructive and
+> outward commands, not everything ([Security](docs/concepts/security.md) lists both). Give Anna a machine of her own
+> (a VM is fine) and snapshot it before the first start.
 
 ## Quick start
 

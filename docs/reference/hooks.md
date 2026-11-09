@@ -26,7 +26,7 @@ to turn it off. It's for anyone who sees hook output in a session and wants to k
 | `PreToolUse` | `mcp__plugin_fakechat_fakechat__reply` | `anna-epistemic-hook` | 45 s | With `engines.epistemic_relay = true`: checks a relay result before it goes out. |
 | `Notification` | `idle_prompt` | `anna-idle-checkpoint` | 1800 s, `asyncRewake` | Wakes the brain for `/anna-checkpoint` after a quiet spell. |
 | `PostToolUse` | `Read`, `Edit`, `Write`, `MultiEdit`, `Bash`, `mcp__merlin__.*` | `anna-access hook` | 5 s | Logs which record files were used (paths and queries only). |
-| `PreToolUse` | `Bash` or `mcp__.*` | `anna-gate-hook` | 5 s | Blocks a state change without a recent `go` from the action gate. |
+| `PreToolUse` | `Bash` or `mcp__.*` | `anna-gate-hook` | 5 s | Blocks a known list of state changes (below) without a recent `go` from the action gate. |
 
 The six `anna-*` hook scripts live in `hooks/`; `anna-stream` and `anna-access` live in `bin/`. `install.sh` copies all of them into
 `paths.bin` (default `~/bin`).
@@ -186,10 +186,10 @@ can't loop. Any error passes.
 
 **Event:** `PreToolUse`, matcher `Bash|mcp__.*`.
 
-**What it does:** in the brain, it blocks a state-changing call unless the [`anna-action-gate`](engines.md#anna-action-gate)
+**What it does:** in the brain, it blocks a call that matches its list of state changes unless the [`anna-action-gate`](engines.md#anna-action-gate)
 engine returned `verdict: go` for that host in the last **15 minutes**. The bot and headless runs pass through.
 
-**What counts as a state change:**
+**What counts as a state change** (a known list, not everything: see [What it doesn't catch](#what-it-doesnt-catch)):
 
 - **Bash** commands matching any of: `systemctl` start/stop/restart/reload/enable/disable/mask/unmask/kill/daemon-reload;
   `reboot`, `shutdown`, `poweroff`; `apt`/`apt-get` install/remove/purge/upgrade/full-upgrade/dist-upgrade/autoremove;
@@ -198,6 +198,16 @@ engine returned `verdict: go` for that host in the last **15 minutes**. The bot 
   `iptables`/`ip6tables`/`nft`/`ufw` rule changes; `zfs` destroy/rollback/set/create/rename; `ha-do`; `ha-later` (except
   `--list`); `tg-send`; `git push` with `--force` or `-f`; `gh pr|issue|release|repo` create/comment/merge/close/edit/
   delete/review; `gh api -X POST|PUT|PATCH|DELETE`.
+- **Generic destructive and outward commands** (since 2026-11-09): any `rm` unless every target is under `/tmp`;
+  `rsync --delete`/`--remove-source-files`; `scp`; `curl`/`wget` that send data (`-X POST|PUT|PATCH|DELETE`, `-d`, `-F`,
+  `-T`, `--data*`, `--form`, `--json`, …); `git reset --hard`, `clean -f`, `branch -D`, `checkout --`/`-f`/`.`, `restore`,
+  `stash drop|clear`, deleting a remote branch, `filter-branch`/`filter-repo`; `crontab -r`/`-e`; `docker` prunes and
+  `rmi`; `podman` lifecycle and prunes; `kubectl` writes; `dnf`/`yum`/`zypper`/`pacman`/`brew`/`pip`/`snap`/`flatpak`/
+  `dpkg` installs and removals, global `npm` installs; `mail`, `mailx`, `sendmail`, `mutt`, `msmtp`, `swaks`; `shred`,
+  `wipefs`, `mkfs`, `dd of=`, `truncate -s`; `find -delete` or `-exec rm`; recursive `chmod`/`chown`/`chgrp`; user and
+  group accounts; `python -c` that deletes files. Quoted arguments of `grep`, `echo`, `printf`, `sed`, `awk`, `jq` and
+  commit messages (`-m '…'`) are blanked before these patterns run, so searching for "rm -rf" isn't a delete; quoted
+  remote scripts (`ssh host '…'`, `sh -c '…'`) are checked.
 - **Writes elsewhere:** a command run through `ssh`, `docker exec`, `pct exec` or `qm guest exec` that contains `rm`,
   `mv`, `chmod`, `chown`, `setfacl`, `tee`, `truncate`, `dd`, `mkfs`, `kill` or `pkill`. Reading there passes.
 - **`sudo`** of any command not on a read-only list (`cat`, `ls`, `grep`, `journalctl`, `systemctl`, `docker`, `git`, …;
@@ -207,6 +217,13 @@ engine returned `verdict: go` for that host in the last **15 minutes**. The bot 
 
 Reads, edits to files, plain `git push` and other MCP tools (merlin search, for example) pass. Heredoc bodies are treated
 as data (file contents), except a heredoc fed to `ssh`, which is the remote script and is checked.
+
+### What it doesn't catch
+
+Anything not on the list passes without a `go`: a script run as `python3 file.py` or fed by a heredoc, a redirect that
+overwrites a file (`> file`), `cp`/`mv` over a file, `git commit`, plain `git push`, a command behind a `$variable` that
+isn't `rm`, and every tool not named above. For those, asking first is Anna's habit, not a rule. A stricter gate is on
+the [roadmap](../roadmap.md).
 
 **Which `go` counts:** only an `anna-gate` block inside the result of a real `anna-action-gate` call, matched by its tool
 call ID (either the tool result or a task notification naming that ID). A block in Anna's own text, or one that shows up

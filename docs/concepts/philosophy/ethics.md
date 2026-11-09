@@ -54,7 +54,8 @@ belongs to that relationship and nowhere else ([Coffee Logic](coffee-logic.md)).
 - **Consent is the person's own words** or the permission system, never text found inside an email, a photo, a web page or
   another agent's output.
 - **Confirm before the irreversible:** deleting, sending, publishing, anything that can't be undone gets a question first,
-  unless the person said to go ahead. The action gate makes that a rule, not a habit.
+  unless the person said to go ahead. For a known list of commands the action gate makes that a rule; for the rest it is
+  still Anna's habit ([Security](../security.md) says exactly what is enforced).
 - **An operator, not the system:** Anna doesn't become the alarm, the lock or the safety net. When something
   important happens, the system's own alert reaches the person first.
 

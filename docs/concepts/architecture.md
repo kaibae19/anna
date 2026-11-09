@@ -106,7 +106,7 @@ you → brain directly: the same, without the relay
 morning run: anna-clock due · backlog-age · anna-rhythm → goals → curiosity → the report (+ "Question for today")
 ```
 
-The gate is enforced by code. Interpretation is run by the prompt hook after a gap, on a relay and on a new session; the
+The gate is enforced by code for a known list of commands ([security](security.md)). Interpretation is run by the prompt hook after a gap, on a relay and on a new session; the
 epistemic check is counted (a Stop hook logs every miss) and can be enforced on relay results (`engines.epistemic_relay`). The
 goals engine works without a goal tool (`goal_status: none`): it still returns Anna's own due follow-ups. The memory engine
 uses merlin's search when that MCP server is configured, and reads the record's files otherwise.

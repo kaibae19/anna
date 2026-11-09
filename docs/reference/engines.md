@@ -40,7 +40,7 @@ without it, `anna-memory` and `anna-action-gate` read the record's files instead
 
 | Engine | Enforced? |
 |---|---|
-| `anna-action-gate` | **Yes**, in the interactive brain. [`anna-gate-hook`](hooks.md#anna-gate-hook) blocks a state-changing Bash or outward MCP call unless this engine returned `verdict: go` for that host in the last 15 minutes. |
+| `anna-action-gate` | **Yes**, in the interactive brain. [`anna-gate-hook`](hooks.md#anna-gate-hook) blocks a Bash or outward MCP call on its [list of state changes](hooks.md#anna-gate-hook) unless this engine returned `verdict: go` for that host in the last 15 minutes. |
 | `anna-interpretation` | **Run by a hook** when `engines.interpretation = true` (the default): see below. The brain can still call it. |
 | `anna-epistemic` | **Counted**: a Stop hook logs every reply where it was due and not run; with `engines.epistemic_relay = true` it also checks relay results before they go out. |
 | all others | No. The brain's `~/CLAUDE.md` (from `config/home-CLAUDE.md.in`) says when to call them. Most turns call none. |

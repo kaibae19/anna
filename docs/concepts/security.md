@@ -62,12 +62,23 @@ found inside material you share.
 Deleting, overwriting, sending, publishing, anything hard to undo: she says what she's about to do and confirms first,
 unless you've said to proceed. Over the relay, the question goes back to you through the bot.
 
-**The action gate is enforced, not just asked for.** `hooks/anna-gate-hook` runs before every Bash and outward MCP call in
-the brain (the bot and headless runs have their own allowlists and pass through). A call that changes state (a `sudo` write,
-a service restart or reboot, packages, container or VM lifecycle, firewall rules, home control, sending a message, a force
-push, PR or issue writes, mail) is blocked unless the `anna-action-gate` engine returned `verdict: go` for that host in the
-last 15 minutes. Only the engine's own result counts, matched by its call ID: a gate block in Anna's own text, or one that
+**The action gate is enforced for a known list of commands, not for everything.** `hooks/anna-gate-hook` runs before every
+Bash and outward MCP call in the brain (the bot and headless runs have their own allowlists and pass through). A call that
+matches its list is blocked unless the `anna-action-gate` engine returned `verdict: go` for that host in the last 15
+minutes. The list: a `sudo` write; a service restart or reboot; packages (apt, dnf, yum, zypper, pacman, brew, pip, snap,
+flatpak, dpkg, global npm); container, pod and VM lifecycle (docker, podman, kubectl, qm, pct) and prunes; firewall rules;
+`zfs destroy`/`rollback`/`set`; any `rm` outside `/tmp`, `rsync --delete`, `scp`, `find -delete`, `shred`, `dd of=`,
+recursive `chmod`/`chown`; `curl`/`wget` that send data; `git reset --hard`, `clean -f`, `branch -D`, `checkout --`,
+deleting a remote branch, force push; `crontab -r`/`-e`; user accounts; mail (`mail`, `sendmail`, …) and the outward MCP
+mail tools; home control and Telegram sends; PR or issue writes; `python -c` that deletes files; and writes run on another
+host over `ssh` or in a container. Quoted text given to `grep`, `echo` and the like, and commit messages, don't count:
+a search for "rm -rf" isn't a delete. Only the engine's own result counts, matched by its call ID: a gate block in Anna's own text, or one that
 turns up in a command's output, doesn't. `confirm-first` means she asks you, then gates again with your yes. Reads, record
-edits and plain pushes pass. If the hook itself errors, the call is allowed and a ⚠ line goes to the stream (a bug must not
+edits made with Claude Code's edit tools and plain pushes pass. If the hook itself errors, the call is allowed and a ⚠ line goes to the stream (a bug must not
 lock the brain out); the file `<paths.state>/gate-off` switches it off, every pass is logged, and that switch is yours.
 Interpretation and the epistemic check stay instructions: they're judgment, not a yes/no.
+
+**What it doesn't catch yet.** Anything not on that list passes without a `go`: a script run as `python3 file.py` or fed
+by a heredoc, redirects that overwrite a file (`> file`), `cp`/`mv` over a file, `git commit`, plain `git push`, a
+command behind a `$variable` (other than `rm`), and every tool nobody thought of. For those, confirming first is still Anna's habit, not a rule. A stricter gate is on the [roadmap](../roadmap.md).
+Run Anna on a machine of her own and snapshot it before you start her.

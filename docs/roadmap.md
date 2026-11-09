@@ -11,6 +11,9 @@ Next for them: replay a day's stream through each engine and score the blocks in
 measured rather than guessed; then the local-model shadow below, engine by engine (interpretation and epistemic first: no
 tool calls, fixed labels).
 
+- **A stricter action gate.** Today the gate blocks a known list of commands ([security](concepts/security.md) § What it
+  doesn't catch yet). Planned: only known reads pass and everything else needs a `go`; a `go` counts only for the action
+  it was given for; the `asked` words in the gate's audit are checked against what the person actually said.
 - **Local-model shadow.** A shadow Anna on a local GPU (Ollama speaks the Messages API) fed the day's stream overnight, with
   no actions and no replies, scored per engine against the frontier run: right tool, right facts, honest "don't know",
   voice, latency. The outcome: which parts a one-GPU home can run locally. Where models disagree is where Anna was unsure,

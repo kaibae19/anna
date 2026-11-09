@@ -120,6 +120,9 @@ can rerun `/anna-setup` any time to add parts: it reads what exists and fills on
     The brain runs Claude Code with permission prompts off (`--dangerously-skip-permissions`). Claude Code asks once per
     machine to accept that mode, and Anna leaves that choice to you. `/anna-setup` explains it before you start the
     brain. Details in [step 6](#6-start-the-brain).
+    With prompts off, the action gate and Anna's own habits are the only checks on what she runs, and the gate catches a
+    known list of commands, not everything ([Security](../concepts/security.md)). Use a VM of her own and snapshot it
+    before the first start.
 
 ## 5. The by-hand alternative
 
