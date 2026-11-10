@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""anna-contract: check engine blocks, engine files, the docs and a record against the versioned contract.
+
+  anna-contract check <engine> [FILE|-]    one engine's output block (from a file or stdin; text around it is ignored)
+  anna-contract agents [REPO]              each agents/anna-*.md says the contract's input fields and output block
+  anna-contract docs [REPO]                docs/reference/engines.md shows the same blocks
+  anna-contract record [RECORD] [--things NAME]   the record has the contract's folders and file names
+  anna-contract show [engine]              print the contract (or one engine's part)
+
+Exit 0 = conforms (warnings allowed), 1 = violations, 2 = usage. The contract is contracts/v1.json beside bin/ in the
+scaffold repo, or ~/.local/share/anna/contracts/v1.json once installed. Docs: docs/reference/contracts.md.
+"""
+import json, os, re, sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+CANDIDATES = [HERE.parent / "contracts" / "v1.json", Path.home() / ".local/share/anna/contracts/v1.json"]
+
+
+def load():
+    for p in CANDIDATES:
+        if p.is_file():
+            return json.loads(p.read_text())
+    sys.exit("anna-contract: no contracts/v1.json found (looked in %s)" % ", ".join(map(str, CANDIDATES)))
+
+
+C = load()
+ENG = C["engines"]
+
+
+def engine(name):
+    n = name.removeprefix("anna-")
+    if n == "gate":
+        n = "action-gate"
+    if n not in ENG:
+        sys.exit("anna-contract: unknown engine %r (one of: %s)" % (name, ", ".join(ENG)))
+    return n, ENG[n]
+
+
+def block_lines(text, fence):
+    """The key: value lines of the first ```<fence> block; without a fence, every key: value line."""
+    m = re.search(r"```%s\s*\n(.*?)```" % re.escape(fence), text, re.S)
+    body = m.group(1) if m else text
+    out = []
+    for line in body.splitlines():
+        km = re.match(r"^([a-z_@A-Z]+):\s?(.*)$", line.strip())
+        if km:
+            out.append((km.group(1), km.group(2)))
+    return out, bool(m)
+
+
+def first_words(value, is_list):
+    parts = re.split(r"[,;]", value) if is_list else [value]
+    return [re.split(r"[\s(]", p.strip(), maxsplit=1)[0] for p in parts if p.strip()]
+
+
+def check_block(name, text):
+    n, e = engine(name)
+    errs, warns = [], []
+    lines, fenced = block_lines(text, e["fence"])
+    if not fenced:
+        warns.append("no ```%s fence; read the bare key: value lines" % e["fence"])
+    seen = {}
+    for k, v in lines:
+        seen.setdefault(k, v)
+    keys = [o["key"] for o in e["output"]]
+    for o in e["output"]:
+        k = o["key"]
+        if k not in seen:
+            errs.append("missing key: %s" % k)
+            continue
+        if "enum" in o:
+            bad = [w for w in first_words(seen[k], o.get("list")) if w not in o["enum"]]
+            if bad or not seen[k].strip():
+                errs.append("%s: %r not in %s" % (k, seen[k][:60], "|".join(o["enum"])))
+    for k in seen:
+        if k not in keys:
+            warns.append("unknown key (ignored): %s" % k)
+    return errs, warns
+
+
+def report(label, errs, warns):
+    for w in warns:
+        print("⚠ %s: %s" % (label, w))
+    for x in errs:
+        print("✖ %s: %s" % (label, x))
+    if not errs:
+        print("✓ %s" % label)
+    return not errs
+
+
+def template_keys(text, fence):
+    """Output keys of the template block in an engine file or doc (values are 'a | b | <...>')."""
+    lines, fenced = block_lines(text, fence)
+    return [k for k, _ in lines] if fenced else None
+
+
+def template_enums(text, fence):
+    lines, _ = block_lines(text, fence)
+    out = {}
+    for k, v in lines:
+        opts = [o.strip() for o in v.split("|")]
+        out[k] = {re.split(r"[\s(]", o, maxsplit=1)[0] for o in opts if o and not o.startswith(("<", "=", '"'))}
+    return out
+
+
+def compare_template(label, text, n, e):
+    errs = []
+    keys = template_keys(text, e["fence"])
+    want = [o["key"] for o in e["output"]]
+    if keys is None:
+        return ["%s: no ```%s block" % (label, e["fence"])]
+    if keys != want:
+        errs.append("%s: output keys %s, contract %s" % (label, keys, want))
+    enums = template_enums(text, e["fence"])
+    for o in e["output"]:
+        if "enum" in o and o["key"] in enums:
+            got = enums[o["key"]]
+            # the contract may name 'none' for list fields the template writes as "none | a | b"
+            if got and got != set(o["enum"]) and got - {"none"} != set(o["enum"]) - {"none"}:
+                errs.append("%s: %s values %s, contract %s" % (label, o["key"], sorted(got), o["enum"]))
+    return errs
+
+
+def cmd_agents(repo):
+    ok = True
+    for n, e in ENG.items():
+        p = repo / e["agent"]
+        if not p.is_file():
+            ok = report(e["agent"], ["file missing"], []) and ok
+            continue
+        text = p.read_text()
+        errs = compare_template(e["agent"], text, n, e)
+        inp = re.search(r"^## Input.*?$(.*?)^## ", text, re.S | re.M)
+        section = inp.group(1) if inp else ""
+        for f in e["input"]["required"] + e["input"]["optional"]:
+            if not re.search(r"(^|[`\s])%s:" % re.escape(f), section, re.M):
+                errs.append("%s: input field %s: not in ## Input" % (e["agent"], f))
+        ok = report(e["agent"], errs, []) and ok
+    return ok
+
+
+def cmd_docs(repo):
+    p = repo / "docs/reference/engines.md"
+    text = p.read_text()
+    ok = True
+    for n, e in ENG.items():
+        sec = re.search(r"^## anna-%s\s*$(.*?)(?=^## |\Z)" % re.escape(n), text, re.S | re.M)
+        if not sec:
+            ok = report("engines.md § anna-%s" % n, ["section missing"], []) and ok
+            continue
+        body = sec.group(1)
+        errs = compare_template("engines.md § anna-%s" % n, body, n, e)
+        inblock = re.search(r"\*\*Input[^\n]*\n+```\n(.*?)```", body, re.S)
+        fields = [m.group(1) for m in re.finditer(r"^([a-z_<>.@A-Z]+):", inblock.group(1), re.M)] if inblock else []
+        fields = ["@THING@" if f.startswith("<") else f for f in fields]
+        for f in e["input"]["required"] + e["input"]["optional"]:
+            if f not in fields:
+                errs.append("engines.md § anna-%s: input field %s: missing from the Input block" % (n, f))
+        ok = report("engines.md § anna-%s" % n, errs, []) and ok
+    return ok
+
+
+def cmd_record(rec, things):
+    r = C["record"]
+    errs, warns = [], []
+    for p in r["required"]:
+        p = p.replace("@THINGS@", things)
+        q = rec / p.rstrip("/")
+        if not (q.is_dir() if p.endswith("/") else q.is_file()):
+            errs.append("missing: %s" % p)
+    jd = rec / "journal"
+    for f in jd.rglob("*.md") if jd.is_dir() else []:
+        rel = f.relative_to(rec).as_posix()
+        if rel.startswith("journal/handoffs/"):
+            if not re.fullmatch(r"journal/handoffs/(\d{4}-\d{2}-\d{2}-[a-z0-9-]+|handoff-\d{4}-\d{2}-\d{2})\.md", rel):
+                warns.append("handoff name: %s" % rel)
+        elif re.fullmatch(r"journal/\d{4}/\d{2}/\d{4}-\d{2}-\d{2}\.md", rel):
+            y, m, d = rel.split("/")[1], rel.split("/")[2], f.stem
+            if not d.startswith("%s-%s-" % (y, m)):
+                errs.append("journal day in the wrong month folder: %s" % rel)
+        elif f.name != "README.md":
+            warns.append("not a day file: %s" % rel)
+    lately = rec / "self/lately.md"
+    if lately.is_file():
+        lines = [l for l in lately.read_text().splitlines() if l.startswith("- ")]
+        if len(lines) > 10:
+            errs.append("self/lately.md: %d lines (at most 10)" % len(lines))
+        for l in lines:
+            if not re.search(r"\(since \d{4}-\d{2}-\d{2}; seen \d+×\)\s*$", l):
+                errs.append("self/lately.md: line without (since …; seen N×): %s" % l[:60])
+    md = rec / "memory"
+    for f in sorted(md.glob("*.md")) if md.is_dir() else []:
+        if f.name in ("MEMORY.md", "README.md"):
+            continue
+        head = f.read_text().split("\n---", 1)[0]
+        if not head.startswith("---"):
+            errs.append("lesson without front matter: memory/%s" % f.name)
+            continue
+        for k in ("name:", "description:", "type:"):
+            if k not in head:
+                errs.append("memory/%s: front matter lacks %s" % (f.name, k.rstrip(":")))
+    return report("record %s" % rec, errs, warns)
+
+
+def main(a):
+    if not a or a[0] in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0 if a else 2
+    cmd, rest = a[0], a[1:]
+    if cmd == "check":
+        if not rest:
+            return 2
+        src = rest[1] if len(rest) > 1 else "-"
+        text = sys.stdin.read() if src == "-" else Path(src).read_text()
+        n, _ = engine(rest[0])
+        return 0 if report("anna-%s block" % n, *check_block(rest[0], text)) else 1
+    if cmd == "agents":
+        return 0 if cmd_agents(Path(rest[0]) if rest else HERE.parent) else 1
+    if cmd == "docs":
+        return 0 if cmd_docs(Path(rest[0]) if rest else HERE.parent) else 1
+    if cmd == "record":
+        things = "hosts"
+        if "--things" in rest:
+            i = rest.index("--things")
+            things = rest[i + 1]
+            rest = rest[:i] + rest[i + 2:]
+        rec = Path(os.path.expanduser(rest[0])) if rest else Path(os.environ.get("ANNA_RECORD", "~/anna-record")).expanduser()
+        return 0 if cmd_record(rec, things) else 1
+    if cmd == "show":
+        print(json.dumps(ENG[engine(rest[0])[0]] if rest else C, indent=2, ensure_ascii=False))
+        return 0
+    print(__doc__.strip(), file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

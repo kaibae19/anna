@@ -23,11 +23,13 @@ All scripts read your settings through [`anna-config`](#anna-config); the keys a
 | [`anna-checks`](#anna-checks) | fixed, read-only checks: relay, clock, disk, access, plus yours |
 | [`anna-clock`](#anna-clock) | Anna's own schedule: notes, pings, scheduled runs |
 | [`anna-config`](#anna-config) | read the configuration |
+| [`anna-contract`](#anna-contract) | check engine blocks, engine files, the docs and a record against contract v1 |
 | [`anna-day`](#anna-day) | the brain's daily rollover: close overnight, open in the morning |
 | [`anna-engine`](#anna-engine) | runs one engine headless, so a hook can make it run; its daily stats |
 | [`anna-evening`](#anna-evening) | the nightly fold of session drafts into the journal |
 | [`anna-log`](#anna-log) | Anna's own journal: one raw line for the nightly dream |
 | [`anna-notify`](#anna-notify) | send you a Telegram message (or a stream line with no bot) |
+| [`anna-proposals`](#anna-proposals) | what the nightly runs proposed, kept with a status until it's decided |
 | [`anna-relay`](#anna-relay) | the bot-to-brain relay: bridge daemon and queue tools |
 | [`anna-rhythm`](#anna-rhythm) | when you're usually around, computed from the stream |
 | [`anna-run`](#anna-run) | one headless Anna session with deny-by-default settings |
@@ -270,6 +272,34 @@ redact`). It runs `anna-config --dump` once, gives `get("dotted.key", default)` 
 `USER`, `NAME`, `STATE`, `RECORD`, and `redact()`: merlin's redaction if `MERLIN_PATH` points at a merlin checkout,
 else a built-in set of secret patterns. If the config can't be read it falls back to defaults, so a hook never breaks.
 
+## `anna-contract`
+
+Checks things against the versioned contract in `contracts/v1.json`: one engine block, the engine files, the engines
+reference, or a record. Read-only. Details: [Contracts](contracts.md).
+
+```text
+anna-contract check ENGINE [FILE|-]
+anna-contract agents [REPO]
+anna-contract docs [REPO]
+anna-contract record [RECORD] [--things NAME]
+anna-contract show [ENGINE]
+```
+
+| Form | Output |
+|---|---|
+| `check ENGINE [FILE\|-]` | One engine's block, from a file or stdin (text around it is ignored). `✖` for a missing key or a value outside the fixed list, `⚠` for an unknown key. `ENGINE` is `memory`, `interpretation`, `epistemic`, `action-gate` (or `gate`), `goals` or `curiosity`. |
+| `agents [REPO]` | Each `agents/anna-*.md` in the scaffold repo: its output block and `## Input` fields match the contract. |
+| `docs [REPO]` | `docs/reference/engines.md` shows the same blocks and input fields. |
+| `record [RECORD] [--things NAME]` | The record (default `$ANNA_RECORD` or `~/anna-record`) has the required folders and files and the right names. `--things` names the folder of things (default `hosts`). |
+| `show [ENGINE]` | The contract as JSON, or one engine's part. |
+
+Exit 0 = conforms (warnings allowed), 1 = violations, 2 = usage. **Reads:** `contracts/v1.json` next to `bin/` in the
+repo, or `~/.local/share/anna/contracts/v1.json` once installed.
+
+```bash
+anna-contract record ~/anna-record --things chapters
+```
+
 ## `anna-day`
 
 The daily rollover of the brain's session: wrapped up and closed overnight, a fresh session started in the morning.
@@ -409,6 +439,38 @@ anna-notify "hello from Anna"
 
 ```text
 stored chat for ops: Sam (@sam_example)
+```
+
+## `anna-proposals`
+
+Keeps what the nightly runs (the evening fold, the dream) proposed to change in the record, each with a status, so a
+proposal doesn't drop out with the next report. Nothing here changes the record by itself. Details:
+[Skills: anna-proposals](skills.md#anna-proposals).
+
+```text
+anna-proposals ingest HANDOFF...
+anna-proposals list [--all | --status S,S]
+anna-proposals next
+anna-proposals set ID STATUS [--said TEXT] [--note TEXT] [--commit SHA]
+anna-proposals raised-in [FILE|-]
+anna-proposals show ID
+```
+
+| Form | Output |
+|---|---|
+| `ingest HANDOFF...` | Copies each item under a `## Proposed …` heading (or a `**Proposed …**` line) into the list once. A line like `- **still open:** p-1a2b3c — …` is noted on that proposal instead of added; "nothing to add" lines are skipped. `anna-run` runs it after each evening and dream run and commits the file on its own. |
+| `list` | One line each: id, status, where it came from, summary. Default: everything not yet decided or done (`open`, `raised`, `accepted`, `later`). |
+| `next` | The one to raise today, as `<id><TAB><summary>`, or nothing: at most one a day, oldest first; `later` comes back after 7 days; one raised twice without an answer isn't raised again. The prompt hook uses it. |
+| `set ID STATUS` | `open`, `raised`, `accepted`, `applied`, `declined`, `later` or `dropped`, with your words (`--said`), a note or the commit that applied it, added to its history line. |
+| `raised-in [FILE\|-]` | Marks today's proposal raised if the reply (stdin) asks about it. The Stop hook uses it. |
+| `show ID` | One proposal in full. |
+
+**File:** `<record>/self/proposals.md` (`$ANNA_PROPOSALS` overrides it), created by the first night that proposes
+something.
+
+```bash
+anna-proposals list
+anna-proposals set p-1a2b3c accepted --said "yes, add it"
 ```
 
 ## `anna-relay`

@@ -21,9 +21,10 @@ refusal applies only to that one command, never to Bash as a whole: rerun it as 
    - **The clock:** `anna-clock due`. Due today → Watch; overdue `note` items → Needs action if they need the user, else
      Watch (they're Anna's own follow-ups: say which ones this session should do). Ping/run items fire by themselves; one
      still open and past due means the tick failed → ⛔.
-   - The newest `journal/handoffs/*-evening.md`: its **Proposed for the next session** list. Open ones go under Watch.
-   - The newest `journal/handoffs/*-dream.md` (the nightly dream): its **Proposed for a reviewed session** items go under
-     Watch as "Dream proposes: …" (memory and lesson changes wait for a session to apply them).
+   - **Proposals** (`self/proposals.md`: every "Proposed" item of the evening fold and the dream, kept with a status by
+     `anna-proposals` until it's decided): one Watch line with the counts by status ("Proposals: 4 open, 1 accepted not
+     applied"), plus each `accepted` one by id and summary (a session should apply it: `/anna-proposals`). Don't list the
+     open ones: the prompt hook raises one a day in conversation. Last night's new items are already in the file.
    - If merlin is configured, its `index_status`: say whether the index is fresh.
 3. **Drop items that are already done.** Check later journal days for completion and cite where ("done 10-04, journal §3").
 4. **Verify each remaining item live**, read-only: run `anna-checks` first (your fixed, read-only checks; a check you're

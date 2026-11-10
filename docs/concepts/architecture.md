@@ -85,6 +85,7 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
 | engine inputs | `bin/anna-rhythm`, `bin/backlog-age` | precomputed numbers (active windows, gaps, ages) so no model does date arithmetic |
 | engine runner | `bin/anna-engine` | runs an engine headless from a hook (interpretation after a gap, the epistemic relay check); counts runs and misses |
 | own journal | `bin/anna-log`, `skills/anna-dream`, `record/self/` | a raw log of what registered with her; the nightly dream sorts it into Lately, wonders and proposals ([Her own journal](own-journal.md)) |
+| proposals | `bin/anna-proposals`, `skills/anna-proposals`, `record/self/proposals.md` | what the nightly runs proposed, kept with a status; raised one a day, applied only once you accept ([Skills](../reference/skills.md#anna-proposals)) |
 | access log | `bin/anna-access` (PostToolUse hook) | which record files get used, by which part of her (paths only): the measurement for memory that fades by disuse |
 
 ## Engines and their order

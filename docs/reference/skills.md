@@ -37,6 +37,7 @@ headless runs). Times are in `anna.timezone`.
 | [`/anna-morning`](#anna-morning) | `anna-morning.timer` at `runs.morning`, or you | both | no (the headless runner commits the report) |
 | [`/anna-wrapup`](#anna-wrapup) | you, or `anna-day close` at `day.close` | interactive | yes |
 | [`/anna-checkpoint`](#anna-checkpoint) | you, or the `anna-idle-checkpoint` hook | interactive | yes |
+| [`/anna-proposals`](#anna-proposals) | you, or the brain once you accept a proposal | interactive | yes: one commit per proposal |
 | [`/anna-evening`](#anna-evening) | `anna-evening.timer` at `runs.evening` | headless only | journal and handoff only |
 
 ## anna-setup
@@ -94,7 +95,8 @@ which runs `anna-run /anna-morning morning`. Also interactively when you ask for
 - The newest one or two journal day files: headline, Day index, every `Open:` line.
 - The top of `planning/backlog.md`.
 - `anna-clock due`.
-- The newest `journal/handoffs/*-evening.md`: its "Proposed for the next session" list.
+- `self/proposals.md` ([`anna-proposals`](commands.md#anna-proposals)): one Watch line with the counts by status, plus
+  each accepted proposal not yet applied. The open ones aren't listed: the prompt hook raises one a day.
 - merlin's `index_status`, if merlin is configured.
 - `anna-checks` (always tried), and `anna-body --line` for the first line.
 - The engines `anna-goals` (with `anna-clock due`, `backlog-age`, `goal_status: none` unless her record has a goal tool,
@@ -176,6 +178,23 @@ only what wasn't folded yet, so it starts where the last checkpoint ended.
 
 It reports in 3–5 lines and leaves the session open.
 
+## anna-proposals
+
+**Runs:** interactive only, when you accept a proposal the brain raised, when you ask to go through the proposals, or at
+wrap-up if an accepted one isn't applied yet. Never from a headless run: those only propose.
+
+**Reads:** `self/proposals.md` through [`anna-proposals`](commands.md#anna-proposals) (`list --status accepted`, `show`),
+then the file each proposal names, to check its evidence still holds.
+
+**Writes:** the smallest change that does what you accepted, in the layer the proposal names (a lesson, a backlog line, a
+fact about a thing), through the action gate with your words as `asked`; one commit per proposal; then `anna-proposals set
+<id> applied --commit <sha>`. A proposal that's already done is marked `dropped` with where it is; a stale one is raised
+with you instead of applied.
+
+**How proposals reach you:** the prompt hook carries one a day (after the day's question) until a reply raises it at a
+natural pause, in plain words you can answer with yes, no or later; the brain records your answer with `anna-proposals
+set`. Asked to go through them, it shows the plain list instead.
+
 ## anna-evening
 
 **Runs:** headless only, as `/anna-evening`. `anna-evening.timer` (at `runs.evening`, default `01:00`) starts
@@ -205,7 +224,8 @@ the stream file, the day files it appends to, memory files whose topics come up.
 
 **Won't do:** edit records of things, runbooks, memory lessons or the backlog. It lists what it would change under **Proposed
 for the next session** (file, change, evidence line), plus a **Proposed → memory** list from its memory consolidation step
-(contradicted, resolved-but-still-"pending" or duplicated claims). The next morning check carries those under Watch.
+(contradicted, resolved-but-still-"pending" or duplicated claims). It reads `self/proposals.md` first and doesn't propose
+again what's already there; `anna-run` copies the new items into it.
 
 **Output:** what it folded where, the proposals, ⚠ anything odd, and a last line exactly `FOLDED: <path> <path> …`. A
 draft left off that line stays and is retried the next night; `anna-evening` notifies you if any are left.
@@ -224,7 +244,8 @@ by the user's explicit words; a reviewed session applies it), or **let go** (mos
 
 **Writes:** `self/lately.md` (rewritten; lines fade after three days unless seen again), a `## Night` reflection in the
 day's own-journal file, new lines in `planning/wonders.md`; commits those files and pushes if the record has a remote.
-Never edits memory, thing records, runbooks, skills or the work journal. The morning run lists its proposals under Watch.
+Never edits memory, thing records, runbooks, skills or the work journal. Like the evening fold, it reads `self/proposals.md`
+first and doesn't propose again what's already there; `anna-run` copies its new proposals into it.
 
 ## Related
 

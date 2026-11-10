@@ -6,7 +6,8 @@ description: "Each engine in agents/: its job, when the brain calls it, the inpu
 
 This page describes each engine in `agents/`: its job, when the brain calls it, the input it expects and the block it
 returns. It's for developers and for anyone reading a transcript and wondering what an `anna-gate` block means. The why
-behind them is in [Philosophy: Engines](../concepts/philosophy/engines.md).
+behind them is in [Philosophy: Engines](../concepts/philosophy/engines.md). The blocks and input fields on this page are
+[contract v1](contracts.md): `tests/test_contract.sh` fails if this page, an engine file and the contract disagree.
 
 !!! tip "New to this?"
     An **engine** is a Claude Code *subagent*: a small, separate model call with its own short prompt. The brain (your
@@ -229,7 +230,7 @@ her lessons (`memory/MEMORY.md` and the lesson it points to); none are assumed.
 ```anna-gate
 verdict: go | confirm-first | no-go
 reason: <the rule that decided, one line>
-missing: none | current_state | backup | host_history | asked | hold
+missing: none | current_state | backup | history | asked | hold
 confirm: none | <yes/no question, readable on a phone>
 hold: none | <what must not happen meanwhile>
 rollback: none known | <how to undo>
@@ -284,7 +285,7 @@ momentum_note: none | <one line, only for something in person_raised>
 
 ## anna-curiosity
 
-**Job:** picks at most one question a day, one whose answer unblocks something, and says when to ask it. It doesn't ask
+**Job:** picks at most one question a day, usually from what Anna wonders about, and says when to ask it. It doesn't ask
 it, search, or keep a conversation going.
 
 **When the brain calls it:** at day open, at wrap-up, in the morning run, and when you ask whether Anna has questions.
@@ -292,25 +293,29 @@ it, search, or keep a conversation going.
 **Input:**
 
 ```
+wonders: <open lines from planning/wonders.md, each dated, with what prompted it>
 open_questions: <the current ask list, each with the date first noted and how often asked>
 recent_answers: <what you answered lately, each with the question it answered>
 rhythm: <anna-rhythm output: active windows by weekday, last active, current gap>
 today: <asked_today yes/no; incidents or long operations in flight; interpretation mode if known>
 ```
 
-**Rules:** the question must change something (unblock a backlog item, correct a record, decide a design), be answerable
-in one line on a phone, and not be answerable from the record (else `check_record_first`). Nothing about your private life
-unless you raised it; never about the relationship or how you feel about Anna. A question is retired only by an answer that
-names the same thing. Asked twice with no answer → dropped to the backlog. Timing: inside a learned active window, not
-during an incident or a run of work turns, not as the reply to a greeting; no window known → `next-session`.
+**Rules:** it prefers a wonder; an open ask wins only when it's time-critical (a deadline, an irreversible step
+waiting on it), otherwise asks stay in the morning report's Watch. The question must change something (how Anna
+understands you, how she works with you, what gets built), be answerable in a line or two, and not be answerable from the
+record (else `check_record_first`). Nothing about your private life unless you raised it; never about the relationship or
+how you feel about Anna. A question is retired only by an answer that names the same thing. Asked twice with no answer →
+dropped. Timing: in-session at a natural pause (`next-pause`) inside a learned active window, not during an incident or a
+run of work turns, not as the reply to a greeting after a gap; otherwise `next-session`.
 `asked_today: yes` → `question: none`.
 
 **Output:**
 
 ```anna-curiosity
 question: none | <one line>
-why: <what the answer unblocks: item or path>
-when: now | <HH:MM local, from rhythm> | next-session
+source: wonder (<date>) | ask (<date>)
+why: <what the answer changes>
+when: next-pause | next-session
 check_record_first: none | <query for anna-memory>
 retires: none | <list entries this closes>
 drop: none | <entry → reason (answered in <path> / asked twice)>

@@ -32,6 +32,16 @@ bin/anna-run "/anna-morning" morning >/dev/null
 ok "a ⛔ in prose (Nothing is ⛔) doesn't notify" '[ "$(grep -c "needs you" "$T/sent")" -eq 1 ]'
 ok "the run is in the stream" 'grep -q "headless morning" "$T"/state/stream/*.jsonl'
 
+# a dream (or evening) run's Proposed items land in self/proposals.md, in their own commit
+printf '#!/bin/bash\nprintf "## Dreamt\\nA night.\\n## Proposed for a reviewed session\\n- **memory/x.md:** a new lesson.\\n## Could not\\nnone\\n"\n' > "$T/stub/claude"
+bin/anna-run "/anna-dream" dream >/dev/null
+ok "a dream run's proposal lands in self/proposals.md" 'grep -q "^## p-[0-9a-f]* · open" "$T/record/self/proposals.md" && grep -q "a new lesson" "$T/record/self/proposals.md"'
+ok "proposals.md is committed on its own" 'git -C "$T/record" log --oneline -1 | grep -q "proposals from dream" && [ -z "$(git -C "$T/record" status --porcelain -- self/proposals.md)" ]'
+bin/anna-run "/anna-dream" dream >/dev/null
+ok "the same proposal again: no new item, no new commit" '[ "$(grep -c "^## p-" "$T/record/self/proposals.md")" = 1 ] && [ "$(git -C "$T/record" log --oneline | grep -c "proposals from")" = 1 ]'
+bin/anna-run "do a thing" chores >/dev/null
+ok "other runs don't ingest" '[ "$(git -C "$T/record" log --oneline | grep -c "proposals from")" = 1 ]'
+
 # anna-notify (the real one), bot off (the default): the stream only, no token needed, exit 0
 ok "anna-notify: bot off → stream only, exit 0" 'bin/anna-notify "disk is full" 2>/dev/null && grep -q "(no bot)" "$T"/state/stream/*.jsonl'
 # bot on: refuses without a token, then without a chat id, before any network

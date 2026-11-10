@@ -60,6 +60,7 @@ nav:
       - Commands: reference/commands.md
       - Skills: reference/skills.md
       - Engines: reference/engines.md
+      - Contracts (v1): reference/contracts.md
       - Hooks: reference/hooks.md
       - The record's layout: reference/record-layout.md
       - Timers: reference/timers.md

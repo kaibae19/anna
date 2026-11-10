@@ -3,7 +3,7 @@
 # Reads ~/.config/anna/anna.toml (or $ANNA_CONFIG); /anna-setup writes it. Never overwrites your config, your record or
 # your ~/CLAUDE.md; backs up ~/.claude/settings.json before merging the hooks into it.
 #   scripts + hooks   → paths.bin                  skills → ~/.claude/skills/anna-*/
-#   shared data       → ~/.local/share/anna/       (defaults, bot prompt template)
+#   shared data       → ~/.local/share/anna/       (defaults, bot prompt template, contracts)
 #   record            → paths.record, from record-template/ if it doesn't exist yet (git init + first commit)
 #   settings          → ~/.claude/anna-headless-settings.json, anna-brain-settings.json (relay), anna-tg-<i>-settings.json (bot)
 #   plugins           → fakechat (relay) / telegram (bot) installed at user scope if missing, kept off there (--no-plugins skips)
@@ -42,6 +42,7 @@ for f in "$SRC"/bin/* "$SRC"/hooks/anna-*; do [ -f "$f" ] || continue           
     || { echo "install.sh: couldn't install $(basename "$f") into $BIN" >&2; exit 1; }
 done; say "scripts and hooks → $BIN"
 cp "$SRC/config/anna.example.toml" "$HOME/.local/share/anna/config/"; cp "$SRC/bot/prompt.md" "$HOME/.local/share/anna/bot/"
+install -d "$HOME/.local/share/anna/contracts"; cp "$SRC"/contracts/*.json "$HOME/.local/share/anna/contracts/"
 for d in "$SRC"/skills/*/; do rm -rf "$HOME/.claude/skills/$(basename "$d")"; cp -r "$d" "$HOME/.claude/skills/"; done
 say "skills → ~/.claude/skills ($(ls "$SRC/skills" | tr '\n' ' '))"
 # engines (subagents) → ~/.claude/agents. A copy of what was last installed is kept in ~/.local/share/anna/agents: a file

@@ -23,6 +23,15 @@ res=$(timeout 1800 claude -p "$PROMPT" "${args[@]}" --settings "$HOME/.claude/an
 git add -- "$OUT" && git commit -qm "$HOST: $LABEL $DAY (headless, exit $rc)" -- "$OUT" && { [ -z "$remote" ] || git push -q; }
 echo "$(date -Is) $LABEL exit=$rc -> $OUT"
 "$D/anna-stream" add --from "headless $LABEL" "exit $rc → $OUT" 2>/dev/null || true
+# the nightly runs' "Proposed" items go to self/proposals.md with a status, so they don't drop out with the next handoff
+if [ "$rc" -eq 0 ] && [[ $LABEL = evening || $LABEL = dream ]]; then
+  if pr=$(timeout 30 "$D/anna-proposals" ingest "$OUT" 2>&1); then
+    echo "$(date -Is) $LABEL $pr"
+    if [ -n "$(git status --porcelain -- self/proposals.md)" ]; then
+      git add -- self/proposals.md && git commit -qm "$HOST: proposals from $LABEL $DAY" -- self/proposals.md && { [ -z "$remote" ] || git push -q; }
+    fi
+  else echo "$(date -Is) $LABEL ⚠ proposals not ingested: $pr"; fi
+fi
 command -v anna-notify >/dev/null || exit 0           # alerts: quiet unless something needs the user
 export ANNA_NOTIFY_FROM="anna-run $LABEL"
 if [ "$rc" -ne 0 ]; then anna-notify "⛔ anna-run $LABEL failed (exit $rc) on $HOST. Output: $OUT" || true

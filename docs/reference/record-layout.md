@@ -41,9 +41,12 @@ versioned in the record.
 ├── memory/              lessons, one per file, plus the MEMORY.md index
 ├── planning/            backlog.md, ideas.md and wonders.md
 ├── runbooks/            how to do things, one folder per topic
-├── self/                Anna's own journal (anna-log) and lately.md (from the nightly dream)
+├── self/                Anna's own journal (anna-log), lately.md (the nightly dream), proposals.md
 └── senses/              your anna-body senses (executables)
 ```
+
+The required folders and files, and how files are named, are [contract v1](contracts.md); `anna-contract record`
+checks a record against it.
 
 Each folder in the template has a `README.md` with its own rules. They're summarized here.
 
@@ -193,7 +196,10 @@ what the record holds elsewhere.
 
 Anna's own side of the record ([Her own journal](../concepts/own-journal.md)): `journal/YYYY/MM/<day>.md`, the raw log
 written with `anna-log` (and the user's corrections, logged by the prompt hook), each day ending with the dream's
-`## Night` reflection; and `lately.md`, what the dream kept from the last few days, shown at session start and to the bot.
+`## Night` reflection; `lately.md`, what the dream kept from the last few days, shown at session start and to the bot;
+and `proposals.md`, what the evening fold and the dream proposed to change, one `## p-<id> · <status>` section each
+(from, summary, a dated history line, then the proposal as written), kept by
+[`anna-proposals`](commands.md#anna-proposals).
 
 ### clock/
 

@@ -1,0 +1,135 @@
+{
+  "contract": "anna",
+  "version": 1,
+  "rules": "A producer of v1 writes every output key. A reader ignores unknown keys (with a warning) and checks enums by the value's first word. Adding an optional input field or an enum value is still v1; renaming or removing a key, or changing what a value means, is v2.",
+  "engines": {
+    "memory": {
+      "agent": "agents/anna-memory.md",
+      "fence": "anna-memory",
+      "input": {
+        "required": ["question"],
+        "optional": ["mode", "@THING@", "topic", "since"]
+      },
+      "output": [
+        {"key": "found", "enum": ["yes", "partial", "no"]},
+        {"key": "answer"},
+        {"key": "as_of"},
+        {"key": "sources"},
+        {"key": "conflicts"},
+        {"key": "index", "enum": ["fresh", "stale", "files"]},
+        {"key": "retrieval"}
+      ]
+    },
+    "interpretation": {
+      "agent": "agents/anna-interpretation.md",
+      "fence": "anna-interpretation",
+      "input": {
+        "required": ["message", "surface", "gap", "gap_threshold", "items"],
+        "optional": ["prefs"]
+      },
+      "output": [
+        {"key": "mode", "enum": ["greeting", "chat", "work", "relay", "alert"]},
+        {"key": "greet_only", "enum": ["yes", "no"]},
+        {"key": "items"},
+        {"key": "verify_first"},
+        {"key": "ask"},
+        {"key": "untrusted"}
+      ]
+    },
+    "epistemic": {
+      "agent": "agents/anna-epistemic.md",
+      "fence": "anna-epistemic",
+      "input": {
+        "required": ["draft", "evidence", "context"],
+        "optional": []
+      },
+      "output": [
+        {"key": "verdict", "enum": ["ship", "ship-with-labels", "check-first"]},
+        {"key": "claims"},
+        {"key": "negatives"},
+        {"key": "context_gaps"},
+        {"key": "say_as"}
+      ]
+    },
+    "action-gate": {
+      "agent": "agents/anna-action-gate.md",
+      "fence": "anna-gate",
+      "input": {
+        "required": ["action", "target", "origin", "asked", "current_state", "during", "attempt", "in_flight", "now"],
+        "optional": []
+      },
+      "output": [
+        {"key": "verdict", "enum": ["go", "confirm-first", "no-go"]},
+        {"key": "reason"},
+        {"key": "missing", "enum": ["none", "current_state", "backup", "history", "asked", "hold"], "list": true},
+        {"key": "confirm"},
+        {"key": "hold"},
+        {"key": "rollback"},
+        {"key": "audit"}
+      ]
+    },
+    "goals": {
+      "agent": "agents/anna-goals.md",
+      "fence": "anna-goals",
+      "input": {
+        "required": ["goal_status", "clock_due", "backlog", "raised", "now"],
+        "optional": []
+      },
+      "output": [
+        {"key": "mine_due"},
+        {"key": "person_raised"},
+        {"key": "on_track"},
+        {"key": "stalled_quiet"},
+        {"key": "nudge"},
+        {"key": "momentum_note"}
+      ]
+    },
+    "curiosity": {
+      "agent": "agents/anna-curiosity.md",
+      "fence": "anna-curiosity",
+      "input": {
+        "required": ["wonders", "open_questions", "recent_answers", "rhythm", "today"],
+        "optional": []
+      },
+      "output": [
+        {"key": "question"},
+        {"key": "source", "enum": ["wonder", "ask", "none"]},
+        {"key": "why"},
+        {"key": "when", "enum": ["next-pause", "next-session"]},
+        {"key": "check_record_first"},
+        {"key": "retires"},
+        {"key": "drop"}
+      ]
+    }
+  },
+  "record": {
+    "required": [
+      "CLAUDE.md",
+      "memory/MEMORY.md",
+      "journal/",
+      "journal/handoffs/",
+      "planning/backlog.md",
+      "planning/wonders.md",
+      "clock/",
+      "self/",
+      "@THINGS@/"
+    ],
+    "optional": [
+      "bot/context/",
+      "checks/",
+      "senses/",
+      "runbooks/",
+      "planning/ideas.md",
+      "self/lately.md",
+      "self/proposals.md"
+    ],
+    "names": {
+      "journal day": "journal/YYYY/MM/YYYY-MM-DD.md",
+      "handoff": "journal/handoffs/YYYY-MM-DD-(morning|evening|dream|<name>).md",
+      "clock month": "clock/YYYY-MM.md",
+      "lesson": "memory/<slug>.md with front matter name, description, metadata.type",
+      "thing": "@THINGS@/<name>.md"
+    },
+    "lately": "self/lately.md: a title line, then at most 10 lines '- <line> (since YYYY-MM-DD; seen N×)'"
+  }
+}

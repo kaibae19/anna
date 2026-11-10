@@ -57,8 +57,8 @@ The first line says how the run went:
 - **How I feel:** Anna's one-line felt summary from her senses (`anna-body --line`). It's a mood, not a check.
 - **Needs action today:** things that need you today: something down, a failed backup, a security issue. Each starts
   with ⛔. On a clean day it says "None."
-- **Watch:** ⚠ lines from your checks, reminders due today, Anna's own follow-ups ("Anna's to do"), proposals from last
-  night's fold, and a one-line backlog count.
+- **Watch:** ⚠ lines from your checks, reminders due today, Anna's own follow-ups ("Anna's to do"), how many proposals
+  are waiting (and any you accepted that aren't applied yet), and a one-line backlog count.
 - **Done since last handoff:** items that turned out to be finished, with where that was recorded.
 - **Could not verify:** checks that failed, timed out or returned nothing. Empty output is never treated as fine.
 - Sometimes a last line `Question for today: …`: the one thing Anna would like to ask you.
@@ -137,7 +137,7 @@ the session is left open, and the 04:15 open tries the close again.
 - **01:00, the evening fold.** `anna-evening` takes any session notes that weren't journaled yet (a session that crashed
   or never wrapped up) and yesterday's stream, and folds them into the journal headless. It proposes record updates
   rather than making them. Its report: `journal/handoffs/<date>-evening.md`, with a **Proposed for the next session**
-  list that the morning check picks up.
+  list. Its items, and the dream's, are kept in `self/proposals.md` until you decide on them; Anna raises one a day.
 - **04:00, the morning check**, as above.
 - **04:15, day open**, as above.
 

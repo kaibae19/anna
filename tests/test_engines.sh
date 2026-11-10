@@ -60,6 +60,16 @@ ok "hook: asking it is logged from curiosity" 'stream | grep -q "\"from\": \"cur
 out=$(up "ok" sess-2222bbbb)
 ok "hook: not carried once asked" '! echo "$out" | grep -q "not asked yet"'
 
+# proposals: after today's question, one nightly proposal rides along until a reply raises it
+printf '## Proposed for a reviewed session\n- **memory/walnut.md:** new lesson, walnut over oak for shelving.\n' > "$T/rec/journal/handoffs/2026-01-01-dream.md"
+bin/anna-proposals ingest "$T/rec/journal/handoffs/2026-01-01-dream.md" >/dev/null
+out=$(up "anything else" sess-2222bbbb)
+ok "hook: a proposal is carried once the question is asked" 'echo "$out" | grep -q "A proposal from the nightly runs, not raised yet (p-"'
+jq -nc '{hook_event_name:"Stop",session_id:"sess-2222bbbb",last_assistant_message:"Last night I suggested a new lesson: walnut over oak for shelving. Want it in memory?"}' | $S hook
+ok "hook: raising it marks it raised" 'bin/anna-proposals list | grep -q "· raised"'
+out=$(up "ok" sess-2222bbbb)
+ok "hook: not carried once raised (one a day)" '! echo "$out" | grep -q "not raised yet"'
+
 # epistemic hook: Stop logs a due check; the relay check is off by default
 H=hooks/anna-epistemic-hook
 jq -nc '{hook_event_name:"Stop",last_assistant_message:"The backup is not running because the disk is full."}' | $H

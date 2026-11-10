@@ -35,6 +35,9 @@ working. Tonight you sort it, so the Anna who starts tomorrow knows what the day
    a lesson about Anna herself → a memory lesson. Only when seen ≥ 3 times over ≥ 2 days in the logs, or once plus an
    explicit rule in the person's own words. List under **Proposed** in the output: file, the change, the entries that
    support it (date + line). A reviewed session applies it.
+   **Read `self/proposals.md` first** (the standing list, `anna-proposals`): don't propose again what's already there,
+   whatever its status. New evidence for an open one → one line `- **still open:** <p-id> — <the new evidence>` (the
+   tool notes it on that item). A `declined` one stays declined unless the person's own words reopen it.
 4. **Let go:** everything else stays in the log, searchable, not carried forward. That's most entries, and it's healthy.
 
 Also look across the week: **what repeats** (the same correction, the same kind of miss, the same theme) is the signal.
@@ -59,4 +62,4 @@ or anything the stream marks private.
 
 ## 5. Output (one screen)
 `## Dreamt` (2–4 lines: the night in brief) · `## Proposed for a reviewed session` (file → change → evidence) or "None." ·
-`## Could not` (anything refused or missing). The morning run lists the Proposed items under Watch.
+`## Could not` (anything refused or missing). `anna-run` copies the Proposed items into `self/proposals.md`; the prompt hook raises one a day.

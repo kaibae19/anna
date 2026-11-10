@@ -37,6 +37,9 @@ refused **per command**, not Bash as a whole: split them and carry on. Use `grep
 3. **Don't edit the records of things (the folder of things, `record.things`, default `hosts/`), runbooks, memory
    lessons or the backlog** unattended. List proposed updates under
    **Proposed for the next session** (file, change, evidence line), so a reviewed session can apply them.
+   **Read `self/proposals.md` first** (the standing list, `anna-proposals`): don't propose again what's already there,
+   whatever its status. New evidence for an open one → one line `- **still open:** <p-id> — <the new evidence>` (the
+   tool notes it on that item). A `declined` one stays declined unless the person's own words reopen it.
 3b. **Memory consolidation:** for each memory whose topic shows up in what you folded, compare the memory file and its
    MEMORY.md line with what the drafts and the journal say. Flag claims that are contradicted, transient ("currently",
    "for now", "pending") but resolved, or duplicated. Propose fixes under **Proposed → memory**.

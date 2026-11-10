@@ -187,6 +187,23 @@ def todays_question() -> str | None:
     return None
 
 
+# --- proposals: one of the nightly runs' proposals rides along (after today's question) until a reply raises it ---
+def next_proposal() -> tuple[str, str] | None:
+    try:
+        out = subprocess.run([str(BIN / "anna-proposals"), "next"], capture_output=True, text=True, timeout=5).stdout.strip()
+    except Exception:  # noqa: BLE001  (fails open: no proposal shown)
+        return None
+    return tuple(out.split("\t", 1)) if "\t" in out else None
+
+
+def proposal_raised_in(reply: str) -> None:
+    try:
+        subprocess.run([str(BIN / "anna-proposals"), "raised-in", "-"], input=reply, text=True, timeout=5,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def asked_today() -> bool:
     start = now().replace(hour=0, minute=0, second=0, microsecond=0)
     return any(r.get("from") == "curiosity" for r in read_since(start))
@@ -247,6 +264,13 @@ def hook() -> None:
                      "pause (a task just finished, the conversation slowed): not a greeting after a gap, not mid-incident or "
                      "during a long run of work. Plain words, no preamble. The Stop hook logs it as asked; if today has no "
                      "good moment, it waits for tomorrow.\n\n")
+        pr = next_proposal() if theirs and not interp_why.startswith("first words") and not (q and not asked_today()) else None
+        if pr:                                                    # one proposal a day, after the question, in conversation
+            head += (f"A proposal from the nightly runs, not raised yet ({pr[0]}): {pr[1]}\nIf this turn ends at a natural "
+                     "pause (a task just finished; not a greeting after a gap, not mid-task), raise it once, in plain words, as a "
+                     f"question they can answer in a word: yes / no / later. Full text: `anna-proposals show {pr[0]}`. Record "
+                     f"the answer with `anna-proposals set {pr[0]} accepted|declined|later --said \"<their words>\"`; accepted → "
+                     "apply it with /anna-proposals (through the action gate). The Stop hook marks it raised.\n\n")
         if theirs and ASKS_STATE.search(said):                    # prompt-side nudge for the epistemic engine
             head += ("Epistemic: this prompt asks why / whether / what state. If your reply states a cause, a negative "
                      "(down, missing, never, not exposed) or a current state, run anna-epistemic on your draft first "
@@ -274,6 +298,7 @@ def hook() -> None:
                 q = todays_question()
                 if q and not asked_today() and asked_in(q, h["last_assistant_message"]):
                     add(f"asked (in session): {q}", "curiosity", sid)
+                proposal_raised_in(h["last_assistant_message"])
             return
         tp = Path(h.get("transcript_path") or "")
         if not tp.is_file():
