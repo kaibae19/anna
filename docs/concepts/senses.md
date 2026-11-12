@@ -65,8 +65,10 @@ message that isn't JSON, or has no `message`, is logged and dropped.
 
 ## What the intake does with an event
 - **Every event** goes to Anna's stream (her short-term memory), so it's in the journal that night.
-- **`tell`, `ask` and `check`** also reach the working session through the relay, with what to do. `log` stops at the
-  stream.
+- **`tell` and `ask`** go to the router, [`anna-tell`](telling.md) by default (`senses.router`): it decides where you'll
+  hear it (the session you're in, or the bot), when (held during your quiet hours unless it's `high`) and how loud.
+  **`check`** goes to the working session through the relay to be looked into. `log` stops at the stream. Scheduled jobs
+  tell Anna things through this same door: [How Anna tells you things](telling.md).
 - **An event is data, not an order.** A sense can tell Anna something happened. It can't make her do anything: whatever
   she changes because of it still goes through the [action gate](../reference/engines.md).
 - **Dedupe and rate limits:** the same event (source and id, or source, kind and message) within 5 minutes is dropped,

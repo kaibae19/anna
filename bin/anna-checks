@@ -1,7 +1,8 @@
 #!/bin/bash
 # anna-checks [section...] — fixed, read-only checks for Anna (the morning report, the bot, you). Default: all sections.
 # Built-in sections: relay (bridge + both sides + queue, if relay.enabled), clock (ping/run items that should have fired),
-# disk (this machine's root filesystem), access (the record access log: one weekly line; ⚠ when it logged nothing). Yours: every executable in <record>/checks/ is a section named after the file.
+# disk (this machine's root filesystem), access (the record access log: one weekly line; ⚠ when it logged nothing),
+# tell (the one door: no script messages the user directly; no event stuck in the senses inbox). Yours: every executable in <record>/checks/ is a section named after the file.
 # Contract for a check: read-only; print one line per finding starting with "OK ", "⚠ " or "⛔ " (⛔ = needs the user
 # today: the morning run notifies on it); exit 0. It gets 60 s. A check that fails to run is reported as ⚠ (unverified),
 # never as OK. Allowlist this one command for headless runs and the bot, never the commands inside the checks.
@@ -18,7 +19,7 @@ in_night() {
 export TZ; TZ=$(cfg anna.timezone); export PATH="$HOME/.bun/bin:$(cfg paths.bin):$PATH"
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}   # clean environments (headless) have no user bus otherwise
 R=$(cfg paths.record); CK=$R/checks
-builtin=(relay clock disk access)
+builtin=(relay clock disk access tell)
 mine=(); for f in "$CK"/*; do [ -f "$f" ] && [ -x "$f" ] && mine+=("$(basename "$f")"); done
 want=("$@"); [ ${#want[@]} -eq 0 ] && want=("${builtin[@]}" "${mine[@]}")
 echo "# anna-checks $(date '+%F %T %Z') from $(hostname -s)"; echo
@@ -48,6 +49,26 @@ disk() {
   if [ "$p" -ge 95 ]; then echo "⛔ disk: / is $p% full"; elif [ "$p" -ge 85 ]; then echo "⚠ disk: / is $p% full"; else echo "OK disk: / $p%"; fi
 }
 
+# tell: the one door (docs/concepts/telling.md). Scripts tell the user things through `anna-tell send`, never anna-notify
+# directly: ⚠ per script in paths.bin that calls anna-notify outside comments (anna-notify, anna-tell and this script are the
+# door itself). With senses on, ⚠ too for drop files the intake hasn't read within 5 min (it reads them within 2 s).
+tell() {
+  local f b hits n=0 old=0 inbox
+  for f in "$(cfg paths.bin)"/*; do b=${f##*/}
+    case $b in anna-notify|anna-tell|anna-checks|*.bak*|*.new|*.orig|*.pyc) continue ;; esac
+    [ -f "$f" ] || continue
+    hits=$(grep -nE '(^|[^-[:alnum:]_])anna-notify([^-[:alnum:]_]|$)' "$f" 2>/dev/null | grep -vE '^[0-9]+:[[:space:]]*#' | cut -d: -f1 | sort -un | paste -sd, || true)
+    [ -n "$hits" ] && { n=$((n+1)); echo "⚠ tell: $b calls anna-notify directly (line $hits) → anna-tell send <sense> \"…\""; }
+  done 2>/dev/null | sort -u
+  if [ "$(cfg senses.enabled)" = true ]; then
+    inbox=$(cfg senses.drop_dir); [ -n "$inbox" ] || inbox=$(cfg paths.state)/senses/inbox
+    old=$(find "$inbox" -maxdepth 1 -name '*.json' -mmin +5 2>/dev/null | wc -l)
+    [ "$old" -gt 0 ] && echo "⚠ tell: $old event file(s) in $inbox older than 5 min (the intake isn't reading drops: systemctl --user status anna-senses)"
+  fi
+  return 0
+}
+tell_ok() { local o; o=$(tell); [ -n "$o" ] && printf '%s\n' "$o" || echo "OK tell: no script messages the user directly; senses inbox clear"; }
+
 access() {                                          # never ⛔: a measurement, and a sign the hook went quiet
   local l; l=$("$D/anna-access" stats --week 2>&1 || true)
   case "$l" in *"no entries"*) echo "⚠ $l" ;; *) echo "OK $l" ;; esac
@@ -59,7 +80,7 @@ done
 for s in "${want[@]}"; do
   echo "\$ $s"
   case " ${builtin[*]} " in
-    *" $s "*) "$s" ;;
+    *" $s "*) if [ "$s" = tell ]; then tell_ok; else "$s"; fi ;;
     *) if [ -x "$CK/$s" ]; then out=$(timeout 60 "$CK/$s" 2>&1); rc=$?
          if [ $rc -ne 0 ] && ! grep -qE '^(OK|⚠|⛔) ' <<<"$out"; then echo "⚠ $s: check failed to run (exit $rc): ${out:0:200}"
          else printf '%s\n' "$out"; [ $rc -ne 0 ] && echo "⚠ $s: check exited $rc"; fi

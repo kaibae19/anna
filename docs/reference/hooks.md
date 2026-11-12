@@ -20,11 +20,13 @@ to turn it off. It's for anyone who sees hook output in a session and wants to k
 | `SessionStart` | `startup` or `resume` | `anna-session-start` | 10 s | Tells a new session what happened while no one was looking. |
 | `SessionEnd` | (all) | `anna-session-draft` | 30 s | Turns the session's transcript into a redacted draft for the journal. |
 | `UserPromptSubmit` | (all) | `anna-stream hook` | 45 s | Logs your message to the stream; shows the session what other parts did; runs the interpretation engine when due (`engines.interpretation`), carries today's question, logs your corrections to the own journal. |
+| `UserPromptSubmit` | (all) | `anna-tell hook-prompt` | 10 s | In the brain: after Anna told you something in the session, your next message gets one `📣 Reminder:` line if it didn't respond to it. |
 | `Stop` | (all) | `anna-stream hook` | 5 s | Logs Anna's reply to the stream. |
 | `Stop` | (all) | `anna-bot-reply-guard` | 10 s | In the bot only: a turn that began with a Telegram message can't end without a reply. |
 | `Stop` | (all) | `anna-epistemic-hook` | 10 s | In the brain: logs a reply that stated a cause, negative or state without an epistemic check. |
 | `PreToolUse` | `mcp__plugin_fakechat_fakechat__reply` | `anna-epistemic-hook` | 45 s | With `engines.epistemic_relay = true`: checks a relay result before it goes out. |
 | `Notification` | `idle_prompt` | `anna-idle-checkpoint` | 1800 s, `asyncRewake` | Wakes the brain for `/anna-checkpoint` after a quiet spell. |
+| `Notification` | `idle_prompt` | `anna-tell hook-idle` | 1800 s, `asyncRewake` | In the brain: a tell given in the session with no prompt from you for `tell.idle_wait` s → the bot tells you instead, once. |
 | `PostToolUse` | `Read`, `Edit`, `Write`, `MultiEdit`, `Bash`, `mcp__merlin__.*` | `anna-access hook` | 5 s | Logs which record files were used (paths and queries only). |
 | `PreToolUse` | `Bash` or `mcp__.*` | `anna-gate-hook` | 5 s | Blocks a known list of state changes (below) without a recent `go` from the action gate. |
 
@@ -153,6 +155,22 @@ anna-idle-checkpoint): run /anna-checkpoint. …`. Otherwise it exits 0 and does
 **Writes:** a lock file per session in `<paths.state>/idle-checkpoint/` (one waiter per session). Any error exits 0.
 
 **Test knob:** `ANNA_IDLE_TEST=1` makes it ask for the word `PONG` instead of a checkpoint (for throwaway sessions).
+
+## anna-tell (hook-prompt, hook-idle)
+
+**Events:** `UserPromptSubmit` (`anna-tell hook-prompt`) and `Notification` with matcher `idle_prompt`
+(`anna-tell hook-idle`, in the background: `asyncRewake: true`, timeout 1800 s). Both act only in the brain (no
+`ANNA_ROLE`, no `ANNA_HEADLESS`). Why they exist: [How Anna tells you things](../concepts/telling.md).
+
+**What they do:** when Anna tells you something in a session (a `📣` line), `anna-tell` keeps a note in
+`<paths.state>/tell/told/` until you answer.
+
+- **hook-prompt:** your next real message (not a relay, a notification or the overnight wrap) gets context asking Anna to
+  end her reply with one `📣 Reminder: …` line if your message doesn't respond to the tell. It does this once per tell.
+- **hook-idle:** waits up to `tell.idle_wait` seconds (default 1200). If the tell is still unanswered with no prompt from
+  you, it hands it to the bot (`anna-relay tell-bot`, or `anna-notify` with the relay off), worded as news, once.
+
+Any error exits 0: these hooks never block a prompt.
 
 ## anna-bot-reply-guard
 

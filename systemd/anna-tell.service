@@ -1,0 +1,8 @@
+# anna-tell flush: deliver what was held during quiet hours as one message, once the user is active. User unit, installed
+# by install.sh. docs/concepts/telling.md.
+[Unit]
+Description=Anna: deliver held tells at the user's first message (anna-tell flush)
+
+[Service]
+Type=oneshot
+ExecStart=%h/bin/anna-tell flush

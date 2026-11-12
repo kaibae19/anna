@@ -23,8 +23,9 @@ turn on the relay so the bot can hand real work to the brain. Do [Install](insta
   model (`models.bot`, default `sonnet`) and can only do what its allowlist permits.
 - **The relay** (`anna-relay bridge`) carries requests from the bot to the brain and results back. You talk to one Anna;
   the bot says the brain's result in its own voice.
-- **`anna-notify`** sends one-way alerts from scripts (a failed night run, a ⛔ in the morning report, clock pings) to your
-  chat.
+- **`anna-notify`** is the one-way transport for alerts from scripts (a failed night run, a ⛔ in the morning report,
+  clock pings) when they can't go through the bot conversationally. Scripts reach it through [the one door](../concepts/telling.md), which
+  decides whether you hear it here, in a session, or later.
 
 The bot needs **bun**: check with `bun --version` ([bun.sh](https://bun.sh) if it's missing; its installer needs
 `unzip` (`sudo apt install unzip` on Debian/Ubuntu) and adds `~/.bun/bin` to your shell profile, so open a new terminal
@@ -260,7 +261,7 @@ Telegram is wired into these places today, so a different channel means changing
 | Where | What's Telegram-specific |
 |---|---|
 | `bin/anna-tg` | the channel (`plugin:telegram@claude-plugins-official`), the token it reads from `<paths.secrets>/telegram-<instance>`, and `TELEGRAM_STATE_DIR` |
-| `bin/anna-notify` | scripts' alerts and clock pings call Telegram's `sendMessage` API directly, not through the plugin |
+| `bin/anna-notify` | the fallback transport under `anna-tell` (scripts' alerts and clock pings): Telegram's `sendMessage` API directly, not through the plugin |
 | `bot/settings.json.in` | enables the telegram plugin and allows its reply tool |
 | `install.sh` | installs the telegram plugin and keeps it off at user scope |
 

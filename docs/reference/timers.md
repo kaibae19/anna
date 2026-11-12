@@ -18,6 +18,7 @@ something didn't.
 | Timer | Runs | Default time | Set by |
 |---|---|---|---|
 | `anna-clock.timer` | `anna-clock.service` → `~/bin/anna-clock tick` | every 5 minutes (`*:0/5`) | fixed |
+| `anna-tell.timer` | `anna-tell.service` → `~/bin/anna-tell flush` | every 2 minutes (`*:0/2`) | fixed |
 | `anna-morning.timer` | `anna-morning.service` → `~/bin/anna-run /anna-morning morning` | 04:00 | `runs.morning` |
 | `anna-evening.timer` | `anna-evening.service` → `~/bin/anna-evening` | 01:00 | `runs.evening` |
 | `anna-dream.timer` | `anna-dream.service` → `~/bin/anna-run /anna-dream dream` | 01:30 | `runs.dream` |
@@ -33,6 +34,7 @@ All times are in `anna.timezone`. With the defaults, one night looks like this:
 04:00  anna-morning       read-only morning check → journal/handoffs/<date>-morning.md
 04:15  anna-day open      start the new day's brain session; relay released
 every 5 min  anna-clock tick   fire due pings and scheduled runs
+every 2 min  anna-tell flush   deliver what was held in your quiet hours, once you're back ([How Anna tells you things](../concepts/telling.md))
 ```
 
 Two long-running services have no timer:
@@ -53,7 +55,7 @@ itself catches up on anything overdue. A `--run` item starts as its own transien
 ### `anna-morning.timer` and `anna-morning.service`
 
 The scheduled headless morning check: [`anna-run`](commands.md#anna-run) with the `/anna-morning` skill, label
-`morning`. Output goes to `journal/handoffs/<date>-morning.md` in the record; ⛔ lines under `## Needs action` notify you.
+`morning`. Output goes to `journal/handoffs/<date>-morning.md` in the record; ⛔ lines under `## Needs action` are told to you ([How Anna tells you things](../concepts/telling.md)).
 `Persistent=true`: missed while off, it runs at the next boot. `TimeoutStartSec=40min`.
 
 ### `anna-evening.timer` and `anna-evening.service`

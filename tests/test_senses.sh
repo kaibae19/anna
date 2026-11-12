@@ -6,7 +6,8 @@ cd "$(dirname "$0")/.."
 T=$(mktemp -d); PID=; trap '[ -n "$PID" ] && kill "$PID" 2>/dev/null; rm -rf "$T"' EXIT
 PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1])')
 export ANNA_CONFIG=$T/anna.toml
-printf '[anna]\nuser = "Sam"\n[paths]\nstate = "%s/state"\nsecrets = "%s/secrets"\n[senses]\nport = %s\n' "$T" "$T" "$PORT" > "$ANNA_CONFIG"
+# router = "": these cases test the direct path to the session; the router (anna-tell) has its own cases at the end
+printf '[anna]\nuser = "Sam"\n[paths]\nstate = "%s/state"\nsecrets = "%s/secrets"\n[senses]\nport = %s\nrouter = ""\n' "$T" "$T" "$PORT" > "$ANNA_CONFIG"
 mkdir -p "$T/fake"
 for c in anna-stream anna-relay; do printf '#!/bin/bash\necho "%s $*" >> %s/calls\n' "$c" "$T" > "$T/fake/$c"; chmod +x "$T/fake/$c"; done
 export PATH="$T/fake:$PATH"
@@ -60,4 +61,19 @@ for _ in $(seq 1 30); do [ -f "$T/state/senses/inbox/bad/junk.1.json" ] && break
 ok "unreadable drop file → bad/" '[ -f "$T/state/senses/inbox/bad/junk.1.json" ]'
 ok "drop folder is private" '[ "$(stat -c %a "$T/state/senses/inbox")" = 700 ]'
 ok "listens on localhost only by default" 'grep -q "http on 127.0.0.1:$PORT" "$T/intake.log"'
+
+# the router (senses.router, default "anna-tell route"): a stand-in records the event it gets on stdin
+kill "$PID" 2>/dev/null; PID=
+printf '#!/bin/bash\ncat >> %s/routed\necho >> %s/routed\n' "$T" "$T" > "$T/fake/router"; chmod +x "$T/fake/router"
+printf '#!/bin/bash\nexit 3\n' > "$T/fake/badrouter"; chmod +x "$T/fake/badrouter"
+sed -i 's/^router = .*/router = "router"/' "$ANNA_CONFIG"; : > "$T/calls"
+$I once '{"message":"cat in garage","do":"tell","importance":"high","entity":"camera.garage"}' garage >/dev/null
+ok "router gets the event as JSON" 'jq -e "select(.source==\"garage\" and .do==\"tell\" and .importance==\"high\" and .entity==\"camera.garage\")" "$T/routed" >/dev/null'
+ok "routed event is not also sent to the relay" '! calls | grep -q anna-relay'
+: > "$T/routed"; $I once '{"message":"just a note"}' garage >/dev/null
+ok "do=log never reaches the router" '[ ! -s "$T/routed" ]'
+sed -i 's/^router = .*/router = "badrouter"/' "$ANNA_CONFIG"; : > "$T/calls"
+$I once '{"message":"router broken","do":"tell"}' garage >/dev/null
+ok "router fails → straight to the session (nothing lost)" 'calls | grep -q "anna-relay send \[sense garage\] do=tell importance=normal: router broken"'
+ok "default router is anna-tell" 'grep -q "^router = \"anna-tell route\"" config/anna.example.toml'
 exit $fail

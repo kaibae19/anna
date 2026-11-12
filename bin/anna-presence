@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""anna-presence [--json] [--active-min N] [--at ISO]
+
+Where the user is right now, and whether it's their quiet time: the routing signal for how Anna tells them things
+(anna-tell; docs/concepts/telling.md). Computed from Anna's stream, never guessed by a model.
+
+- session / bot: their last real message in a brain session / to the bot (stream lines "<anna.user>: …" with
+  from=session|bot; lines typed by scripts are skipped, the same filter as anna-rhythm). Active = within --active-min
+  minutes (default 10).
+- where: "session" if active there (most recent wins if both), else "bot" if active there, else "away".
+- quiet: from anna-rhythm's typical hours. Awake span = first typical hour .. last typical hour + 1; outside it = quiet.
+  Never quiet while they're active (they're evidently up). No rhythm data yet = awake.
+- first_today: their first real message today (HH:MM), for nudges timed to their morning.
+- --at: evaluate as if it were that time (testing). ANNA_STREAM_DIR overrides the stream dir (testing).
+Output: one line of text, or JSON with --json.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from anna_cfg import STATE, TZ, USER, get  # noqa: E402
+
+DIR = Path(os.environ.get("ANNA_STREAM_DIR", STATE / "stream"))
+SAID = f"{USER}: "
+# typed into the session by scripts, not by the person (same as anna-rhythm): the overnight wrap, relays, notifications
+AUTO = re.compile("^" + re.escape(SAID) + "(" + re.escape(str(get("day.wrap", "/anna-wrapup overnight"))) + r"|\[relay |<)")
+_D = Path(__file__).resolve().parent
+
+
+def last_messages(now: datetime) -> dict[str, dict]:
+    """Their last real message per source (session, bot), looking back over today and yesterday."""
+    out: dict[str, dict] = {}
+    for d in (now.date() - timedelta(days=1), now.date()):
+        f = DIR / f"{d.isoformat()}.jsonl"
+        if not f.exists():
+            continue
+        for line in f.read_text(errors="replace").splitlines():
+            try:
+                r = json.loads(line)
+                ts = datetime.fromisoformat(r["ts"]).astimezone(TZ)
+            except (ValueError, KeyError, TypeError):
+                continue
+            t, src = str(r.get("text", "")), r.get("from", "")
+            if src not in ("session", "bot") or not t.startswith(SAID) or AUTO.match(t) or ts > now:
+                continue
+            if src not in out or ts > out[src]["ts"]:
+                out[src] = {"ts": ts, "sid": r.get("sid", "")}
+            if ts.date() == now.date() and ("first" not in out or ts < out["first"]["ts"]):
+                out["first"] = {"ts": ts, "src": src}   # their first real message today (rhythm-timed nudges)
+    return out
+
+
+def awake_span() -> tuple[int, int] | None:
+    """(first hour, last hour + 1) of anna-rhythm's typical window, e.g. '06–13, 14–15, 16–20' → (6, 21)."""
+    try:
+        typ = json.loads(subprocess.run([str(_D / "anna-rhythm") if (_D / "anna-rhythm").exists() else "anna-rhythm", "--json"], capture_output=True, text=True, timeout=20).stdout)["typical"]
+    except (OSError, ValueError, KeyError, subprocess.TimeoutExpired):
+        return None
+    hours = [int(h) for h in re.findall(r"\d{2}", typ)]
+    return (min(hours), max(hours) + 1) if hours else None
+
+
+def main(argv: list[str]) -> int:
+    as_json, active_min, at = "--json" in argv, 10, None
+    a = [x for x in argv if x != "--json"]
+    while len(a) >= 2 and a[0] in ("--active-min", "--at"):
+        if a[0] == "--active-min":
+            active_min = int(a[1])
+        else:
+            at = datetime.fromisoformat(a[1]).astimezone(TZ)
+        a = a[2:]
+    if a:
+        print(__doc__.strip(), file=sys.stderr)
+        return 2
+    now = at or datetime.now(TZ)
+    last = last_messages(now)
+    srcs = {}
+    for s in ("session", "bot"):
+        if s in last:
+            mins = int((now - last[s]["ts"]).total_seconds() // 60)
+            srcs[s] = {"last": last[s]["ts"].strftime("%H:%M" if last[s]["ts"].date() == now.date() else "%a %H:%M"),
+                       "mins_ago": mins, "active": mins < active_min, **({"sid": last[s]["sid"]} if last[s]["sid"] else {})}
+        else:
+            srcs[s] = {"last": None, "mins_ago": None, "active": False}
+    act = [s for s in ("session", "bot") if srcs[s]["active"]]
+    where = min(act, key=lambda s: srcs[s]["mins_ago"]) if act else "away"
+    span = awake_span()
+    if where != "away":
+        quiet, why = False, f"active in the {where}"
+    elif span is None:
+        quiet, why = False, "no rhythm data: treated as awake"
+    else:
+        quiet = not (span[0] <= now.hour < span[1])
+        why = f"rhythm awake {span[0]:02d}–{span[1]:02d}, now {now:%H:%M}"
+    out = {"now": now.strftime("%a %Y-%m-%d %H:%M"), "where": where, "quiet": quiet, "why": why,
+           "awake": f"{span[0]:02d}–{span[1]:02d}" if span else None, "active_min": active_min,
+           "first_today": last["first"]["ts"].strftime("%H:%M") if "first" in last else None, **srcs}
+    if as_json:
+        print(json.dumps(out, indent=1))
+    else:
+        def fmt(s):
+            v = srcs[s]
+            return f"{s} {v['last']} ({v['mins_ago']} min ago)" if v["last"] else f"{s} none"
+        print(f"where={where} quiet={'yes' if quiet else 'no'} ({why}) · {fmt('session')} · {fmt('bot')}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

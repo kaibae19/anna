@@ -27,11 +27,11 @@ $K done "$id" "fine" >/dev/null
 ok "done closes it with a suffix" 'grep -q "^- \[x\] .* $id .* — done .*: fine" "$T"/record/clock/*.md'
 ok "done twice fails" '! $K done "$id" 2>/dev/null'
 
-# tick: a due ping fires once through anna-notify; written straight into the file as already due
+# tick: a due ping fires once through the one door (anna-tell send → anna-notify here: senses are off); written straight into the file as already due
 m=$(date -u +%Y-%m); d=$(date -u -d "-2 hours" '+%F %H:%M')
 echo "- [ ] $d ping #beef stretch your legs (added x by test)" >> "$T/record/clock/$m.md"
 $K tick >/dev/null
-ok "tick sent the ping" 'grep -q "^clock #beef|⏰ stretch your legs (late: was due" "$T/sent"'
+ok "tick sent the ping" 'grep -q "^clock #beef|⏰ Reminder (clock #beef, due .*): stretch your legs (late: was due" "$T/sent"'
 ok "and closed it" 'grep -q "^- \[x\] .* #beef .* — pinged" "$T/record/clock/$m.md"'
 $K tick >/dev/null
 ok "a second tick doesn't resend" '[ "$(wc -l < "$T/sent")" -eq 1 ]'

@@ -1,0 +1,9 @@
+[Unit]
+Description=Anna: every 2 min, deliver held tells if the user is active (anna-tell flush)
+
+[Timer]
+OnCalendar=*:0/2
+Persistent=false
+
+[Install]
+WantedBy=timers.target

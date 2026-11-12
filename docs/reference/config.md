@@ -187,7 +187,7 @@ Each run is one `claude -p` session through `anna-run`, with deny-by-default set
 
 | Key | Default | What it does | Who reads it |
 |---|---|---|---|
-| `morning` | `"04:00"` | Time of the morning run, `/anna-morning`: a read-only check, written to `journal/handoffs/<date>-morning.md` in the record. ⛔ lines under `## Needs action` notify you. | `install.sh` (`anna-morning.timer`) |
+| `morning` | `"04:00"` | Time of the morning run, `/anna-morning`: a read-only check, written to `journal/handoffs/<date>-morning.md` in the record. ⛔ lines under `## Needs action` are told to you ([one door](../concepts/telling.md)). | `install.sh` (`anna-morning.timer`) |
 | `evening` | `"01:00"` | Time of the evening run, `anna-evening`: folds the day's session drafts and yesterday's stream into the journal. | `install.sh` (`anna-evening.timer`) |
 | `dream` | `"01:30"` | Time of the nightly dream, `/anna-dream`: sorts the own journal into `self/lately.md`, wonders and proposals. Keep it after `evening`. | `install.sh` (`anna-dream.timer`) |
 
@@ -238,12 +238,22 @@ Pushed senses: how events reach Anna (`anna-senses`). See [Senses](../concepts/s
 | `mqtt_host` | `""` | An MQTT broker to subscribe to `anna/senses/+` on; empty = MQTT off. Needs `paho-mqtt`. | `anna-senses` |
 | `mqtt_port` | `1883` | The broker's port. | `anna-senses` |
 | `mqtt_user` | `"anna"` | The broker login; its password is the file `<paths.secrets>/mqtt-senses`. | `anna-senses` |
+| `router` | `"anna-tell route"` | Who decides where and when a `tell`, `ask` or `check` goes: the command gets the event as JSON on stdin ([How Anna tells you things](../concepts/telling.md)). `""` = straight to the working session through the relay, as before. If the router fails, the event goes straight to the session, so nothing is lost. | `anna-senses` |
+
+## `[tell]`: the one door
+
+How Anna tells you things (`anna-tell`). See [How Anna tells you things](../concepts/telling.md). Where you are and your
+quiet hours aren't settings: they come from the stream (`anna-presence`, `anna-rhythm`).
+
+| Key | Default | What it does | Who reads it |
+|---|---|---|---|
+| `idle_wait` | `1200` | Seconds a tell given in a session may go unanswered (no prompt from you) before the bot tells you instead, once. | `anna-tell` (`hook-idle`) |
 
 ## `[bot]`: Telegram
 
 | Key | Default | What it does | Who reads it |
 |---|---|---|---|
-| `enabled` | `false` | Turn the Telegram bot on. `install.sh` writes the bot's settings file and tells you how to start `anna-tg@<instance>`. With `false`, `anna-notify` writes to the stream only, and `anna-day` doesn't notify on failures. | `install.sh`, `anna-notify`, `anna-day` |
+| `enabled` | `false` | Turn the Telegram bot on. `install.sh` writes the bot's settings file and tells you how to start `anna-tg@<instance>`. With `false`, `anna-notify` writes to the stream only, so what [`anna-tell`](../concepts/telling.md) would send by Telegram lands in the stream. | `install.sh`, `anna-notify` |
 | `instance` | `"ops"` | The bot instance name: lowercase letters and digits. It names the token file `<paths.secrets>/telegram-<instance>`, the state directory `<paths.state>/telegram-<instance>`, the settings `~/.claude/anna-tg-<instance>-settings.json`, the working directory `~/anna-<instance>` and the unit `anna-tg@<instance>`. | `install.sh`, `anna-tg`, `anna-notify` |
 
 ## A complete example

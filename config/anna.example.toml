@@ -64,3 +64,7 @@ drop_dir = ""                       # empty = <paths.state>/senses/inbox
 mqtt_host = ""                      # optional: a broker to subscribe to anna/senses/+ on (needs paho-mqtt); empty = off
 mqtt_port = 1883
 mqtt_user = "anna"                  # password file: <paths.secrets>/mqtt-senses
+router = "anna-tell route"          # who decides where/when a tell|ask|check goes (docs: How Anna tells you things); "" = straight to the session
+
+[tell]                              # the one door (anna-tell; docs: How Anna tells you things)
+idle_wait = 1200                    # seconds a tell given in the session may go unanswered before the bot tells them instead

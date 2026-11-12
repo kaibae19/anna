@@ -67,7 +67,7 @@ ok "update: an Anna hook already there gets the template's timeout" '[ "$(jq "[.
 ok "a second install exits 0" '[ $rc -eq 0 ]'
 ok "update: a template file you removed (in git history) is not added back" '[ ! -e "$HOME/anna-record/runbooks/README.md" ]'
 ok "update: new template files are added to an existing record" '[ -f "$HOME/anna-record/self/README.md" ] && [ -f "$HOME/anna-record/planning/wonders.md" ] && echo "$out2" | grep -q "added what.s new in the template"'
-ok "hooks are not duplicated" '[ "$(jq "[.hooks.UserPromptSubmit[].hooks[]] | length" "$S")" -eq 1 ] && [ "$(jq "[.hooks.Stop[].hooks[]] | length" "$S")" -eq 4 ]'
+ok "hooks are not duplicated" '[ "$(jq "[.hooks.UserPromptSubmit[].hooks[]] | length" "$S")" -eq 2 ] && [ "$(jq "[.hooks.Notification[].hooks[]] | length" "$S")" -eq 2 ] && [ "$(jq "[.hooks.Stop[].hooks[]] | length" "$S")" -eq 4 ]'
 ok "the record is left alone" 'grep -q "my notes" "$HOME/anna-record/CLAUDE.md"'
 ok "~/CLAUDE.md edited by you: left alone, new version beside it, ⚠ line" 'grep -qx "# mine" "$HOME/CLAUDE.md" && [ -f "$HOME/CLAUDE.md.anna-new" ] && grep -q "you edited ~/CLAUDE.md" <<<"$out2"'
 ok "an engine you edited is left alone (new one beside it)" 'grep -q "my tweak" "$HOME/.claude/agents/anna-goals.md" && [ -f "$HOME/.claude/agents/anna-goals.md.anna-new" ]'

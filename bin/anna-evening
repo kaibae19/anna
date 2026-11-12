@@ -21,7 +21,8 @@ keep=(); for p in $folded; do [[ $p == "$DR"/*.md && -f $p ]] && keep+=("$p"); d
 [ -n "$STREAM" ] && grep -qF "$ST" <<<"$folded" && echo "$ST" >> "$SD/.folded"
 left=$(ls "$DR"/*.md 2>/dev/null | wc -l)
 echo "$(date -Is) evening: folded ${#keep[@]}, left $left"
-if [ "$left" -gt 0 ] && command -v anna-notify >/dev/null; then
-  ANNA_NOTIFY_FROM="anna-evening" anna-notify "⚠ evening fold left $left session draft(s) unfolded; retried tomorrow. See $OUT" || true
+if [ "$left" -gt 0 ]; then   # the one door (anna-tell send): normal, so it waits for their first message
+  ANNA_NOTIFY_FROM="anna-evening" "$D/anna-tell" send runs \
+    "⚠ evening fold left $left session draft(s) unfolded; retried tomorrow. See $OUT" --kind failure || true
 fi
 exit 0

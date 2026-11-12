@@ -117,8 +117,8 @@ Each item is labelled **VERIFIED** (a live output line proves it), **HYPOTHESIS*
 **UNVERIFIED** (the check failed, timed out or returned nothing). The headless runner `anna-run` saves the output as
 `journal/handoffs/<date>-morning.md`, commits only that file and pushes if the record has a remote.
 
-**Alerts:** a line starting with `⛔` under `## Needs action` in the morning report makes `anna-run` send you a Telegram
-message (through `anna-notify`, if installed). The skill keeps ⛔ for things that need you today: something down, a failed
+**Alerts:** a line starting with `⛔` under `## Needs action` in the morning report makes `anna-run` tell you, through
+[the one door](../concepts/telling.md) (`normal`: held until your first message if it's your quiet time). The skill keeps ⛔ for things that need you today: something down, a failed
 backup, a security issue.
 
 **Interactively:** it ends with the checklist and asks what to take on first.
@@ -228,7 +228,7 @@ for the next session** (file, change, evidence line), plus a **Proposed → memo
 again what's already there; `anna-run` copies the new items into it.
 
 **Output:** what it folded where, the proposals, ⚠ anything odd, and a last line exactly `FOLDED: <path> <path> …`. A
-draft left off that line stays and is retried the next night; `anna-evening` notifies you if any are left.
+draft left off that line stays and is retried the next night; `anna-evening` tells you if any are left.
 
 ## anna-dream
 

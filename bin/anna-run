@@ -2,7 +2,8 @@
 # anna-run PROMPT [LABEL] — one headless Anna session (claude -p) with deny-by-default settings.
 # Output: <record>/journal/handoffs/<date>-<LABEL>.md, committed (and pushed if the record has a remote). Log: <state>/anna-run.log.
 # Auth: <paths.secrets>/claude-oauth if present (a long-lived token from `claude setup-token`), else the normal login.
-# Alerts (anna-notify, if installed): a failed run, and ⛔ lines under "## Needs action" in a morning or clock run.
+# Alerts (anna-tell send, sense `runs`, normal: held in quiet hours): a failed run, and ⛔ lines under "## Needs action"
+# in a morning or clock run.
 # $ANNA_ADD_DIR adds one extra readable directory (the evening run: the session drafts).
 set -o pipefail
 D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
@@ -32,11 +33,12 @@ if [ "$rc" -eq 0 ] && [[ $LABEL = evening || $LABEL = dream ]]; then
     fi
   else echo "$(date -Is) $LABEL ⚠ proposals not ingested: $pr"; fi
 fi
-command -v anna-notify >/dev/null || exit 0           # alerts: quiet unless something needs the user
+T=$D/anna-tell           # alerts: quiet unless something needs the user (the one door)
+[ -x "$T" ] || exit 0
 export ANNA_NOTIFY_FROM="anna-run $LABEL"
-if [ "$rc" -ne 0 ]; then anna-notify "⛔ anna-run $LABEL failed (exit $rc) on $HOST. Output: $OUT" || true
+if [ "$rc" -ne 0 ]; then "$T" send runs "⛔ anna-run $LABEL failed (exit $rc) on $HOST. Output: $OUT" --kind failure || true
 elif [[ $LABEL = morning || $LABEL = clock-* ]] && stop=$(sed -n '/^## Needs action/,/^## /p' "$OUT" | grep -m5 -E '^([-*] )?(\*\*)?⛔'); then
-  anna-notify "⛔ $LABEL $DAY needs you:
+  "$T" send runs "⛔ $LABEL $DAY needs you:
 $(cut -c1-300 <<<"$stop")
-Full report: $OUT" || true
+Full report: $OUT" --kind needs-action || true
 fi

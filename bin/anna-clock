@@ -2,7 +2,7 @@
 # anna-clock — Anna's own schedule. Files canonical: <record>/clock/YYYY-MM.md (by due month), one line per item.
 #   anna-clock add WHEN [--ping|--run] TEXT   WHEN: "2026-10-21", "2026-10-21 09:00", "tomorrow 09:00", "mon", "+3d", "+2h", "+90min"
 #                                             no flag = note (shows in the morning check from its day on)
-#                                             --ping = a message to the user at that time (anna-notify)
+#                                             --ping = tell the user at that time (anna-tell send, importance high: never held)
 #                                             --run = a headless anna-run with TEXT as the task
 #   anna-clock list [--all]                   open items (--all: every line, closed included)
 #   anna-clock due [--days N]                 open items due by today+N (overdue included)
@@ -78,9 +78,9 @@ tick)
     text=${text% (added *}; f=$C/${d:0:7}.md
     late=$(( ($(date +%s) - $(date -d "$d $t" +%s)) / 60 )); lt=""; [ $late -gt 60 ] && lt=" (late: was due $d $t)"
     if [ "$act" = ping ]; then
-      if command -v anna-notify >/dev/null; then
-        ANNA_NOTIFY_FROM="clock #$id" anna-notify "⏰ $text$lt" && res="pinged $now_d $now_t" || res="ping FAILED $now_d $now_t"
-      else stream "clock #$id" "⏰ $text$lt (no anna-notify installed)"; res="noted $now_d $now_t (no notifier)"; fi
+      # the one door (docs/concepts/telling.md): high, because a ping is due at a time someone chose
+      ANNA_NOTIFY_FROM="clock #$id" "$(dirname "$(readlink -f "$0")")/anna-tell" send clock "⏰ Reminder (clock #$id, due $d $t): $text$lt" --importance high \
+        --kind reminder && res="pinged $now_d $now_t" || res="ping FAILED $now_d $now_t"
     else
       p="Scheduled task from your clock (clock/${d:0:7}.md #$id, due $d $t$lt): $text
 Do it within your headless permissions. If it needs $WHO or access you don't have, say so under a '## Needs action' heading with a ⛔ line."

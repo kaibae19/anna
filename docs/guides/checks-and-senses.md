@@ -25,7 +25,7 @@ a new **sense** (something she feels, like "the UPS is on battery"). It walks th
 | If it can't run | reported as `⚠ … check failed to run` | felt as `numb` ("can't feel …") |
 | Used for | the morning report's items and alerts | the morning report's first line, "How I feel: …" |
 
-A check is the operational source: a `⛔` line in the morning run sends you a Telegram message. A sense is only how Anna
+A check is the operational source: a `⛔` line in the morning run is told to you ([one door](../concepts/telling.md)). A sense is only how Anna
 describes the same facts; the morning check never turns a sense into an item or an alert.
 
 `<record>` is your record's folder (default `~/anna-record`). Print it with:
@@ -40,7 +40,7 @@ From `bin/anna-checks` and `record-template/checks/README.md`:
 
 - **Read-only.** It looks; it never changes anything.
 - **One line per finding**, starting with `OK `, `⚠ ` or `⛔ ` (the symbol, then a space).
-- `⛔` means **needs you today** (something down, a failed backup). The morning run notifies you on it. Use `⚠` for
+- `⛔` means **needs you today** (something down, a failed backup). The morning run tells you about it. Use `⚠` for
   everything that can wait.
 - **Exit 0.** A check that exits non-zero without printing an `OK`/`⚠`/`⛔` line is reported as `⚠ <name>: check failed to
   run (exit N): …`. One that prints a finding and then exits non-zero gets an extra `⚠ <name>: check exited N`.

@@ -66,8 +66,9 @@ The first line says how the run went:
 Each open item is labelled **VERIFIED** (a live check confirmed it, with the line that proves it), **HYPOTHESIS**
 (reasoned, not confirmed) or **UNVERIFIED**. The full commands and their output follow below the summary.
 
-If the bot is on, a ⛔ under Needs action also reaches your phone (via `anna-notify`), as does a run that fails. With
-the bot off, those alerts go to Anna's stream only. The report is committed to the record (and pushed if it has a
+A ⛔ under Needs action is also told to you, as is a run that fails, through [the one door](../concepts/telling.md): in the session if you're
+there, else by the bot; held until your first message if it's your quiet time. With the bot off, those alerts go to
+Anna's stream only. The report is committed to the record (and pushed if it has a
 remote). How the check works: [Skills § anna-morning](../reference/skills.md).
 
 ## During the day: brain or bot?
@@ -145,7 +146,7 @@ the session is left open, and the 04:15 open tries the close again.
 
 Go through this the morning after your first night:
 
-- [ ] `systemctl --user list-timers 'anna-*'` lists six timers, each with a next run time.
+- [ ] `systemctl --user list-timers 'anna-*'` lists seven timers, each with a next run time.
 - [ ] `ls ~/anna-record/journal/handoffs/` has today's `-morning.md` (and an `-evening.md` if there was anything to fold).
 - [ ] `head -1` of the morning report ends in `exit 0`.
 - [ ] `git -C ~/anna-record log --oneline -5` shows last night's commits (the wrap-up, the headless runs).

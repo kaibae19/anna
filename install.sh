@@ -152,7 +152,7 @@ for t in "$SRC"/systemd/*.timer.in; do
 done
 systemctl --user daemon-reload; say "units → $U"
 if [ $NOENABLE = 0 ]; then
-  systemctl --user enable --now anna-clock.timer anna-morning.timer anna-evening.timer anna-dream.timer anna-day-close.timer anna-day-open.timer
+  systemctl --user enable --now anna-clock.timer anna-tell.timer anna-morning.timer anna-evening.timer anna-dream.timer anna-day-close.timer anna-day-open.timer
   [ "$RELAY" = true ] && systemctl --user enable --now anna-relay.service
   [ "$SENSES" = true ] && systemctl --user enable --now anna-senses.service
   [ "$BOT" = true ] && say "bot: start it when the token is in place: systemctl --user enable --now anna-tg@$INST"

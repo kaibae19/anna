@@ -7,7 +7,7 @@
 #   open:  retry close if a session is still open; then a new screen window running anna-brain <anna.name>-YYYYMMDD in
 #          ~, answer the trust prompt for $HOME only, optionally type /remote-control (day.remote_control); release the relay.
 # Keystrokes go in with `screen -X stuff`; screens are read with `screen -X hardcopy`. Every outcome goes to Anna's stream;
-# failures also to anna-notify if installed.
+# failures are also told to the user (anna-tell send, sense `runs`, normal).
 set -uo pipefail
 D=$(dirname "$(readlink -f "$0")"); cfg() { "$D/anna-config" "$1"; }
 export TZ; TZ=$(cfg anna.timezone); export PATH="$(cfg paths.bin):$HOME/.local/bin:$PATH"
@@ -15,7 +15,7 @@ STATE=$(cfg paths.state); STOP=$STATE/brain-stop; RELAY=$STATE/relay   # STOP te
 SCR=$(cfg day.screen) IDLE_MIN=$(cfg day.idle_min) WRAP=$(cfg day.wrap) NAME=$(cfg anna.name)
 TMP=$(mktemp -d); trap 'rm -rf "$TMP"' EXIT
 log()  { echo "$(date -Is) anna-day: $*"; "$D/anna-stream" add --from "anna-day" "$*" 2>/dev/null || true; }
-fail() { log "⚠ $*"; [ "$(cfg bot.enabled)" = true ] && command -v anna-notify >/dev/null && ANNA_NOTIFY_FROM="anna-day" anna-notify "⚠ anna-day: $*" || true; }
+fail() { log "⚠ $*"; ANNA_NOTIFY_FROM="anna-day" "$D/anna-tell" send runs "⚠ anna-day: $*" --kind failure || true; }
 
 brain_pid() {  # the interactive claude whose screen session is $SCR (STY=<pid>.<name>); prints "pid window session_id cwd"
   local f p sty win

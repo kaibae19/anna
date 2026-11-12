@@ -67,6 +67,7 @@ nav:
   - Concepts:
       - How Anna is built: concepts/architecture.md
       - Senses: concepts/senses.md
+      - How Anna tells you things: concepts/telling.md
       - Her own journal: concepts/own-journal.md
       - A record that grows: concepts/a-record-that-grows.md
       - The relay: concepts/relay.md

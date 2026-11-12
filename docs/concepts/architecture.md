@@ -54,7 +54,7 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
           │                    ▲                              │                    ▲
           ▼                    │      anna-stream (the day)   ▼                    │
    ┌──────────────────────────────────────────────────────────────────────────────────┐
-   │  stream · clock · checks · senses · notify          (bin/, state in paths.state)  │
+   │  stream · clock · checks · senses · tell            (bin/, state in paths.state)  │
    └──────────────────────────────────────────────────────────────────────────────────┘
           │                                                        ▲
           ▼                                                        │
@@ -77,7 +77,7 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
 | skills | `skills/anna-*` | setup, morning, wrap-up, checkpoint, evening fold, dream |
 | bot | `bin/anna-tg`, `bot/` | a channel session (Telegram by default; [another app](../getting-started/telegram.md#using-another-chat-app)); prompt template + your `bot/context/` |
 | relay | `bin/anna-relay`, [the relay](relay.md) | bot ↔ brain over two fakechat channels and a file queue |
-| notify | `bin/anna-notify` | Telegram messages from scripts (alerts, clock pings); logged to the stream |
+| telling | `bin/anna-tell`, `bin/anna-presence`; `bin/anna-notify` underneath | the one door: everything she tells you (sense alerts, clock pings, failed runs) is routed to where you are, held in your quiet hours, as loud as it needs to be ([How Anna tells you things](telling.md)) |
 | checks | `bin/anna-checks` + `record/checks/` | read-only checks: OK / ⚠ / ⛔ lines |
 | senses | `bin/anna-body` + `record/senses/`; `bin/anna-senses` | how she feels: JSON sensations, one summary line; pushed senses: events in contract v1 over HTTP, a drop folder or MQTT |
 | engines | `agents/anna-*.md` → `~/.claude/agents/` | subagents the brain calls: memory, interpretation, epistemic, action-gate, goals, curiosity (sensors: they return a block, the brain acts) |
@@ -121,7 +121,7 @@ uses merlin's search when that MCP server is configured, and reads the record's 
 - **`runs.dream`:** `/anna-dream` sorts the day's own journal into `self/lately.md`, wonders and proposals, and writes the
   night's reflection.
 - **`runs.morning`:** `anna-run /anna-morning`: a read-only check of the handoff, the journal, the clock and `anna-checks`,
-  plus the goals and curiosity engines (Anna's own to-dos, one question for the day). A ⛔ notifies you.
+  plus the goals and curiosity engines (Anna's own to-dos, one question for the day). A ⛔ is told to you ([one door](telling.md)).
 - **`day.open`:** `anna-day open` starts a fresh brain session for the day; queued hand-offs go in.
 - **During the day:** you talk to the bot or the brain; the stream keeps them in step; the clock fires what's due; long
   quiet spells trigger a checkpoint.
@@ -135,7 +135,7 @@ covered by their logic tests plus a manual check on a real machine.
 ## Where it lives in this repo
 
 ```
-bin/              scripts: anna-config, -stream, -clock, -relay, -brain, -day, -run, -evening, -notify, -tg, -checks, -body, -rhythm, backlog-age
+bin/              scripts: anna-config, -stream, -clock, -relay, -brain, -day, -run, -evening, -tell, -presence, -notify, -tg, -checks, -body, -rhythm, backlog-age
 hooks/            Claude Code hooks (session start, drafts, idle checkpoint, the action-gate hook) + the settings snippet install.sh merges
 agents/           the engines (subagents): memory, interpretation, epistemic, action-gate, goals, curiosity
 skills/           Claude Code skills: anna-setup, anna-morning, anna-wrapup, anna-checkpoint, anna-evening
