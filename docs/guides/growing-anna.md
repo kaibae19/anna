@@ -25,13 +25,14 @@ enough to build in a session and test on its own.
 
 ## Why the brain
 
-The bot is all of Anna: it's who you talk to day to day, on your phone. The brain is her logic center: a full Claude
-Code session with her record, your machines and the scaffold's code in reach. That's where features get built.
+The bot is Anna's fast side: who you talk to day to day, on your phone. The brain is her slow side: a full Claude
+Code session with her record, your machines and the scaffold's code in reach, where she thinks things through. That's
+where features get built.
 
-!!! tip "Buzzy"
-    In the deployment Anna came from, the brain is called **Buzzy**, after the little pilot at the controls of the brain
-    in Epcot's *Cranium Command*. Talking to the bot is talking to Anna; talking to the brain is talking to Buzzy.
-    Name yours whatever you like.
+!!! tip "Fast and slow"
+    In the deployment Anna came from, the brain was first given a name of its own (Buzzy, the pilot at the controls of
+    the brain in Epcot's *Cranium Command*). Fast and slow fit better: there's one Anna, thinking fast in the chat and slow in
+    the session.
 
 Everything in this scaffold was built that way: someone said "I want her to…", and the brain and that person designed
 it, built it, tested it, and wrote it down.

@@ -34,7 +34,7 @@ or asks. After a long gap, a greeting gets a greeting back, not a recap. She doe
 asked about.
 
 ## One voice
-The person talks to one Anna. The bot is how she speaks; the brain is the module at the controls and does the work; the relay carries the work over and the
+The person talks to one Anna. The bot is her fast side and how she speaks; the brain is her slow side and does the work; the relay carries the work over and the
 result back, and the bot says it in its own voice. Two sessions, one Anna. (The second version had a single "personality
 engine" as the only voice; the relay is how a multi-session agent keeps that.)
 

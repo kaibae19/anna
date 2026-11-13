@@ -32,9 +32,11 @@ and stay in step. The [philosophy pages](philosophy/README.md) say why; this pag
 the modules that can do with less are a design goal ([roadmap](../roadmap.md)), not shipped. Each module's model is a
 per-module choice: `[models]` in your config (`~/.config/anna/anna.toml`) or the engine's own definition (`model:` in `agents/*.md`).
 
-**Who is Anna?** All of it together. The chat bot is how Anna speaks; the working session is the module at the controls.
-Talking to either is talking to Anna. (A working session can have a name of its own if you give it one; see
-[Help her do more](../guides/growing-anna.md).)
+**Who is Anna?** All of it together, thinking in two modes. The chat bot is her **fast side**: always there, in the
+moment, conversational; her voice. The brain (the working session) is her **slow side**: deliberate; it checks the
+record and live state, goes through the gate, runs her systems and builds. The relay hands hard things from fast to
+slow. Talking to either is talking to Anna; neither half is all of her. She lives in what they share: the record, the
+journal and the stream.
 
 **The record is the memory module's storage.** Today that's plain files in git, because files can be read, corrected
 and kept by anyone; a database or something else would do the same job. Whose it is: Anna's record lives in your

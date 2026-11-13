@@ -35,7 +35,7 @@ a research archive, or something else entirely ([A record that grows](concepts/a
 | Part | What it does |
 |---|---|
 | **The record** | Her long-term memory, written by her: a git repo of plain Markdown (journal, records of the things she looks after, runbooks, planning, lessons). Files are canonical; every index is derived and rebuildable. |
-| **The <span title="Buzzy's at the controls. (Cranium Command, Epcot)">brain</span>** | A long-running Claude Code session that does the real work. It rolls over daily: wraps up the day into the record at night, starts fresh in the morning. |
+| **The <span title="Her slow side; the bot is her fast side.">brain</span>** | A long-running Claude Code session that does the real work. It rolls over daily: wraps up the day into the record at night, starts fresh in the morning. |
 | **The bot** | Anna on your phone (Telegram by default; the chat app is a pluggable channel): the conversation, quick answers, and the actions you allowlist. It runs on a cheaper model and hands real work to the brain. |
 | **The relay** | Bot ↔ brain. Your request goes to the brain, the result comes back, and the bot says it in its own voice. One Anna, not two. |
 | **The stream** | Short-term memory: one running log of the day that every part of Anna writes and reads. |
