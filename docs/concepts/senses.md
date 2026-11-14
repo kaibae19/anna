@@ -121,6 +121,22 @@ printf '{"message": "nightly backup finished", "do": "log"}' > "$(anna-config pa
 
 (Write to a temporary name and rename it into place if the event is large; `anna-sense-send --via drop` does that.)
 
+## Examples to start from
+
+`examples/pushed-senses/` has two complete senses from the deployment this scaffold grew out of, each one script and a
+timer ([its README](https://github.com/kaibae19/anna/tree/main/examples/pushed-senses) has the units):
+
+- **`prometheus-alerts`** (sense `prometheus`, every minute): an alert that starts firing becomes one `tell`, one that
+  clears becomes a `resolved` line in the journal. The alert rule's own labels (`anna_do`, `severity`) decide how loud,
+  so you tune it in Prometheus. If Prometheus can't be reached for 3 runs, it tells you once that Anna has gone blind,
+  and again when she can see.
+- **`container-updates`** (sense `updates`, once a day): reads Watchtower's log on each Docker host and sends one digest,
+  or nothing. Routine auto-updates are `log` only; a pinned container with an update waiting is a normal `tell`; errors
+  or an unreachable host are `high`.
+
+They show the two shapes most pushed senses take: an **edge detector** (keep state, send only changes, report your own
+blindness) and a **digest** (gather a day, send one message with a dated id so a rerun doesn't repeat it).
+
 **Security:** a token only works for its own sense name, so a leaked token can speak only as that one sense, and every
 event is data that can't make Anna act without the gate. The drop folder is readable and writable only by Anna's user.
 With MQTT, give each sense its own login limited to publishing on its own topic, and Anna's login read-only on

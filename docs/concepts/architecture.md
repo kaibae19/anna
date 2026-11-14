@@ -146,7 +146,7 @@ bot/              the Telegram bot's prompt template and deny-by-default setting
 systemd/          user units and timers (timers rendered from your config times)
 config/           anna.example.toml (every setting, with defaults), settings templates, the brain's ~/CLAUDE.md template
 record-template/  an empty record to start from (conventions written down)
-examples/         starter checks and senses
+examples/         starter checks, polled senses and pushed senses
 docs/             this site (getting-started/, guides/, reference/, concepts/); mkdocs.yml builds it
 tests/            one suite per piece, each in a throwaway config/state/record
 ```

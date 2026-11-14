@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""container-updates [--print] [--hours N] [--from-file F]
+
+Example pushed sense: one daily digest of Watchtower (https://containrrr.dev/watchtower/) on your Docker hosts → Anna
+(sense `updates`, contract v1). Silent when there's nothing to report. Run it once a day, a few hours after Watchtower's
+own schedule (examples/pushed-senses/README.md). Read-only on the hosts.
+
+It suits a hybrid update policy: most containers update themselves, and the ones that matter (databases, anything
+internet-facing) carry Watchtower's `monitor-only` label, so Watchtower only pulls the new image and a person updates
+them deliberately. The digest says:
+  ✅ <host> auto-updated: …           → importance low, do log (nothing to do; it's in the journal)
+  📌 <host> update waiting (pinned): … → normal, tell
+  ⚠ <host>: errors / host unreachable → high, tell
+Anna's router (anna-tell) decides when and where you hear it, and Anna says it in her own words.
+
+Settings: HOSTS (space-separated ssh names; `local` = this machine; default `local`), HOURS (default 24).
+--print shows the digest instead of sending it; --from-file reads one host's raw output (testing).
+"""
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+import sys
+from datetime import date
+
+# per host: Watchtower's log lines of interest, then the monitor-only containers and their images
+REMOTE = ("docker logs --since {h}h watchtower 2>&1 | grep -E 'Found new image|Started new container|"
+          "level=error|session completed' ; echo '--- monitor-only'; "
+          "docker ps -q --filter label=com.centurylinklabs.watchtower.monitor-only=true | "
+          # .Config.Image, not ps's .Image: once Watchtower pulls a newer image the tag moves and ps shows a bare ID
+          "xargs -r docker inspect -f '{{{{slice .Name 1}}}} {{{{.Config.Image}}}}'")
+
+
+def run_host(host: str, hours: int) -> str:
+    cmd = REMOTE.format(h=hours)
+    argv = ["sh", "-c", cmd] if host == "local" else ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", host, cmd]
+    return subprocess.run(argv, capture_output=True, text=True, timeout=90).stdout
+
+
+def field(line: str, key: str) -> str | None:
+    m = re.search(rf'\b{key}=("([^"]*)"|\S+)', line)
+    return (m.group(2) if m.group(2) is not None else m.group(1)) if m else None
+
+
+def parse(raw: str) -> dict:
+    logs, _, pinned_raw = raw.partition("--- monitor-only")
+    pinned: dict[str, list[str]] = {}               # image -> [container names]
+    for line in pinned_raw.strip().splitlines():
+        name, _, image = line.partition(" ")
+        pinned.setdefault(image, []).append(name)
+    updated, waiting, errors, failed = [], set(), [], 0
+    for line in logs.splitlines():
+        if "Started new container" in line:
+            updated.append(field(line, "container") or "?")
+        elif "Found new image" in line:
+            img = field(line, "image") or ""
+            waiting.update(f"{c} ({img})" for c in pinned.get(img, []))
+        elif "level=error" in line:
+            errors.append((field(line, "msg") or line)[:120])
+        elif "session completed" in line:
+            failed += int(field(line, "failed") or 0)
+    return {"updated": sorted(set(updated)), "waiting": sorted(waiting), "errors": errors[:3], "failed": failed}
+
+
+def digest(results: dict[str, dict | Exception]) -> list[str]:
+    lines = []
+    for host, r in results.items():
+        if isinstance(r, Exception):
+            lines.append(f"⚠ {host}: couldn't read Watchtower ({type(r).__name__})")
+            continue
+        if r["updated"]:
+            lines.append(f"✅ {host} auto-updated: {', '.join(r['updated'])}")
+        if r["waiting"]:
+            lines.append(f"📌 {host} update waiting (pinned): {', '.join(r['waiting'])}")
+        if r["errors"] or r["failed"]:
+            lines.append(f"⚠ {host}: {r['failed']} failed; {'; '.join(r['errors']) or 'see docker logs watchtower'}")
+    return lines
+
+
+def main(args: list[str]) -> int:
+    hours = int(args[args.index("--hours") + 1]) if "--hours" in args else int(os.environ.get("HOURS", 24))
+    results: dict[str, dict | Exception] = {}
+    if "--from-file" in args:
+        results["test"] = parse(open(args[args.index("--from-file") + 1]).read())
+    else:
+        for host in os.environ.get("HOSTS", "local").split():
+            try:
+                results[host] = parse(run_host(host, hours))
+            except Exception as e:  # noqa: BLE001 - a host we can't read is itself worth reporting
+                results[host] = e
+    lines = digest(results)
+    if not lines:
+        if "--print" in args:
+            print("(nothing to report: nothing would be sent)")
+        return 0
+    msg = f"Container updates (last {hours}h)\n" + "\n".join(lines) + "\nPinned containers are updated by hand."
+    if "--print" in args:
+        print(msg)
+        return 0
+    imp = "high" if any(l.startswith("⚠") for l in lines) else "normal" if any(l.startswith("📌") for l in lines) else "low"
+    return subprocess.run(["anna-sense-send", "updates", msg, "--do", "log" if imp == "low" else "tell",
+                           "--importance", imp, "--kind", "digest", "--entity", "watchtower",
+                           "--id", f"digest-{date.today()}", "--via", "drop"], stdout=subprocess.DEVNULL).returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

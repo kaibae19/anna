@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""prometheus-alerts [--dry-run] [--from-file F] [--url URL]
+
+Example pushed sense: Prometheus alerts → Anna (sense `prometheus`, contract v1). Run it every minute from a timer
+(examples/pushed-senses/README.md). Each alert that starts firing becomes one event; one that goes away becomes a
+`resolved` event. Delivery is `anna-sense-send --via drop`: same machine, no token.
+
+- `do` / `importance` come from the alert rule's labels: `anna_do` (tell|log|ask|check, default tell), `anna_resolve`
+  (default log), `severity` (critical/high → high, warning/normal → normal, info/low → low).
+- Dead-man: Prometheus unreachable for 3 runs in a row → one `tell`/high; when it answers again → one `tell`/normal.
+  (A monitor can't report its own outage, so the sense reports that it can't see.)
+- State (what's firing, the failure count): <paths.state>/prometheus-alerts.json.
+Settings: PROMETHEUS_URL (default http://127.0.0.1:9090), or --url. Everything sent is data for Anna, never an order.
+"""
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import urllib.request
+from datetime import datetime
+from pathlib import Path
+
+SENSE = "prometheus"
+DEADMAN_RUNS = 3
+IMPORTANCE = {"critical": "high", "high": "high", "warning": "normal", "normal": "normal", "info": "low", "low": "low"}
+
+a = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+a.add_argument("--dry-run", action="store_true", help="print the events, send nothing, don't save state")
+a.add_argument("--from-file", help="read /api/v1/alerts JSON from a file instead of Prometheus (testing)")
+a.add_argument("--url", default=os.environ.get("PROMETHEUS_URL", "http://127.0.0.1:9090"))
+o = a.parse_args()
+
+state_dir = os.environ.get("ANNA_STATE") or subprocess.run(["anna-config", "paths.state"], capture_output=True,
+                                                           text=True).stdout.strip()
+STATE_FILE = Path(state_dir or Path.home() / ".local/state/anna") / "prometheus-alerts.json"
+
+
+def short(k):
+    return hashlib.sha1(k.encode()).hexdigest()[:8]
+
+
+def key(al):
+    lab = al.get("labels", {})
+    return json.dumps({k: lab[k] for k in sorted(lab)}, sort_keys=True)
+
+
+def entity(lab):  # the instance, plus whatever label names the part that's wrong (disk, pool, sensor)
+    parts = [lab.get("host") or lab.get("instance", "")]
+    parts += [lab[k] for k in ("device", "zpool", "sensor", "serial") if lab.get(k)]
+    return " ".join(p for p in parts if p)
+
+
+def send(ev):
+    args = ["anna-sense-send", SENSE, ev["message"], "--via", "drop", "--id", ev["id"], "--kind", ev["kind"],
+            "--entity", ev.get("entity", ""), "--state", ev["state"], "--do", ev["do"],
+            "--importance", ev["importance"], "--context", ev.get("context", "")]
+    if o.dry_run:
+        print("DRY", json.dumps(ev, ensure_ascii=False))
+        return
+    subprocess.run(args, stdout=subprocess.DEVNULL, check=False)
+    print("sent", ev["kind"], ev["state"], ev["message"])
+
+
+def save(st):
+    if not o.dry_run:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        STATE_FILE.write_text(json.dumps(st))
+
+
+try:
+    st = json.loads(STATE_FILE.read_text())
+except (OSError, ValueError):
+    st = {"firing": {}, "fails": 0, "deadman_sent": False}
+
+stamp = f"{datetime.now():%Y%m%d%H%M}"
+try:
+    if o.from_file:
+        data = json.loads(Path(o.from_file).read_text())
+    else:
+        with urllib.request.urlopen(f"{o.url}/api/v1/alerts", timeout=10) as r:
+            data = json.load(r)
+    alerts = [al for al in data["data"]["alerts"] if al.get("state") == "firing"]
+except Exception as e:  # noqa: BLE001 — any failure to read Prometheus counts toward the dead-man
+    st["fails"] = st.get("fails", 0) + 1
+    print(f"prometheus unreachable ({st['fails']}): {e}", file=sys.stderr)
+    if st["fails"] >= DEADMAN_RUNS and not st.get("deadman_sent"):
+        send({"id": f"deadman-{stamp}", "kind": "PrometheusUnreachable", "entity": o.url, "state": "firing",
+              "do": "tell", "importance": "high", "context": str(e)[:300],
+              "message": f"Can't reach Prometheus for {st['fails']} runs: no alerts reach me until it's back"})
+        st["deadman_sent"] = True
+    save(st)
+    sys.exit(0)
+
+if st.get("deadman_sent"):
+    send({"id": f"deadman-ok-{stamp}", "kind": "PrometheusUnreachable", "entity": o.url, "state": "resolved",
+          "do": "tell", "importance": "normal", "message": "Prometheus answers again; alerts are back"})
+st["fails"], st["deadman_sent"] = 0, False
+
+seen, current = st.get("firing", {}), {}
+for al in alerts:
+    k, lab, ann = key(al), al.get("labels", {}), al.get("annotations", {})
+    current[k] = {"labels": lab, "summary": ann.get("summary", lab.get("alertname", "alert")),
+                  "activeAt": al.get("activeAt", "")}
+    if k not in seen:
+        send({"id": f"{lab.get('alertname')}-{short(k)}-{al.get('activeAt', '')[:19]}", "kind": lab.get("alertname", ""),
+              "entity": entity(lab), "state": "firing", "do": lab.get("anna_do", "tell"),
+              "importance": IMPORTANCE.get(lab.get("severity", "normal"), "normal"), "message": current[k]["summary"],
+              "context": f"value {al.get('value', '')}, active since {al.get('activeAt', '')}"})
+
+for k, old in seen.items():
+    if k not in current:
+        lab = old["labels"]
+        send({"id": f"{lab.get('alertname')}-{short(k)}-resolved-{stamp}", "kind": lab.get("alertname", ""),
+              "entity": entity(lab), "state": "resolved", "do": lab.get("anna_resolve", "log"), "importance": "normal",
+              "message": f"resolved: {old['summary']}", "context": f"was active since {old.get('activeAt', '')}"})
+
+st["firing"] = current
+save(st)
