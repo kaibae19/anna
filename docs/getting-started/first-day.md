@@ -16,21 +16,22 @@ day.open` prints one, and [Configuration](../reference/config.md) lists them all
 | Time | What happens | Started by |
 |---|---|---|
 | 04:00 | **Morning check**: a read-only report on what was left open and what your checks say | `anna-morning.timer` (`runs.morning`) |
-| 04:15 | **Day open**: a fresh brain session starts in screen `anna` | `anna-day-open.timer` (`day.open`) |
-| all day | You work with the brain (terminal or Claude app) and the bot (Telegram) | you |
-| after 20 quiet minutes | **Checkpoint**: the brain journals what you've done so far | the idle-checkpoint hook |
+| 04:15 | **Day open**: a fresh working session (Anna's slow side) starts in screen `anna` | `anna-day-open.timer` (`day.open`) |
+| all day | You work with the working session (terminal or Claude app) and the bot (Telegram) | you |
+| after 20 quiet minutes | **Checkpoint**: the session journals what you've done so far | the idle-checkpoint hook |
 | every 5 min | **Clock tick**: due reminders and scheduled tasks fire | `anna-clock.timer` |
-| 00:30 | **Day close**: if the brain has been idle 30 minutes, it wraps up the day and exits | `anna-day-close.timer` (`day.close`, `day.idle_min`) |
+| 00:30 | **Day close**: if the session has been idle 30 minutes, it wraps up the day and exits | `anna-day-close.timer` (`day.close`, `day.idle_min`) |
 | 01:00 | **Evening fold**: the day's session notes and stream are folded into the journal | `anna-evening.timer` (`runs.evening`) |
+| 01:30 | **Dream**: her own journal for the day is sorted into lately, wonders and proposals | `anna-dream.timer` (`runs.dream`) |
 
-The night window, from `day.close` to `day.open`, is when the brain is wrapping up or not running.
+The night window, from `day.close` to `day.open`, is when the working session is wrapping up or not running.
 
 ## Morning: open the day
 
 You don't need to do anything. At 04:00 the morning check runs headless and writes its report; at 04:15 `anna-day open`
 starts the day's session (a new screen window named `Anna-YYYYMMDD`).
 
-When you first talk to the brain, it already knows what happened overnight: a hook shows it how long you've been away,
+When you first talk to the working session, it already knows what happened overnight: a hook shows it how long you've been away,
 the latest report's **Needs action** section and how many session notes are waiting to be folded. After a long gap,
 expect a greeting back, not a recap. Ask for the status if you want it.
 
@@ -71,9 +72,9 @@ there, else by the bot; held until your first message if it's your quiet time. W
 Anna's stream only. The report is committed to the record (and pushed if it has a
 remote). How the check works: [Skills § anna-morning](../reference/skills.md).
 
-## During the day: brain or bot?
+## During the day: slow side or fast side?
 
-**The brain** is the long-running Claude Code session that does real work: files, the things she looks after, fixes, the record. Reach it:
+**The working session** is Anna's slow side: the long-running Claude Code session that does real work: files, the things she looks after, fixes, the record. Reach it:
 
 ```bash
 screen -r anna
@@ -86,8 +87,8 @@ If you exit Claude Code in that window by accident (a `/exit`, Ctrl-C twice), it
 `Claude exited … Resuming … in 10 s` and comes back to the same conversation. Press **s** for a shell instead, **q** to
 close the window.
 
-**The bot** is Anna on Telegram: quick questions, the checks and actions you've allowed, reminders ("remind me Friday to
-renew the domain"). For anything bigger it hands the work to the brain over the relay and tells you the result itself.
+**The bot** is Anna on Telegram, her fast side: quick questions, the checks and actions you've allowed, reminders ("remind me Friday to
+renew the domain"). For anything bigger it hands the work to her slow side over the relay and tells you the result itself.
 You talk to one Anna either way.
 
 Both write to **the stream**, a shared log of the day, so each knows what the other did. Look at it yourself:
@@ -100,7 +101,7 @@ Reminders and follow-ups go on **the clock**: `anna-clock list` shows what's ope
 [Commands](../reference/commands.md).
 
 !!! tip "New to this? The gate"
-    The first time the brain wants to change something (restart a service, install a package, send a message), it asks
+    The first time the working session wants to change something (restart a service, install a package, send a message), it asks
     its action gate first, and it may ask you to confirm. That's by design: a hook blocks state changes without the
     gate's `go`. Reads and edits in the record pass straight through. See
     [Security model § Destructive and outward actions](../concepts/security.md#destructive-and-outward-actions).
@@ -109,16 +110,16 @@ Reminders and follow-ups go on **the clock**: `anna-clock list` shows what's ope
 
 On a long day, the journal is written in pieces. Two ways:
 
-- **Ask for it:** type `/anna-checkpoint` in the brain. It journals what happened since the last checkpoint, updates the
+- **Ask for it:** type `/anna-checkpoint` in the working session. It journals what happened since the last checkpoint, updates the
   handoff line and commits. The session stays open.
-- **Automatically:** after 20 quiet minutes, a hook wakes the brain for a checkpoint, but only if you typed something
+- **Automatically:** after 20 quiet minutes, a hook wakes the working session for a checkpoint, but only if you typed something
   since the last one, and never at night (from midnight, or from `day.close` if that's before midnight, until 15 minutes
 after `day.open`; with the defaults 00:00–04:30; [Hooks](../reference/hooks.md)). Once you've gone to bed, it checkpoints
 once and then stays quiet.
 
 ## End of day: wrap-up
 
-When you're done, type in the brain:
+When you're done, type in the working session:
 
 ```
 /anna-wrapup
@@ -128,7 +129,7 @@ It writes the day's journal entry (with the real commands and output), updates t
 backlog where something changed, refreshes the 📌 handoff line at the top of `memory/MEMORY.md`, and commits. It asks
 you before pushing.
 
-If you don't, the **day close** at 00:30 does it: if the brain has been idle at least 30 minutes, it types
+If you don't, the **day close** at 00:30 does it: if the session has been idle at least 30 minutes, it types
 `/anna-wrapup overnight` into it (which asks nothing and puts its questions in the handoff line under **Ask**), waits
 for it to finish, then exits the session. Relay requests are held while it wraps up. If you're still active at 00:30,
 the session is left open, and the 04:15 open tries the close again.
@@ -139,6 +140,9 @@ the session is left open, and the 04:15 open tries the close again.
   or never wrapped up) and yesterday's stream, and folds them into the journal headless. It proposes record updates
   rather than making them. Its report: `journal/handoffs/<date>-evening.md`, with a **Proposed for the next session**
   list. Its items, and the dream's, are kept in `self/proposals.md` until you decide on them; Anna raises one a day.
+- **01:30, the dream.** `/anna-dream` reads her own journal for the day and sorts it: what stays with her for a while
+  (`self/lately.md`, which the next session sees), what she wonders about, and lessons she proposes
+  ([Her own journal](../concepts/own-journal.md)).
 - **04:00, the morning check**, as above.
 - **04:15, day open**, as above.
 
@@ -161,6 +165,6 @@ Anything unchecked: [Troubleshooting](troubleshooting.md).
 
 ## Next
 
-- [Help her do more](../guides/growing-anna.md): when you want a new ability, build it with the brain.
+- [Help her do more](../guides/growing-anna.md): when you want a new ability, build it with her slow side.
 - [Checks and senses](../guides/checks-and-senses.md): teach Anna what to watch.
 - [The record](../guides/the-record.md): reading and correcting what she writes.

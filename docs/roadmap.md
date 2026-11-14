@@ -18,8 +18,9 @@ tool calls, fixed labels).
   no actions and no replies, scored per engine against the frontier run: right tool, right facts, honest "don't know",
   voice, latency. The outcome: which parts a one-GPU home can run locally. Where models disagree is where Anna was unsure,
   which becomes a morning salience list.
-- **Event wakes.** Home Assistant, the UPS, or a ⛔ check pushes an event over the relay and wakes the brain at any hour to
-  gather context. The system's own alert always reaches the person first.
+- **Night wakes.** Pushed senses already reach the working session by day (`check` and `ask` go over the relay,
+  [Senses](concepts/senses.md)). Still missing: an urgent one waking it at night, while the relay is paused for the
+  rollover, to gather context. The system's own alert always reaches the person first.
 - **The canon off-site.** Client-side encrypted backups of the record and state (restic, append-only) to a second location.
   Running in the home this came from since 2026-11; not in the scaffold yet.
 - **Memory that fades by disuse.** Topics nobody has needed for a long while turn into a short gist with a pointer to the

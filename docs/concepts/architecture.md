@@ -33,7 +33,7 @@ the modules that can do with less are a design goal ([roadmap](../roadmap.md)), 
 per-module choice: `[models]` in your config (`~/.config/anna/anna.toml`) or the engine's own definition (`model:` in `agents/*.md`).
 
 **Who is Anna?** All of it together, thinking in two modes. The chat bot is her **fast side**: always there, in the
-moment, conversational; her voice. The brain (the working session) is her **slow side**: deliberate; it checks the
+moment, conversational; her voice. The working session is her **slow side**: deliberate; it checks the
 record and live state, goes through the gate, runs her systems and builds. The relay hands hard things from fast to
 slow. Talking to either is talking to Anna; neither half is all of her. She lives in what they share: the record, the
 journal and the stream.
@@ -49,7 +49,7 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
                     you (phone)                         you (terminal / Claude app)
                         │ Telegram                                  │
                         ▼                                           ▼
-   ┌──────────── bot (anna-tg) ────────────┐        ┌──────── brain (anna-brain) ─────────┐
+   ┌──────────── bot (anna-tg) ────────────┐        ┌────── slow side (anna-brain) ───────┐
    │ its own model · chat, quick checks,   │ relay  │ full model · the record, her things, │
    │ allowlisted actions · deny-by-default │◀──────▶│ real work · rolls over daily        │
    └───────────────────────────────────────┘        └─────────────────────────────────────┘
@@ -73,17 +73,17 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
 | config | `bin/anna-config`, `config/anna.example.toml` | one TOML file; every script reads it; defaults for everything |
 | stream | `bin/anna-stream` (+ hook) | short-term memory: a JSONL log per day; each session sees what the others did since its last turn |
 | clock | `bin/anna-clock`, `systemd/anna-clock.*` | notes, pings and headless tasks with dates, in the record (`clock/YYYY-MM.md`); a 5-minute tick fires them |
-| brain | `bin/anna-brain`, `bin/anna-day`, `systemd/anna-day-*` | the long-running session in `screen`; a resume loop for stray exits; close (wrap up overnight) and open (fresh session) |
+| working session | `bin/anna-brain`, `bin/anna-day`, `systemd/anna-day-*` | the long-running session in `screen`; a resume loop for stray exits; close (wrap up overnight) and open (fresh session) |
 | hooks | `hooks/` | session start (what happened while away, engine habits, Lately), session drafts (raw, redacted journal material), idle checkpoint, the bot's reply guard, the epistemic hook |
 | headless | `bin/anna-run`, `bin/anna-evening`, `config/headless-settings.json.in` | `claude -p` with a deny-by-default allowlist; reports to `journal/handoffs/` |
 | skills | `skills/anna-*` | setup, morning, wrap-up, checkpoint, evening fold, dream |
 | bot | `bin/anna-tg`, `bot/` | a channel session (Telegram by default; [another app](../getting-started/telegram.md#using-another-chat-app)); prompt template + your `bot/context/` |
-| relay | `bin/anna-relay`, [the relay](relay.md) | bot ↔ brain over two fakechat channels and a file queue |
+| relay | `bin/anna-relay`, [the relay](relay.md) | bot ↔ working session (fast ↔ slow) over two fakechat channels and a file queue |
 | telling | `bin/anna-tell`, `bin/anna-presence`; `bin/anna-notify` underneath | the one door: everything she tells you (sense alerts, clock pings, failed runs) is routed to where you are, held in your quiet hours, as loud as it needs to be ([How Anna tells you things](telling.md)) |
 | checks | `bin/anna-checks` + `record/checks/` | read-only checks: OK / ⚠ / ⛔ lines |
 | senses | `bin/anna-body` + `record/senses/`; `bin/anna-senses` | how she feels: JSON sensations, one summary line; pushed senses: events in contract v1 over HTTP, a drop folder or MQTT |
-| engines | `agents/anna-*.md` → `~/.claude/agents/` | subagents the brain calls: memory, interpretation, epistemic, action-gate, goals, curiosity (sensors: they return a block, the brain acts) |
-| gate hook | `hooks/anna-gate-hook` | PreToolUse: in the brain, a state change needs a recent `go` from the action-gate engine |
+| engines | `agents/anna-*.md` → `~/.claude/agents/` | subagents the slow side calls: memory, interpretation, epistemic, action-gate, goals, curiosity (sensors: they return a block, the slow side acts) |
+| gate hook | `hooks/anna-gate-hook` | PreToolUse: in the working session, a state change needs a recent `go` from the action-gate engine |
 | engine inputs | `bin/anna-rhythm`, `bin/backlog-age` | precomputed numbers (active windows, gaps, ages) so no model does date arithmetic |
 | engine runner | `bin/anna-engine` | runs an engine headless from a hook (interpretation after a gap, the epistemic relay check); counts runs and misses |
 | own journal | `bin/anna-log`, `skills/anna-dream`, `record/self/` | a raw log of what registered with her; the nightly dream sorts it into Lately, wonders and proposals ([Her own journal](own-journal.md)) |
@@ -92,20 +92,20 @@ Anna, and it's what makes her who she is. Whose it is may change as minds like h
 
 ## Engines and their order
 
-The engines are Claude Code subagents with short prompts, fixed output blocks and no tools that change anything. The brain
+The engines are Claude Code subagents with short prompts, fixed output blocks and no tools that change anything. The slow side
 decides when to call most of them (`~/CLAUDE.md` says when); the prompt hook runs interpretation itself when it's due
 ([Engines that run themselves](../reference/engines.md#engines-that-run-themselves)).
 
 ```
 you → bot ── chat / allowlisted actions / quick check ──→ answers itself (the bot has no engines)
-         └─ real work → relay → brain
+         └─ real work → relay → slow side
                           1. interpretation   what of the context belongs in the reply; stale → verify; ask, don't guess
                           2. memory           when it touches the past or a thing's history
                           3. action-gate      before each state change   ← enforced by anna-gate-hook
                           4. act
                           5. epistemic        on the result before it goes back
                         ← relay ← bot says it in its own voice
-you → brain directly: the same, without the relay
+you → slow side directly: the same, without the relay
 morning run: anna-clock due · backlog-age · anna-rhythm → goals → curiosity → the report (+ "Question for today")
 ```
 
@@ -116,7 +116,7 @@ uses merlin's search when that MCP server is configured, and reads the record's 
 
 ## A day
 
-- **Night (`day.close`):** if the brain has been idle, `anna-day close` types `/anna-wrapup overnight` into it, waits for the
+- **Night (`day.close`):** if the working session has been idle, `anna-day close` types `/anna-wrapup overnight` into it, waits for the
   wrap-up to finish, then exits it. Relay hand-offs wait meanwhile.
 - **`runs.evening`:** `anna-evening` drafts any session the hooks missed and runs `/anna-evening` headless: the drafts and
   yesterday's stream are folded into the journal; record changes are only *proposed*.
@@ -124,8 +124,8 @@ uses merlin's search when that MCP server is configured, and reads the record's 
   night's reflection.
 - **`runs.morning`:** `anna-run /anna-morning`: a read-only check of the handoff, the journal, the clock and `anna-checks`,
   plus the goals and curiosity engines (Anna's own to-dos, one question for the day). A ⛔ is told to you ([one door](telling.md)).
-- **`day.open`:** `anna-day open` starts a fresh brain session for the day; queued hand-offs go in.
-- **During the day:** you talk to the bot or the brain; the stream keeps them in step; the clock fires what's due; long
+- **`day.open`:** `anna-day open` starts a fresh working session for the day; queued hand-offs go in.
+- **During the day:** you talk to the bot or the working session; the stream keeps them in step; the clock fires what's due; long
   quiet spells trigger a checkpoint.
 
 ## Tests
@@ -137,14 +137,17 @@ covered by their logic tests plus a manual check on a real machine.
 ## Where it lives in this repo
 
 ```
-bin/              scripts: anna-config, -stream, -clock, -relay, -brain, -day, -run, -evening, -tell, -presence, -notify, -tg, -checks, -body, -rhythm, backlog-age
-hooks/            Claude Code hooks (session start, drafts, idle checkpoint, the action-gate hook) + the settings snippet install.sh merges
+bin/              scripts: anna-config, -stream, -clock, -relay, -brain, -day, -run, -evening, -tell, -presence, -notify, -tg, -checks, -body, -rhythm,
+                  -senses, -sense-send, -engine, -log, -proposals, -access, -contract, backlog-age
+hooks/            Claude Code hooks (session start, drafts, idle checkpoint, the action-gate hook, the epistemic hook, the bot's reply guard)
+                  + the settings snippet install.sh merges
 agents/           the engines (subagents): memory, interpretation, epistemic, action-gate, goals, curiosity
-skills/           Claude Code skills: anna-setup, anna-morning, anna-wrapup, anna-checkpoint, anna-evening
+skills/           Claude Code skills: anna-setup, anna-morning, anna-wrapup, anna-checkpoint, anna-evening, anna-dream, anna-proposals
 .claude/skills/   anna-setup only (a symlink), so `claude` in a fresh clone offers /anna-setup before install
 bot/              the Telegram bot's prompt template and deny-by-default settings template
 systemd/          user units and timers (timers rendered from your config times)
-config/           anna.example.toml (every setting, with defaults), settings templates, the brain's ~/CLAUDE.md template
+contracts/        v1.json: the engines' blocks and the record's layout, checked by anna-contract and the tests
+config/           anna.example.toml (every setting, with defaults), settings templates, the working session's ~/CLAUDE.md template
 record-template/  an empty record to start from (conventions written down)
 examples/         starter checks, polled senses and pushed senses
 docs/             this site (getting-started/, guides/, reference/, concepts/); mkdocs.yml builds it

@@ -36,7 +36,7 @@ Two more parts follow the same map without being engines:
 - **Sleep** (consolidation): the nightly fold, a scheduled run that turns the day's stream and drafts into the journal.
 
 ## Sensors, not actors
-No engine has Bash, Edit, Write or the ability to call other agents. Engines return a block; the brain acts, writes and logs.
+No engine has Bash, Edit, Write or the ability to call other agents. Engines return a block; the slow side acts, writes and logs.
 That keeps each one testable (fixed labels, flat `key: value` output) and keeps the power in one place, behind the
 allowlists and the gate.
 
@@ -48,7 +48,7 @@ message → interpretation → memory (if the past matters) → action gate (per
 morning → goals → curiosity → report
 ```
 
-Most turns call none of them; each call costs seconds and tokens. The order is written as instructions to the brain, and
+Most turns call none of them; each call costs seconds and tokens. The order is written as instructions to the working session, and
 the gate step is enforced in code (see [security](../security.md)). Interpretation and the epistemic check are judgment
 calls and stay instructions.
 

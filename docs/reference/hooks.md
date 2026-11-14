@@ -20,13 +20,13 @@ to turn it off. It's for anyone who sees hook output in a session and wants to k
 | `SessionStart` | `startup` or `resume` | `anna-session-start` | 10 s | Tells a new session what happened while no one was looking. |
 | `SessionEnd` | (all) | `anna-session-draft` | 30 s | Turns the session's transcript into a redacted draft for the journal. |
 | `UserPromptSubmit` | (all) | `anna-stream hook` | 45 s | Logs your message to the stream; shows the session what other parts did; runs the interpretation engine when due (`engines.interpretation`), carries today's question, logs your corrections to the own journal. |
-| `UserPromptSubmit` | (all) | `anna-tell hook-prompt` | 10 s | In the brain: after Anna told you something in the session, your next message gets one `📣 Reminder:` line if it didn't respond to it. |
+| `UserPromptSubmit` | (all) | `anna-tell hook-prompt` | 10 s | In the working session: after Anna told you something in the session, your next message gets one `📣 Reminder:` line if it didn't respond to it. |
 | `Stop` | (all) | `anna-stream hook` | 5 s | Logs Anna's reply to the stream. |
 | `Stop` | (all) | `anna-bot-reply-guard` | 10 s | In the bot only: a turn that began with a Telegram message can't end without a reply. |
-| `Stop` | (all) | `anna-epistemic-hook` | 10 s | In the brain: logs a reply that stated a cause, negative or state without an epistemic check. |
+| `Stop` | (all) | `anna-epistemic-hook` | 10 s | In the working session: logs a reply that stated a cause, negative or state without an epistemic check. |
 | `PreToolUse` | `mcp__plugin_fakechat_fakechat__reply` | `anna-epistemic-hook` | 45 s | With `engines.epistemic_relay = true`: checks a relay result before it goes out. |
-| `Notification` | `idle_prompt` | `anna-idle-checkpoint` | 1800 s, `asyncRewake` | Wakes the brain for `/anna-checkpoint` after a quiet spell. |
-| `Notification` | `idle_prompt` | `anna-tell hook-idle` | 1800 s, `asyncRewake` | In the brain: a tell given in the session with no prompt from you for `tell.idle_wait` s → the bot tells you instead, once. |
+| `Notification` | `idle_prompt` | `anna-idle-checkpoint` | 1800 s, `asyncRewake` | Wakes the working session for `/anna-checkpoint` after a quiet spell. |
+| `Notification` | `idle_prompt` | `anna-tell hook-idle` | 1800 s, `asyncRewake` | In the working session: a tell given in the session with no prompt from you for `tell.idle_wait` s → the bot tells you instead, once. |
 | `PostToolUse` | `Read`, `Edit`, `Write`, `MultiEdit`, `Bash`, `mcp__merlin__.*` | `anna-access hook` | 5 s | Logs which record files were used (paths and queries only). |
 | `PreToolUse` | `Bash` or `mcp__.*` | `anna-gate-hook` | 5 s | Blocks a known list of state changes (below) without a recent `go` from the action gate. |
 
@@ -41,7 +41,7 @@ Every part of Anna runs Claude Code, so every part sees these hooks. Two environ
 |---|---|---|
 | `ANNA_ROLE=bot` | `anna-tg` (the bot) | The gate hook and the idle checkpoint pass. The stream hook logs Telegram messages and replies. The reply guard acts (only here). |
 | `ANNA_HEADLESS=1` | `anna-run` (morning, evening, clock runs) | Session start, session draft, idle checkpoint and the gate hook do nothing. The stream hook only adds context. |
-| (neither) | the brain | Everything runs. |
+| (neither) | the working session (slow side) | Everything runs. |
 
 The bot and headless runs have their own deny-by-default allowlists instead of the gate
 ([What the bot may do](../guides/bot-permissions.md)).
@@ -53,10 +53,10 @@ The hook list lives in `hooks/settings.hooks.json`. On every run, `install.sh`:
 1. creates `~/.claude/settings.json` as `{}` if it doesn't exist;
 2. backs it up as `~/.claude/settings.json.bak.<YYYYmmddHHMMSS>`;
 3. for each event, rewrites a leading `~/bin` in each command to your `paths.bin`, and **adds an entry only if that exact
-   command isn't already listed for that event**. Your other hooks, and Anna's hooks already present, are left as they
-   are;
+   command isn't already listed for that event**. Your other hooks are left as they are; an Anna hook already present
+   keeps its place but gets the template's timeout;
 4. sets `enabledPlugins` for `fakechat@claude-plugins-official` and `telegram@claude-plugins-official` to `false` at user
-   scope, unless you already set a value (the brain and the bot enable them in their own settings files).
+   scope (the working session and the bot enable them in their own settings files).
 
 If the merge fails, the file is left unchanged and `install.sh` exits with an error.
 
@@ -139,10 +139,10 @@ Lines are redacted and capped. A hook never blocks a prompt: any error exits 0. 
 **Event:** `Notification` with matcher `idle_prompt` (Claude Code is waiting for your input). It runs in the background
 (`asyncRewake: true`, timeout 1800 s).
 
-**What it does:** waits, then wakes the brain to run `/anna-checkpoint`, so a long day is journaled in pieces. It waits
+**What it does:** waits, then wakes the working session to run `/anna-checkpoint`, so a long day is journaled in pieces. It waits
 `ANNA_IDLE_WAIT` seconds (default **1200**, 20 minutes) and wakes the session only if all of these hold:
 
-- it's the brain (no `ANNA_ROLE`, no `ANNA_HEADLESS`);
+- it's the working session (no `ANNA_ROLE`, no `ANNA_HEADLESS`);
 - the transcript didn't change while it waited;
 - you typed at least one prompt since the last fold mark in `<paths.state>/folded.json` (after you go to sleep it
   checkpoints once, then stays quiet);
@@ -159,7 +159,7 @@ anna-idle-checkpoint): run /anna-checkpoint. …`. Otherwise it exits 0 and does
 ## anna-tell (hook-prompt, hook-idle)
 
 **Events:** `UserPromptSubmit` (`anna-tell hook-prompt`) and `Notification` with matcher `idle_prompt`
-(`anna-tell hook-idle`, in the background: `asyncRewake: true`, timeout 1800 s). Both act only in the brain (no
+(`anna-tell hook-idle`, in the background: `asyncRewake: true`, timeout 1800 s). Both act only in the working session (no
 `ANNA_ROLE`, no `ANNA_HEADLESS`). Why they exist: [How Anna tells you things](../concepts/telling.md).
 
 **What they do:** when Anna tells you something in a session (a `📣` line), `anna-tell` keeps a note in
@@ -178,7 +178,7 @@ Any error exits 0: these hooks never block a prompt.
 
 **What it does:** finds the turn's prompt (the last user entry in the transcript that isn't a tool result; channel
 messages arrive as meta entries). If that prompt carries a Telegram channel block and no tool call since then was a
-Telegram `reply`, `react` or `edit_message`, or a fakechat `reply` (a hand-off to the brain), it blocks the stop
+Telegram `reply`, `react` or `edit_message`, or a fakechat `reply` (a hand-off to the working session), it blocks the stop
 (`{"decision": "block"}`) with a reason telling the bot to send its answer now. Text the bot writes in its own terminal
 never reaches the person, and a model now and then ends a turn that way.
 
@@ -187,11 +187,11 @@ line to the stream.
 
 ## anna-epistemic-hook
 
-**Events:** `Stop` and `PreToolUse` (matcher `mcp__plugin_fakechat_fakechat__reply`). Brain only: the bot and headless
+**Events:** `Stop` and `PreToolUse` (matcher `mcp__plugin_fakechat_fakechat__reply`). Working session only: the bot and headless
 runs pass through.
 
 **Stop (log-only):** if the reply states a cause, a negative (down, missing, never, not exposed) or a current state and
-the brain didn't call `anna-epistemic` this turn, it writes `epistemic due, not run: "<claim>"` to the stream
+the slow side didn't call `anna-epistemic` this turn, it writes `epistemic due, not run: "<claim>"` to the stream
 (`from: engines`); if it did, `epistemic ran (called by the brain)`. It never blocks: terminal text is already on screen
 when Stop fires. Session start counts these as the engine's misses.
 
@@ -204,7 +204,7 @@ can't loop. Any error passes.
 
 **Event:** `PreToolUse`, matcher `Bash|mcp__.*`.
 
-**What it does:** in the brain, it blocks a call that matches its list of state changes unless the [`anna-action-gate`](engines.md#anna-action-gate)
+**What it does:** in the working session, it blocks a call that matches its list of state changes unless the [`anna-action-gate`](engines.md#anna-action-gate)
 engine returned `verdict: go` for that host in the last **15 minutes**. The bot and headless runs pass through.
 
 **What counts as a state change** (a known list, not everything: see [What it doesn't catch](#what-it-doesnt-catch)):
@@ -258,7 +258,7 @@ with the action block …, wait for its verdict, then retry. confirm-first → a
 asked.`
 
 **Fails open:** if the hook itself errors, the call is allowed and `⚠ anna-gate-hook error, call allowed: …` goes to the
-stream, so a bug in the hook can't lock the brain out. It never grants a permission: on allow it only stays out of the way.
+stream, so a bug in the hook can't lock the working session out. It never grants a permission: on allow it only stays out of the way.
 
 ### The override file
 

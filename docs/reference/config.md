@@ -122,7 +122,7 @@ it up. Scripts that read the config at run time (most of them) see the change st
 
 | Key | Default | What it does | Who reads it |
 |---|---|---|---|
-| `name` | `"Anna"` | What she's called. The bot speaks as this name; the brain's daily session is named `<name>-YYYYMMDD`. | `install.sh` (`@NAME@`), `anna-day`, `anna-tg` (bot prompt), `anna_cfg.py` |
+| `name` | `"Anna"` | What she's called. The bot speaks as this name; the working session (her slow side) is named `<name>-YYYYMMDD` each day. | `install.sh` (`@NAME@`), `anna-day`, `anna-tg` (bot prompt), `anna_cfg.py` |
 | `user` | `"you"` | The person she works with, as she should address them. Also the prefix of your lines in the stream (`<user>: …`), which `anna-rhythm` counts as your activity. | `install.sh` (`@USER@`), `anna-stream`, `anna-rhythm`, `anna-clock`, `anna-relay`, `anna-tg`, the hooks |
 | `timezone` | `"UTC"` | Every time she writes or reads: journal, clock, stream day files, the nightly window, and the timers' `OnCalendar` zone. An IANA name like `"Europe/Berlin"`. | every script; `install.sh` renders it into the timers |
 
@@ -158,7 +158,7 @@ Empty means "the harness default" (whatever `claude` picks with no `--model`). A
 
 | Key | Default | What it does | Who reads it |
 |---|---|---|---|
-| `brain` | `""` | The brain, the long-running interactive session. Passed as `--model` when set. | `anna-brain` |
+| `brain` | `""` | Anna's slow side: the long-running interactive working session. Passed as `--model` when set. | `anna-brain` |
 | `bot` | `"sonnet"` | The Telegram bot. Always passed as `--model`; `ANNA_TG_MODEL` overrides it. | `anna-tg` |
 | `headless` | `""` | Scheduled headless runs (morning, evening, clock `--run` items). Passed as `--model` when set. | `anna-run` |
 
@@ -166,19 +166,19 @@ Empty means "the harness default" (whatever `claude` picks with no `--model`). A
     `anna-tg` always passes `--model "$(anna-config models.bot)"`. If you set `bot = ""`, that becomes `--model ""`.
     <!-- TODO: verify how claude treats an empty --model; anna-brain and anna-run skip the flag when empty, anna-tg doesn't. -->
 
-## `[day]`: the brain's daily rollover
+## `[day]`: the working session's daily rollover
 
-`anna-day` closes the brain's session overnight and opens a fresh one in the morning. See
+`anna-day` closes the working session (Anna's slow side) overnight and opens a fresh one in the morning. See
 [Commands](commands.md#anna-day) and [Timers](timers.md).
 
 | Key | Default | What it does | Who reads it |
 |---|---|---|---|
-| `screen` | `"anna"` | Name of the `screen` session the brain lives in. Attach with `screen -r anna`. | `anna-day` |
-| `close` | `"00:30"` | When the day's session is wrapped up and closed (if idle). `HH:MM`, in `anna.timezone`. Also the start of the nightly window, when the brain is expected to be away. | `install.sh` (`anna-day-close.timer`), `anna-checks` (relay check), `anna-relay` (the "wrapping up" message), `anna-idle-checkpoint` |
+| `screen` | `"anna"` | Name of the `screen` session the working session lives in. Attach with `screen -r anna`. | `anna-day` |
+| `close` | `"00:30"` | When the day's session is wrapped up and closed (if idle). `HH:MM`, in `anna.timezone`. Also the start of the nightly window, when the working session is expected to be away. | `install.sh` (`anna-day-close.timer`), `anna-checks` (relay check), `anna-relay` (the "wrapping up" message), `anna-idle-checkpoint` |
 | `open` | `"04:15"` | When the new day's session starts. `HH:MM`, in `anna.timezone`. The nightly window ends 5 min after it (`anna-checks`). | `install.sh` (`anna-day-open.timer`), `anna-checks`, `anna-relay`, `anna-idle-checkpoint` |
 | `idle_min` | `30` | Minutes without activity before `close` may wrap up. A session active more recently is left open, and the stream says so. | `anna-day` |
-| `wrap` | `"/anna-wrapup overnight"` | What `close` types into the brain before `/exit`. `anna-rhythm` ignores stream lines with this text so it doesn't count them as you. | `anna-day`, `anna-rhythm` |
-| `remote_control` | `false` | `true` = after `open`, type `/remote-control` into the new session (and resume with `--remote-control` after a crash). Needs a claude.ai login; lets you reach the brain from the Claude app. | `anna-day`, `anna-brain` |
+| `wrap` | `"/anna-wrapup overnight"` | What `close` types into the working session before `/exit`. `anna-rhythm` ignores stream lines with this text so it doesn't count them as you. | `anna-day`, `anna-rhythm` |
+| `remote_control` | `false` | `true` = after `open`, type `/remote-control` into the new session (and resume with `--remote-control` after a crash). Needs a claude.ai login; lets you reach the working session from the Claude app. | `anna-day`, `anna-brain` |
 
 ## `[runs]`: scheduled headless runs
 
@@ -200,21 +200,21 @@ When an interactive session ends, the `anna-session-draft` hook writes a raw, re
 |---|---|---|---|
 | `secret_commands` | `["bw", "bw-session", "op", "pass", "vault", "secret-tool", "secret-put"]` | Commands whose output is never drafted. Add your own password tools here. If the key is missing entirely, only `bw` is used. | `anna-session-draft` hook |
 
-## `[relay]`: bot to brain
+## `[relay]`: fast side to slow side
 
-The relay moves requests from the Telegram bot to the brain and results back, over two local fakechat channels. See
+The relay moves requests from the Telegram bot (Anna's fast side) to the working session (her slow side) and results back, over two local fakechat channels. See
 [The relay](../concepts/relay.md).
 
 | Key | Default | What it does | Who reads it |
 |---|---|---|---|
-| `enabled` | `false` | Turn the relay on. `install.sh` then writes the brain's fakechat settings and enables `anna-relay.service`; `anna-brain` and `anna-tg` load the fakechat channel; `anna-checks` checks it. | `install.sh`, `anna-brain`, `anna-tg`, `anna-checks` |
-| `brain_port` | `8791` | Local port of the brain's fakechat channel. | `anna-brain` (`FAKECHAT_PORT`), `anna-relay` |
+| `enabled` | `false` | Turn the relay on. `install.sh` then writes the working session's fakechat settings and enables `anna-relay.service`; `anna-brain` and `anna-tg` load the fakechat channel; `anna-checks` checks it. | `install.sh`, `anna-brain`, `anna-tg`, `anna-checks` |
+| `brain_port` | `8791` | Local port of the working session's fakechat channel. | `anna-brain` (`FAKECHAT_PORT`), `anna-relay` |
 | `bot_port` | `8792` | Local port of the bot's fakechat channel. | `anna-tg` (`FAKECHAT_PORT`), `anna-relay` |
 | `alarm_min` | `30` | Minutes a hand-off may wait for a result before a ⚠ line goes to the stream (`anna-relay`) and the relay check warns (`anna-checks`). | `anna-relay`, `anna-checks` |
 
 ## `[engines]`: engines that run themselves
 
-Hooks that run an engine instead of leaving it to the brain's judgment. See
+Hooks that run an engine instead of leaving it to the slow side's judgment. See
 [Engines that run themselves](engines.md#engines-that-run-themselves).
 
 | Key | Default | What it does | Who reads it |

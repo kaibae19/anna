@@ -28,6 +28,10 @@ a new **sense** (something she feels, like "the UPS is on battery"). It walks th
 A check is the operational source: a `⛔` line in the morning run is told to you ([one door](../concepts/telling.md)). A sense is only how Anna
 describes the same facts; the morning check never turns a sense into an item or an alert.
 
+The senses on this page are **polled**: Anna runs them herself. A **pushed** sense sends her an event when something
+happens (an alert firing, a nightly digest) through the sense intake; that's on [Senses](../concepts/senses.md), with two
+examples to start from in `examples/pushed-senses/` ([Senses § Examples to start from](../concepts/senses.md#examples-to-start-from)).
+
 `<record>` is your record's folder (default `~/anna-record`). Print it with:
 
 ```bash
@@ -276,6 +280,6 @@ fi
 Put each in its folder, `chmod +x`, run `anna-checks web` or `anna-body --pretty`, and commit.
 
 !!! tip "Let Anna write it"
-    You can also ask the brain: "add a check that the nightly backup on the NAS is under a day old". It copies the closest
+    You can also ask the working session: "add a check that the nightly backup on the NAS is under a day old". It copies the closest
     example, adapts it, runs `anna-checks` and shows you the output. `/anna-setup` does the same for your first check and
     sense.

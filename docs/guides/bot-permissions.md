@@ -43,7 +43,7 @@ What the template sets:
 | `Edit(/<record>/<things>/**)` | update the records of things (the folder named by `record.things`, default `hosts/`; the template writes it as `@THINGS@`) |
 | `Edit(/<record>/memory/**)` | save lessons and preferences (an `Edit` rule covers writing new files too) |
 | `mcp__plugin_telegram_telegram__*` | talk to you on Telegram |
-| `mcp__plugin_fakechat_fakechat__reply` | hand work to the brain over the relay (only if the relay is on) |
+| `mcp__plugin_fakechat_fakechat__reply` | hand work to the working session over the relay (only if the relay is on) |
 | `mcp__merlin__*` | search the record, if [merlin](merlin.md) is set up |
 | `Bash(git -C <record> log*)`, `add *`, `commit *`, `push` | commit what it saved (plain push only) |
 | `Bash(date*)` | read the time |
@@ -74,11 +74,11 @@ From the [security model](../concepts/security.md#allowlists):
 - **Each entry is one specific command.** When the bot needs to check something new, that check becomes a section in
   `anna-checks` ([Write a check or a sense](checks-and-senses.md)), the one command it's already allowed, never a wider
   pattern.
-- **No HTTP-capable command in the list**: no `curl`, `wget`, `python`, `nc`, `bun`. With the relay on, the brain listens
+- **No HTTP-capable command in the list**: no `curl`, `wget`, `python`, `nc`, `bun`. With the relay on, the working session listens
   on a local port with no authentication (`relay.brain_port`). A restricted session that can make local HTTP requests can
-  drive the brain, which runs with permissions off. See [the relay](../concepts/relay.md).
-- **Real work goes to the brain.** Anything bigger than a quick check (the things she looks after, files, fixes) is handed over the relay, where
-  the brain does it under the gate and asks you before anything destructive. The bot's prompt tells it never to suggest
+  drive the working session, which runs with permissions off. See [the relay](../concepts/relay.md).
+- **Harder things go to the slow side.** Anything bigger than a quick check (the things she looks after, files, fixes) is handed over the relay, where
+  the working session does it under the gate and asks you before anything destructive. The bot's prompt tells it never to suggest
   widening its own allowlist.
 
 ## Allow one more action
@@ -142,13 +142,13 @@ Say you want the bot to switch a lamp on and off.
 The bot doesn't call the engines and isn't covered by the action-gate hook (the hook passes the bot through): its
 allowlist is its guard. What isn't on the list doesn't happen.
 
-When you ask for something bigger, the bot hands it to the brain over the relay. There, the rules from the
+When you ask for something bigger, the bot (Anna's fast side) hands it to her slow side, the working session, over the relay. There, the rules from the
 [security model](../concepts/security.md#destructive-and-outward-actions) apply:
 
 - **Your relayed words are treated exactly like a prompt you typed, and no more.** The bot passes on your exact words, what
   it told you, and a little context.
 - **Destructive and outward actions are confirmed first** (deleting, overwriting, sending, publishing, anything hard to
-  undo), unless you've said to proceed. Over the relay, the brain's question comes back to you through the bot, and your
+  undo), unless you've said to proceed. Over the relay, the working session's question comes back to you through the bot, and your
   answer goes back the same way.
 - **The action gate decides which actions need that.** A relayed ask counts as the confirmation only when it's
   unambiguous and names the exact action ("restart the web server"); otherwise the gate returns `confirm-first` and you're

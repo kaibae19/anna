@@ -1,6 +1,6 @@
 ---
 name: anna-wrapup
-description: End-of-session wrap-up — write or append the day's journal entry with verbatim output, update records of things / runbooks / memory / backlog per the record's layer rules, refresh the handoff line, and commit. Use when the user says to wrap up, document the day, or close out a session; anna-day close types "/anna-wrapup overnight" into an idle brain at night.
+description: End-of-session wrap-up — write or append the day's journal entry with verbatim output, update records of things / runbooks / memory / backlog per the record's layer rules, refresh the handoff line, and commit. Use when the user says to wrap up, document the day, or close out a session; anna-day close types "/anna-wrapup overnight" into an idle working session at night.
 ---
 
 # Wrap-up

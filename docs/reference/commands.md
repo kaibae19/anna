@@ -19,19 +19,19 @@ All scripts read your settings through [`anna-config`](#anna-config); the keys a
 |---|---|
 | [`anna-access`](#anna-access) | the record access log: which files get used, by which part of Anna, and its weekly line |
 | [`anna-body`](#anna-body) | how Anna feels, from your senses (read-only) |
-| [`anna-brain`](#anna-brain) | runs the brain's `claude` in its screen window, resuming after a stray exit |
+| [`anna-brain`](#anna-brain) | runs the slow side's `claude` (the working session) in its screen window, resuming after a stray exit |
 | [`anna-checks`](#anna-checks) | fixed, read-only checks: relay, clock, disk, access, tell, plus yours |
 | [`anna-clock`](#anna-clock) | Anna's own schedule: notes, pings, scheduled runs |
 | [`anna-config`](#anna-config) | read the configuration |
 | [`anna-contract`](#anna-contract) | check engine blocks, engine files, the docs and a record against contract v1 |
-| [`anna-day`](#anna-day) | the brain's daily rollover: close overnight, open in the morning |
+| [`anna-day`](#anna-day) | the working session's daily rollover: close overnight, open in the morning |
 | [`anna-engine`](#anna-engine) | runs one engine headless, so a hook can make it run; its daily stats |
 | [`anna-evening`](#anna-evening) | the nightly fold of session drafts into the journal |
 | [`anna-log`](#anna-log) | Anna's own journal: one raw line for the nightly dream |
 | [`anna-notify`](#anna-notify) | the Telegram transport under the one door (or a stream line with no bot) |
 | [`anna-presence`](#anna-presence) | where you are right now (session, bot, away) and whether it's your quiet time |
 | [`anna-proposals`](#anna-proposals) | what the nightly runs proposed, kept with a status until it's decided |
-| [`anna-relay`](#anna-relay) | the bot-to-brain relay: bridge daemon and queue tools |
+| [`anna-relay`](#anna-relay) | the fast-to-slow relay (bot to working session): bridge daemon and queue tools |
 | [`anna-rhythm`](#anna-rhythm) | when you're usually around, computed from the stream |
 | [`anna-run`](#anna-run) | one headless Anna session with deny-by-default settings |
 | [`anna-sense-send`](#anna-sense-send) | send one sense event the way a sense would (tests, local scripts) |
@@ -101,7 +101,7 @@ fine: rested (up 3.2 d, / 41%)
 
 ## `anna-brain`
 
-Runs the brain's `claude` in its screen window. `anna-day open` starts it; you can also run it by hand inside screen.
+Runs the working session's `claude` (Anna's slow side) in its screen window. `anna-day open` starts it; you can also run it by hand inside screen.
 
 ```text
 anna-brain NAME [SESSION_ID]
@@ -143,7 +143,7 @@ With no arguments it runs every section: the built-ins, then yours. Name section
 
 | Built-in section | What it checks |
 |---|---|
-| `relay` | If `relay.enabled`: `anna-relay.service` active, `anna-relay status` readable, bot side online, brain side online outside the nightly window (`day.close` to `day.open` + 5 min), and no hand-off waiting longer than `relay.alarm_min`. Disabled: `OK relay: not enabled`. |
+| `relay` | If `relay.enabled`: `anna-relay.service` active, `anna-relay status` readable, bot side online, working-session side online outside the nightly window (`day.close` to `day.open` + 5 min), and no hand-off waiting longer than `relay.alarm_min`. Disabled: `OK relay: not enabled`. |
 | `clock` | No `ping`/`run` clock items past due and still open (that would mean `anna-clock.timer` isn't running). |
 | `disk` | This machine's root filesystem: ⚠ from 85%, ⛔ from 95%. |
 | `access` | One line from `anna-access stats --week` (uses, hot files, searches). ⚠ when the log has nothing for 7 days (the hook went quiet); never ⛔. |
@@ -220,7 +220,7 @@ Changes also go to the stream. A `--run` item starts as a transient user unit `a
 
 `$ANNA_CLOCK_BY` names who added an item (default `session`; the bot sets `bot`).
 
-**Called by:** `anna-clock.timer` (`tick`); the brain and the bot (`add`, `list`, `due`, `done`, `cancel` are in the bot's
+**Called by:** `anna-clock.timer` (`tick`); the working session and the bot (`add`, `list`, `due`, `done`, `cancel` are in the bot's
 allowlist); the `/anna-morning`, `/anna-wrapup` and `/anna-checkpoint` skills; `anna-checks` (`due`).
 
 ```bash
@@ -305,7 +305,7 @@ anna-contract record ~/anna-record --things chapters
 
 ## `anna-day`
 
-The daily rollover of the brain's session: wrapped up and closed overnight, a fresh session started in the morning.
+The daily rollover of the working session (Anna's slow side): wrapped up and closed overnight, a fresh session started in the morning.
 
 ```text
 anna-day close
@@ -352,7 +352,7 @@ anna-stream recent --from anna-day --max 3
 ## `anna-engine`
 
 Runs one engine (`~/.claude/agents/anna-<name>.md`) headless, so a hook can make it run instead of leaving it to the
-brain's judgment. Used by the stream hook (interpretation) and `anna-epistemic-hook` (relay replies); session start
+slow side's judgment. Used by the stream hook (interpretation) and `anna-epistemic-hook` (relay replies); session start
 shows its `--stats`. Background: [Engines that run themselves](engines.md#engines-that-run-themselves).
 
 ```text
@@ -457,7 +457,7 @@ anna-presence [--json] [--active-min N] [--at ISO]
 
 | Field | Meaning |
 |---|---|
-| `where` | `session` if your last message in a brain session was within `--active-min` minutes (default 10), else `bot` if your last message to the bot was, else `away`. Most recent wins if both. |
+| `where` | `session` if your last message in a working session was within `--active-min` minutes (default 10), else `bot` if your last message to the bot was, else `away`. Most recent wins if both. |
 | `quiet` | Outside the awake span from `anna-rhythm`'s typical hours (first typical hour to last + 1). Never quiet while you're active; no rhythm data yet = awake. |
 | `first_today` | Your first real message today (`HH:MM`), for nudges timed to your morning. |
 | `session`, `bot` | Last message time, minutes ago, active or not. |
@@ -511,7 +511,7 @@ anna-proposals set p-1a2b3c accepted --said "yes, add it"
 
 ## `anna-relay`
 
-The relay between the bot and the brain over two fakechat channels: the brain does the work, the bot speaks. Runs under
+The relay between the bot (Anna's fast side) and the working session (her slow side) over two fakechat channels: the slow side does the work, the bot speaks. Runs under
 `bun`. Background and trust caveats: [The relay](../concepts/relay.md).
 
 ```text
@@ -528,17 +528,17 @@ anna-relay clear-port brain|bot
 | `bridge` | The daemon (`anna-relay.service`): holds both fakechat websockets, moves messages, keeps the queue. |
 | `status` | JSON: `brain` and `bot` (`online`, `offline`, `offline (orphaned fakechat)`), `paused`, counts (`new`, `brain_open`, `out`, `done`) and `oldest_open`. |
 | `list [DIR...]` | Items in `new`, `brain`, `out` or `done`, one per line (tab-separated: dir, id, from, text). Default: the open ones (`new brain out`). |
-| `send TEXT` | Queue TEXT for the brain as if from a script (tests, scheduled jobs). Prints the new id plus the status. |
-| `tell-bot TEXT` | Give TEXT straight to the bot to tell you, conversationally, with no brain needed (it works overnight too). `anna-tell` uses it for the bot route. |
+| `send TEXT` | Queue TEXT for the working session as if from a script (tests, scheduled jobs). Prints the new id plus the status. |
+| `tell-bot TEXT` | Give TEXT straight to the bot to tell you, conversationally, with no working session needed (it works overnight too). `anna-tell` uses it for the bot route. |
 | `clear-port brain\|bot` | Kill an orphaned fakechat server on that side's port. Exit 1 if a live session holds it. `anna-brain` and `anna-tg` run it before starting claude. |
 
 How a hand-off flows: the bot calls `reply` on its own fakechat with a message starting `RELAY:`; the bridge queues it in
-`new/` and posts it into the brain's fakechat as `[relay <id> from the bot] …`; the brain answers with its own `reply`
+`new/` and posts it into the working session's fakechat as `[relay <id> from the bot] …`; the session answers with its own `reply`
 (`reply_to` = the id); the bridge stores it in `out/` and posts it to the bot, which tells you on Telegram in its own
 words. Messages starting `[progress]` are interim; a result starting `[silent]` closes the item with no bot post (Anna already
 told you in the session: [How Anna tells you things](../concepts/telling.md)). Only explicit `RELAY:` hand-offs count; more than 5 in 2 minutes opens
 a breaker that stops intake until you restart the bridge. While `paused` exists (`anna-day close` to `open`) nothing is
-pushed to the brain, and the bot is told once that the request is queued. A hand-off with no result after
+pushed to the working session, and the bot is told once that the request is queued. A hand-off with no result after
 `relay.alarm_min` writes a ⚠ line to the stream.
 
 **Files:** the queue, `<paths.state>/relay/{new,brain,out,done}/<id>.json` (`ANNA_RELAY_DIR` overrides). State changes
@@ -572,14 +572,14 @@ anna-rhythm --json
 | `--min-share F` | `0.3` | An hour counts as active for a weekday if you wrote in it on at least this share of that weekday's observed days. |
 | `--json` | | The same as JSON. |
 
-Activity = a stream line whose text starts `<anna.user>: ` (your messages to the bot or the brain), minus what scripts
+Activity = a stream line whose text starts `<anna.user>: ` (your messages to the bot or the working session), minus what scripts
 type into the session (the `day.wrap` command, relays, task notifications). Output fields: `now`, `last_active`,
 `gap_now`, `typical`, `today`, `by_weekday` (each with `n=` observed days, so few samples are visible) and `asked_today`
 (whether a `curiosity` line was written today).
 
 **Reads:** `<paths.state>/stream/*.jsonl`. **Writes:** nothing.
 
-**Called by:** the `/anna-morning` and `/anna-wrapup` skills; the brain (its `CLAUDE.md` tells it to); allowed in
+**Called by:** the `/anna-morning` and `/anna-wrapup` skills; the working session (its `CLAUDE.md` tells it to); allowed in
 headless runs.
 
 ```bash
@@ -652,7 +652,7 @@ anna-senses once JSON [NAME]
 | `token NAME` | Make the HTTP token for sense NAME (or show the existing one): `<paths.secrets>/sense-<name>`, mode 600. A token only works for its own name. |
 | `once JSON [NAME]` | Run one event through the intake as sense NAME (default `test`) and print the result (`log`, `tell`, `ask`, `check`, `dup`, `limited`, `bad`). For tests. |
 
-Every event goes to the stream as `[sense:<name>]`; `tell`, `ask` and `check` also go to the brain through
+Every event goes to the stream as `[sense:<name>]`; `tell`, `ask` and `check` also go to the working session through
 `anna-relay send`, marked as data. `ANNA_SENSES_DRY=1` prints those calls instead of making them.
 
 ## `anna-sense-send`
@@ -670,7 +670,7 @@ the intake refused it.
 
 ## `anna-stream`
 
-Anna's shared short-term memory: one running log of the day that every part of Anna writes and reads. The bot, the brain,
+Anna's shared short-term memory: one running log of the day that every part of Anna writes and reads. The bot, the working session,
 the scripts and the scheduled runs each know only their own conversation; the stream is how each sees what the others did.
 
 ```text
@@ -681,7 +681,7 @@ anna-stream hook
 
 | Subcommand | What it does |
 |---|---|
-| `add TEXT` | Append a line. `--from SRC` names the source (default `$ANNA_ROLE`, else `session`). `--for brain` marks it as a hand-off for the brain to pick up (the only value allowed). `--from gate` is the action gate's audit line, written by `anna-gate-hook`. |
+| `add TEXT` | Append a line. `--from SRC` names the source (default `$ANNA_ROLE`, else `session`). `--for brain` marks it as a hand-off for the slow side (the working session) to pick up (the only value allowed). `--from gate` is the action gate's audit line, written by `anna-gate-hook`. |
 | `recent` | Print recent lines: last `--hours` (default 24), at most `--max` (default 30), filtered by `--from`. |
 | `hook` | The Claude Code hook (UserPromptSubmit and Stop). On a prompt it logs your message and adds, as context, the lines other parts wrote since this session's last turn (first turn: the last 12 h). On Stop it logs Anna's reply. Behaviour follows the role: `ANNA_ROLE=bot`, `ANNA_HEADLESS=1` (context only, nothing logged), else the interactive session. A hook never blocks a prompt: any error exits 0. |
 
@@ -718,11 +718,11 @@ anna-tell hook-idle
 | Form | What it does |
 |---|---|
 | `send SENSE TEXT …` | For scripts: tell Anna what happened. With `senses.enabled` (and `senses.drop`), a drop into the intake's folder via `anna-sense-send --via drop`, which routes it back here. Senses off, or the drop failed: `anna-notify TEXT` (`low` or `--do log`: the stream only), so nothing goes silent. Default importance `normal`. |
-| `route` | Read one event (contract v1 JSON) on stdin and decide: `check` → the brain (`anna-relay send`); `low` → logged only; `normal` in quiet hours → held; you're in a session → the brain, told there as a `📣` line and closed `[silent]`; otherwise → the bot (`anna-relay tell-bot`, or `anna-notify` with the relay off). `high` is never held. The intake calls it (`senses.router`). |
+| `route` | Read one event (contract v1 JSON) on stdin and decide: `check` → the working session (`anna-relay send`); `low` → logged only; `normal` in quiet hours → held; you're in a session → the working session, told there as a `📣` line and closed `[silent]`; otherwise → the bot (`anna-relay tell-bot`, or `anna-notify` with the relay off). `high` is never held. The intake calls it (`senses.router`). |
 | `flush` | If anything is held and you're active (session or bot), deliver it all as one message where you are. `anna-tell.timer` runs it every 2 minutes. |
 | `list` | Held items, and tells given in the session that are still unanswered. |
-| `hook-prompt` | UserPromptSubmit hook (brain only): your first prompt after a tell in the session gets a note asking Anna for one `📣 Reminder:` line if your message doesn't respond to it. Once. |
-| `hook-idle` | Notification `idle_prompt` hook (brain only, async): no prompt from you for `tell.idle_wait` seconds after a tell in the session → the bot tells you instead, once, as news. |
+| `hook-prompt` | UserPromptSubmit hook (working session only): your first prompt after a tell in the session gets a note asking Anna for one `📣 Reminder:` line if your message doesn't respond to it. Once. |
+| `hook-idle` | Notification `idle_prompt` hook (working session only, async): no prompt from you for `tell.idle_wait` seconds after a tell in the session → the bot tells you instead, once, as news. |
 
 **Files:** `<paths.state>/tell/held/` (held), `delivered/` (flushed), `told/` (told in the session, waiting for your next
 prompt). **Reads:** `anna-presence --json`, `relay.enabled`, `senses.enabled`, `senses.drop`, `tell.idle_wait`,
@@ -752,7 +752,7 @@ anna-tg [INSTANCE] [--print-prompt]
 It builds the prompt from the scaffold's `bot/prompt.md` (or `~/.local/share/anna/bot/prompt.md`), fills in your name,
 user, record path and timezone, and appends every file in `<paths.record>/bot/context/` (except `README*`) as its own
 section: your rooms, devices, tools, whatever the bot should know without looking it up. Then it changes into
-`~/anna-<instance>` (so its chats stay out of the brain's) and runs
+`~/anna-<instance>` (so its chats stay out of the working session's) and runs
 `claude --model <models.bot> --channels plugin:telegram@claude-plugins-official --settings ~/.claude/anna-tg-<instance>-settings.json --append-system-prompt <prompt>`.
 With `relay.enabled = true` it also loads fakechat on `relay.bot_port`, after clearing an orphaned server from that port.
 It sets `ANNA_ROLE=bot` and `ANNA_CLOCK_BY=bot`.

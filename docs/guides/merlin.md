@@ -82,10 +82,10 @@ The permission files already allow merlin, so nothing needs editing once the ser
 |---|---|---|
 | headless runs (morning, evening, clock) | `~/.claude/anna-headless-settings.json` | `mcp__merlin__*` |
 | the bot | `~/.claude/anna-tg-<instance>-settings.json` | `mcp__merlin__*` |
-| the brain | runs with permissions off | (no entry needed) |
+| the working session | runs with permissions off | (no entry needed) |
 | the engines | their `tools:` line in `agents/anna-memory.md` and `agents/anna-action-gate.md` | listed by name |
 
-So the server has to be available to the brain's session, to `claude -p` runs started by `anna-run`, and to the bot's
+So the server has to be available to the working session, to `claude -p` runs started by `anna-run`, and to the bot's
 session in `~/anna-<instance>`. Registering it at Claude Code's **user** scope does that, since all three run as the same
 user from different directories.
 
@@ -125,13 +125,13 @@ it if you use it.
 
 ## Check that it works
 
-In the brain, ask a question about something you know is in the record:
+In the working session, ask a question about something you know is in the record:
 
 ```
 When did we set up the backup check?
 ```
 
-The brain should hand it to `anna-memory`, and the returned block should say `index: fresh` (merlin answered) rather than
+The session should hand it to `anna-memory`, and the returned block should say `index: fresh` (merlin answered) rather than
 `index: files (no index)` (merlin wasn't available, so it read the files).
 
 The next morning report should also say whether the index is fresh.

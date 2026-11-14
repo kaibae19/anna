@@ -55,7 +55,7 @@ git log --oneline ORIG_HEAD..HEAD
 ```
 Installing Anna (Anna, for you) from /home/you/projects/anna
   scripts and hooks → /home/you/bin
-  skills → ~/.claude/skills (anna-checkpoint anna-evening anna-morning anna-setup anna-wrapup )
+  skills → ~/.claude/skills (anna-checkpoint anna-dream anna-evening anna-morning anna-proposals anna-setup anna-wrapup )
   engines → ~/.claude/agents (anna-action-gate anna-curiosity anna-epistemic anna-goals anna-interpretation anna-memory )
   record exists at /home/you/anna-record (left as is)
   ~/.claude/anna-headless-settings.json
@@ -77,10 +77,10 @@ These are yours; `install.sh` never overwrites them:
 |---|---|
 | Your config, `~/.config/anna/anna.toml` | Left alone. It's only created (from the example) if it doesn't exist. |
 | Anna's record, `paths.record` | Never overwritten. Files that are new in the template and missing from your record (for example `self/README.md` and `planning/wonders.md` when the own journal arrived) are added, not committed (a file your record's git history ever had is left out: you removed it on purpose): `record exists at …: added what's new in the template: …`. Look at them, then commit them in the record. |
-| `~/CLAUDE.md` (the brain's home instructions) | If you never edited it, it's **updated** (the old one kept as `~/CLAUDE.md.bak.<time>`), so new instructions arrive by themselves. If you edited it, it's left alone and the new version goes beside it as `~/CLAUDE.md.anna-new` with a `⚠ you edited ~/CLAUDE.md` line: rerun `/anna-setup` to merge them. |
+| `~/CLAUDE.md` (the working session's home instructions) | If you never edited it, it's **updated** (the old one kept as `~/CLAUDE.md.bak.<time>`), so new instructions arrive by themselves. If you edited it, it's left alone and the new version goes beside it as `~/CLAUDE.md.anna-new` with a `⚠ you edited ~/CLAUDE.md` line: rerun `/anna-setup` to merge them. |
 | The bot's allowlist, `~/.claude/anna-tg-<instance>-settings.json` | Left alone (`exists (left as is: your allowlist)`). |
 | An engine you edited in `~/.claude/agents/` | Left alone, with the new version beside it as `<name>.md.anna-new` and a `⚠ you edited: …` line. |
-| Your other hooks in `~/.claude/settings.json` | Kept. Anna's hooks are added only where missing, and the file is backed up first as `settings.json.bak.<timestamp>`. |
+| Your other hooks in `~/.claude/settings.json` | Kept. Anna's hooks are added only where missing (one already there gets the template's timeout), and the file is backed up first as `settings.json.bak.<timestamp>`. |
 | Your secrets in `paths.secrets` | Not read or changed (the folder is only created, mode 700, if missing). |
 | The gate override file `<paths.state>/gate-off` | Not touched. |
 
@@ -92,9 +92,9 @@ These are yours; `install.sh` never overwrites them:
 | The skills | `~/.claude/skills/anna-*/`, deleted and recopied |
 | Engines you didn't edit | `~/.claude/agents/anna-*.md` |
 | The headless runs' permissions | `~/.claude/anna-headless-settings.json`, rewritten from `config/headless-settings.json.in` |
-| The brain's relay settings (relay on) | `~/.claude/anna-brain-settings.json` |
-| Shared data | `~/.local/share/anna/` (the example config, the bot prompt template, the last installed engines) |
-| The systemd user units | `~/.config/systemd/user/`, with the timers rendered again from your config times; then `systemctl --user daemon-reload`, and the timers (and the relay, if on) are enabled and started |
+| The working session's relay settings (relay on) | `~/.claude/anna-brain-settings.json` |
+| Shared data | `~/.local/share/anna/` (the example config, the bot prompt template, the contracts, the last installed engines and `~/CLAUDE.md`) |
+| The systemd user units | `~/.config/systemd/user/`, with the timers rendered again from your config times; then `systemctl --user daemon-reload`, and the timers (and the relay and the sense intake, if on) are enabled and started |
 
 !!! warning "Local edits there are lost"
     Changes you made by hand to an installed skill in `~/.claude/skills/`, to `~/.claude/anna-headless-settings.json`, or
@@ -115,7 +115,7 @@ diff ~/CLAUDE.md ~/CLAUDE.md.anna-new
 
 For `~/CLAUDE.md.anna-new`, the easiest way is to rerun `/anna-setup`: it merges the two with you. Or copy over the
 parts you want by hand, then delete the `.anna-new` file. New features often come with a line or two for the
-brain here (when to log to the own journal, which engines now run by themselves), so don't skip this diff. (If you've never edited `~/CLAUDE.md` yourself, you can
+working session here (when to log to the own journal, which engines now run by themselves), so don't skip this diff. (If you've never edited `~/CLAUDE.md` yourself, you can
 simply replace it: `mv ~/CLAUDE.md.anna-new ~/CLAUDE.md`.)
 
 Your bot allowlist is kept as it is, so new entries added to the scaffold's `bot/settings.json.in` don't reach it by
@@ -131,7 +131,7 @@ The template has placeholders (`@RECORD@`, `@STATE@`) where your file has real p
 
 ### What it doesn't restart
 
-`install.sh` doesn't restart the bot, the brain or the relay bridge.
+`install.sh` doesn't restart the bot, the working session or the relay bridge.
 
 - The relay bridge (if `relay.enabled`) keeps running its old copy of `anna-relay` until it restarts:
 
@@ -145,7 +145,7 @@ The template has placeholders (`@RECORD@`, `@STATE@`) where your file has real p
     systemctl --user restart anna-tg@<instance>
     ```
 
-- The brain starts fresh every morning at `day.open` (`anna-day open`), which picks up the new skills, engines and
+- The working session starts fresh every morning at `day.open` (`anna-day open`), which picks up the new skills, engines and
   `~/CLAUDE.md`.
 
 ## Step 3: run the tests

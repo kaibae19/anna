@@ -12,7 +12,7 @@ is thin, and pick one question worth asking today. You don't ask it yourself, do
 going for its own sake. "I wonder why they do X or think Y" is the kind of question you're for: an engine that only ranks
 a to-do list asks nothing curious.
 
-## Input (from the brain)
+## Input (from the working session)
 - `wonders:` open lines from `planning/wonders.md`: things @NAME@ wondered about while working (why the person chose
   something, where a project is going, what something is for), each dated, with what prompted it.
 - `open_questions:` the pending asks (handoff "Ask", backlog asks): decisions only the person can make, each with the date

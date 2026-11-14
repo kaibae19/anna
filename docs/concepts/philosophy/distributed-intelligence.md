@@ -24,7 +24,7 @@ generated no prose; it read the room. A sensor, not an actor.
 Only the voice, the reply itself, clearly benefits from a large model: nuance, judgment and expression live there.
 
 ## In this version
-Every engine names its model by alias (`haiku`, `sonnet`), and each part of Anna (brain, bot, scheduled runs) is one config
+Every engine names its model by alias (`haiku`, `sonnet`), and each part of Anna (working session, bot, scheduled runs) is one config
 line. Today the frontier models do the work, because they're reliable at tool calling and judgment, and reliability comes
 first. The architecture is built so that changes:
 

@@ -9,18 +9,18 @@ Anna runs with real access to real systems. The design assumes a model can be wr
 
 ## Who can talk to her
 - **The bot** answers only accounts on the Telegram plugin's allowlist (set when you pair). Gate on the sender, not the chat.
-- **The brain** takes prompts from you at its terminal or the Claude app, and from the relay. A relayed message is treated
+- **The working session** (her slow side) takes prompts from you at its terminal or the Claude app, and from the relay. A relayed message is treated
   exactly like one you typed, **and no more**.
 - **The relay's channel port has no authentication** (it's fakechat, Anthropic's demo channel). Anything on the machine that
-  can reach `127.0.0.1:<brain_port>` can prompt the brain. Hence the next rule. Details: `docs/relay.md`.
+  can reach `127.0.0.1:<brain_port>` can prompt the working session. Hence the next rule. Details: `docs/relay.md`.
 
 ## Allowlists
 - **Headless runs and the bot are deny-by-default** (`config/headless-settings.json.in`, `bot/settings.json.in`). Each entry
   is one specific command. When a check is missing, it becomes a section in `anna-checks` (one allowlisted command), never a
   wider pattern.
 - **No HTTP-capable command in any restricted allowlist**: no `curl`, `wget`, `python`, `nc`, `bun`. A deny-by-default
-  session that can make local HTTP requests can drive the brain through the relay port.
-- **The brain runs with permissions off**: `anna-brain` starts Claude Code with `--dangerously-skip-permissions`, because
+  session that can make local HTTP requests can drive the working session through the relay port.
+- **The working session runs with permissions off**: `anna-brain` starts Claude Code with `--dangerously-skip-permissions`, because
   it's the one you talk to directly and it does the real work. Its guard rails are this file's rules and the record's
   conventions, not a permission prompt. Claude Code asks you once per machine to accept that mode; the first `anna-day
   open` stops there and leaves it to you (`screen -dr anna`). Give Anna her own machine (a VM is fine) without other
@@ -30,7 +30,7 @@ Anna runs with real access to real systems. The design assumes a model can be wr
   subagent inherits the run's permission mode and rules, so a deny-by-default run's subagent is denied the same commands
   (tested: a subagent's `rm` of a canary file was refused and the file survived). The cost is tokens, not reach.
 - **Engines are sensors, not actors:** none of them has Bash, Edit, Write or Agent in its tool list. They return a block;
-  the brain acts.
+  the slow side acts.
 
 ## Secrets
 - Tokens live in files under `paths.secrets` (mode 700), created by you. Scripts read them; they never appear on a command
@@ -63,7 +63,7 @@ Deleting, overwriting, sending, publishing, anything hard to undo: she says what
 unless you've said to proceed. Over the relay, the question goes back to you through the bot.
 
 **The action gate is enforced for a known list of commands, not for everything.** `hooks/anna-gate-hook` runs before every
-Bash and outward MCP call in the brain (the bot and headless runs have their own allowlists and pass through). A call that
+Bash and outward MCP call in the working session (the bot and headless runs have their own allowlists and pass through). A call that
 matches its list is blocked unless the `anna-action-gate` engine returned `verdict: go` for that host in the last 15
 minutes. The list: a `sudo` write; a service restart or reboot; packages (apt, dnf, yum, zypper, pacman, brew, pip, snap,
 flatpak, dpkg, global npm); container, pod and VM lifecycle (docker, podman, kubectl, qm, pct) and prunes; firewall rules;
@@ -75,7 +75,7 @@ host over `ssh` or in a container. Quoted text given to `grep`, `echo` and the l
 a search for "rm -rf" isn't a delete. Only the engine's own result counts, matched by its call ID: a gate block in Anna's own text, or one that
 turns up in a command's output, doesn't. `confirm-first` means she asks you, then gates again with your yes. Reads, record
 edits made with Claude Code's edit tools and plain pushes pass. If the hook itself errors, the call is allowed and a ⚠ line goes to the stream (a bug must not
-lock the brain out); the file `<paths.state>/gate-off` switches it off, every pass is logged, and that switch is yours.
+lock the working session out); the file `<paths.state>/gate-off` switches it off, every pass is logged, and that switch is yours.
 Interpretation and the epistemic check stay instructions: they're judgment, not a yes/no.
 
 **What it doesn't catch yet.** Anything not on that list passes without a `go`: a script run as `python3 file.py` or fed

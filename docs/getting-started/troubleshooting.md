@@ -42,11 +42,11 @@ If the tests pass but your install misbehaves, the difference is in your machine
 | What | Command |
 |---|---|
 | Anna's stream (every part logs here) | `anna-stream recent` (`--hours 48`, `--from anna-day`) |
-| A timer's last run | `systemctl --user status anna-morning` (or `anna-evening`, `anna-day-close`, `anna-day-open`, `anna-clock`) |
+| A timer's last run | `systemctl --user status anna-morning` (or `anna-evening`, `anna-dream`, `anna-day-close`, `anna-day-open`, `anna-clock`, `anna-tell`) |
 | A timer's output | `journalctl --user -u anna-morning -n 50` |
 | Headless run reports | `ls -t ~/anna-record/journal/handoffs/` |
 | Clock `--run` tasks' output | `<paths.state>/anna-run.log` |
-| The brain's screen | `screen -r anna` (detach: Ctrl-A, then D) |
+| The working session's screen | `screen -r anna` (detach: Ctrl-A, then D) |
 | The bot's screen | `screen -r anna-tg-<instance>` |
 | Which config is in use | `anna-config --path`, and `anna-config --dump` for every value |
 
@@ -93,7 +93,7 @@ Your `~/.claude/settings.json` isn't valid JSON. Check with `jq . ~/.claude/sett
 ### `⚠ you edited ~/CLAUDE.md: the new version is at ~/CLAUDE.md.anna-new; rerun /anna-setup to merge them, or diff by hand`
 
 Your `~/CLAUDE.md` differs from the version the installer last put there, so it isn't overwritten. (If you had never
-edited it, the update would have replaced it and said `~/CLAUDE.md updated`.) The brain reads `~/CLAUDE.md` at every
+edited it, the update would have replaced it and said `~/CLAUDE.md updated`.) The working session reads `~/CLAUDE.md` at every
 start, so bring the new parts in: rerun `/anna-setup`, which merges `~/CLAUDE.md.anna-new` with you, or copy the
 sections over by hand and delete the `.anna-new` file. Same idea for `⚠ you edited: anna-goals.md (left as is; new
 versions beside them as .anna-new)`: compare `~/.claude/agents/<name>.md` with its `.anna-new` and merge.
@@ -123,7 +123,7 @@ into the units.
 A script asked for a key that isn't in the defaults, or you typed one wrong. Every key and its spelling:
 [Configuration](../reference/config.md).
 
-## The brain
+## The working session (slow side)
 
 ### `open: Claude Code asks you to accept Bypass Permissions mode …`
 
@@ -138,7 +138,7 @@ update notice or a question. Answer it, then use the session, or exit and run `a
 ### `open: trust prompt for an unexpected folder; left waiting`
 
 The trust prompt named a folder other than your home folder. `anna-day` only answers it for `$HOME`. Attach and read
-it. The brain should start in `~`.
+it. The working session should start in `~`.
 
 ### `open: couldn't select 'Yes' on the trust prompt; left waiting`
 
@@ -165,10 +165,10 @@ Claude Code crashes right at start. Run `claude --version` and `claude` in that 
 an update, a broken setting in `~/.claude/settings.json`). Once `claude` starts, type `exit` to close the window and run
 `anna-day open`.
 
-### The brain blocks a command: `anna-gate: this looks like a state change on …`
+### The working session blocks a command: `anna-gate: this looks like a state change on …`
 
 Working as designed: the action gate's hook stopped a state change that had no recent `go` from the `anna-action-gate`
-engine. The brain should call the gate and then retry, or ask you. If the hook blocks something it shouldn't (a read),
+engine. The session should call the gate and then retry, or ask you. If the hook blocks something it shouldn't (a read),
 that's a bug worth reporting. The switch `<paths.state>/gate-off` turns the hook off (passes are still logged); it's
 yours to use, not Anna's. [Security model § Destructive and outward actions](../concepts/security.md#destructive-and-outward-actions).
 
@@ -256,16 +256,16 @@ Set `bot.enabled = true` in your config and rerun `./install.sh`. With the bot o
 ### Every Claude Code session tries to start the bot
 
 The telegram or fakechat plugin is enabled at user scope. `jq .enabledPlugins ~/.claude/settings.json` should show
-`false` for both; set them to `false`. Only the bot's and the brain's own settings files turn them on.
+`false` for both; set them to `false`. Only the bot's and the working session's own settings files turn them on.
 
 ## The relay
 
 ### `anna-relay status` shows `"brain":"offline"` or `"bot":"offline"`
 
-- Between `day.close` and `day.open` the brain is expected to be offline (or `"paused":true` while it wraps up). Requests
+- Between `day.close` and `day.open` the working session is expected to be offline (or `"paused":true` while it wraps up). Requests
   wait in the queue.
 - Otherwise, the session on that side wasn't started with the relay's channel. Restart it: the bot with
-  `systemctl --user restart anna-tg@ops`; the brain by typing `/exit` in it: it resumes after 10 s and reads the config
+  `systemctl --user restart anna-tg@ops`; the working session by typing `/exit` in it: it resumes after 10 s and reads the config
   again, relay included.
 - `offline (orphaned fakechat)`: a leftover channel server holds the port. The launchers clear it on the next start, and
   the bridge clears it too.
@@ -275,12 +275,12 @@ anna-relay`); `⛔ relay: bot side …` means hand-offs will stall.
 
 ### `⚠ anna-brain: fakechat port held by a live session; relay to … won't work`
 
-Another live Claude Code session holds the brain's port (`relay.brain_port`, default 8791), usually a second brain
-window or a session started with the fakechat plugin enabled. Close it and restart the brain.
+Another live Claude Code session holds the working session's port (`relay.brain_port`, default 8791), usually a second
+`anna-brain` window or a session started with the fakechat plugin enabled. Close it and restart the working session.
 
 ### `⚠ relay <id>: no result from the brain after N min`
 
-The brain got the request but hasn't answered (`relay.alarm_min`, default 30). Attach to the brain and look: it may be
+The working session got the request but hasn't answered (`relay.alarm_min`, default 30). Attach to it and look: it may be
 waiting on a confirmation or still working. `anna-relay list` shows what's open.
 
 ### `⚠ relay: more than 5 hand-offs from the bot in 2 min; intake stopped (loop?)`

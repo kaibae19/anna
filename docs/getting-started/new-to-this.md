@@ -9,8 +9,8 @@ and how to check that you have each piece. If you already run Linux machines, sk
 
 ## What you're setting up
 
-Anna is a set of scripts around **Claude Code**, Anthropic's command-line agent. One Claude Code session (the **brain**)
-runs all day on a machine of yours and does the real work. An optional Telegram bot lets you talk to Anna from your
+Anna is a set of scripts around **Claude Code**, Anthropic's command-line agent. One Claude Code session (the **working session**, her **slow side**)
+runs all day on a machine of yours and does the real work. An optional Telegram bot (her **fast side**) lets you talk to Anna from your
 phone. Everything Anna learns goes into a folder of plain text files on that machine (the **record**), which you can read
 and correct. Architecture in more detail: [Architecture](../concepts/architecture.md).
 
@@ -29,7 +29,7 @@ It doesn't need much: Anna's own scripts are light, and the model runs at Anthro
 4 GB of memory and a few GB of disk are plenty to start.
 
 !!! warning "Give Anna her own machine"
-    The brain runs with Claude Code's permission prompts off, and the relay between the bot and the brain listens on a
+    The working session runs with Claude Code's permission prompts off, and the relay between the bot and the session listens on a
     local port without a password. Don't share Anna's machine with other people or with services that fetch web pages
     for others. Why: [Security model](../concepts/security.md).
 
@@ -70,7 +70,7 @@ Replace `you` with your username on that machine and `my-server` with its name o
 whether you trust the machine's key: type `yes`. Then it asks for your password (or uses your SSH key), and the prompt
 changes to the other machine's name. Everything you type now runs there. `exit` brings you back.
 
-**screen** keeps a terminal running after you disconnect. The brain lives inside a screen session called `anna`, so it
+**screen** keeps a terminal running after you disconnect. The working session lives inside a screen session called `anna`, so it
 keeps working when you close your laptop. You'll use two keys: `screen -r anna` to look at it, and **Ctrl-A, then D**
 to step away again without stopping it.
 
@@ -87,7 +87,7 @@ so your record is backed up off the machine. See [The record](../guides/the-reco
 
 ## Claude Code and the account it needs
 
-Claude Code is Anthropic's agent that runs in the terminal. Anna is built on it: the brain, the bot and the scheduled
+Claude Code is Anthropic's agent that runs in the terminal. Anna is built on it: the working session, the bot and the scheduled
 runs are all Claude Code sessions. You need:
 
 - **A Claude account that includes Claude Code**: a paid Claude subscription (Pro or Max) or an Anthropic API account.
@@ -115,10 +115,10 @@ Run each check on Anna's machine. If a command prints "command not found", insta
 | Python 3.11 or newer | most of Anna's scripts | `python3 --version` → `Python 3.11` or higher | your distribution (`sudo apt install python3`) |
 | jq | reads and merges JSON settings | `jq --version` | `sudo apt install jq` |
 | git | the record is a git repository | `git --version` | `sudo apt install git` |
-| GNU screen | the brain lives in a screen session | `screen --version` | `sudo apt install screen` |
-| uuidgen | names each brain session | `uuidgen` prints an ID | `sudo apt install uuid-runtime` (Debian/Ubuntu) |
+| GNU screen | the working session lives in a screen session | `screen --version` | `sudo apt install screen` |
+| uuidgen | names each working session | `uuidgen` prints an ID | `sudo apt install uuid-runtime` (Debian/Ubuntu) |
 | curl | sends Telegram alerts | `curl --version` | `sudo apt install curl` |
-| Claude Code | the brain, the bot and every scheduled run | `claude --version` | [docs.claude.com](https://docs.claude.com/en/docs/claude-code/setup) |
+| Claude Code | the working session, the bot and every scheduled run | `claude --version` | [docs.claude.com](https://docs.claude.com/en/docs/claude-code/setup) |
 | bun (only for the bot or relay) | runs the relay and the Telegram channel | `bun --version` | [bun.sh](https://bun.sh) (its one-line installer; it needs `unzip`: `sudo apt install unzip` on Debian/Ubuntu) |
 
 `install.sh` checks for python3 (and its version), jq, git, screen and claude, and for bun when the bot or relay is on.

@@ -28,20 +28,21 @@ something didn't.
 All times are in `anna.timezone`. With the defaults, one night looks like this:
 
 ```text
-00:30  anna-day close     wrap up the brain's session (if idle) and close it; relay paused
+00:30  anna-day close     wrap up the working session (if idle) and close it; relay paused
 01:00  anna-evening       fold the day's session drafts and yesterday's stream into the journal
 01:30  anna-dream         sort the own journal into lately, wonders and proposals
 04:00  anna-morning       read-only morning check → journal/handoffs/<date>-morning.md
-04:15  anna-day open      start the new day's brain session; relay released
+04:15  anna-day open      start the new day's working session; relay released
 every 5 min  anna-clock tick   fire due pings and scheduled runs
 every 2 min  anna-tell flush   deliver what was held in your quiet hours, once you're back ([How Anna tells you things](../concepts/telling.md))
 ```
 
-Two long-running services have no timer:
+Three long-running services have no timer:
 
 | Service | Runs | Started |
 |---|---|---|
-| `anna-relay.service` | `~/bin/anna-relay bridge` (the bot-to-brain relay) | enabled by `install.sh` when `relay.enabled = true`; `Restart=always` after 3 s |
+| `anna-relay.service` | `~/bin/anna-relay bridge` (the fast-to-slow relay: bot to working session) | enabled by `install.sh` when `relay.enabled = true`; `Restart=always` after 3 s |
+| `anna-senses.service` | `~/bin/anna-senses` (the sense intake: HTTP, drop folder, optional MQTT; [Senses](../concepts/senses.md)) | enabled by `install.sh` when `senses.enabled = true`; `Restart=always` after 3 s |
 | `anna-tg@<instance>.service` | `screen -DmS anna-tg-<instance> ~/bin/anna-tg <instance>` (the bot) | by you, once the bot token is in place; `Restart=on-failure` after 30 s |
 
 ## Each unit in detail
@@ -51,6 +52,12 @@ Two long-running services have no timer:
 Fires due `ping` and `run` items from Anna's clock ([`anna-clock`](commands.md#anna-clock)). The service sets
 `ANNA_CLOCK_BY=tick`. `Persistent=true`: a tick missed while the machine was off runs at the next boot, and the tick
 itself catches up on anything overdue. A `--run` item starts as its own transient unit, `anna-clock-run-<id>`.
+
+### `anna-tell.timer` and `anna-tell.service`
+
+[`anna-tell flush`](commands.md#anna-tell): delivers what was held during your quiet hours as one message, once you're
+active again ([How Anna tells you things](../concepts/telling.md)). `Persistent=false`: a missed flush is simply the
+next one.
 
 ### `anna-morning.timer` and `anna-morning.service`
 
@@ -64,15 +71,21 @@ The nightly fold, [`anna-evening`](commands.md#anna-evening). `Persistent=true`.
 `runs.evening` after the time your late sessions usually end; drafts carry their own start day, so a fold after midnight
 still files them under the right date.
 
+### `anna-dream.timer` and `anna-dream.service`
+
+The nightly dream: [`anna-run`](commands.md#anna-run) with the `/anna-dream` skill, label `dream`. It sorts the own
+journal into lately, wonders and proposals ([Her own journal](../concepts/own-journal.md)). Ordered after
+`anna-evening.service`. `Persistent=true`. `TimeoutStartSec=40min`.
+
 ### `anna-day-close.timer` and `anna-day-close.service`
 
-[`anna-day close`](commands.md#anna-day): wraps up and closes the brain's session if it's been idle for `day.idle_min`.
+[`anna-day close`](commands.md#anna-day): wraps up and closes the working session (Anna's slow side) if it's been idle for `day.idle_min`.
 `Persistent=false`: a close missed while the machine was off is skipped, not run late. `TimeoutStartSec=50min` (the
 wrap-up may take up to 40 min); `KillMode=process`.
 
 ### `anna-day-open.timer` and `anna-day-open.service`
 
-[`anna-day open`](commands.md#anna-day): starts the new day's brain session in screen `day.screen`. `Persistent=false`,
+[`anna-day open`](commands.md#anna-day): starts the new day's working session in screen `day.screen`. `Persistent=false`,
 `TimeoutStartSec=50min`, `KillMode=process` (so the screen session it starts outlives the service). After a reboot, start
 it by hand with `anna-day open`.
 
@@ -80,6 +93,12 @@ it by hand with `anna-day open`.
 
 The relay bridge, [`anna-relay bridge`](commands.md#anna-relay). Its `PATH` includes `~/.bun/bin` (the bridge runs under
 `bun`), and it sets `ANNA_ROLE=relay`. `WantedBy=default.target`: it starts with your user session.
+
+### `anna-senses.service`
+
+The sense intake, [`anna-senses`](commands.md#anna-senses). It sets `ANNA_ROLE=senses` and restarts after 3 s if it
+stops. `WantedBy=default.target`. `install.sh` enables it when `senses.enabled = true`; otherwise
+`systemctl --user enable --now anna-senses`.
 
 ### `anna-tg@.service`
 
@@ -114,8 +133,8 @@ systemctl --user enable --now anna-tg@ops
 
     The result is a line like `OnCalendar=*-*-* 04:15:00 Europe/Berlin`.
 3. Runs `systemctl --user daemon-reload`.
-4. Unless you pass `--no-enable`: enables and starts the six timers, enables `anna-relay.service` when
-   `relay.enabled = true`, and prints the command to start the bot when `bot.enabled = true`.
+4. Unless you pass `--no-enable`: enables and starts the seven timers, enables `anna-relay.service` when
+   `relay.enabled = true` and `anna-senses.service` when `senses.enabled = true`, and prints the command to start the bot when `bot.enabled = true`.
 5. Warns if user lingering is off.
 
 So after you change a time in `anna.toml`, run `./install.sh` again: the timers are rendered at install time, not read
@@ -141,7 +160,7 @@ List Anna's timers, with the last and next run:
 systemctl --user list-timers 'anna-*'
 ```
 
-You should see five lines, one per timer, each with a `NEXT` time in the future. A timer missing from the list isn't
+You should see seven lines, one per timer, each with a `NEXT` time in the future. A timer missing from the list isn't
 enabled: run `./install.sh` again, or `systemctl --user enable --now anna-<name>.timer`.
 
 See one unit's state and its last few log lines:
@@ -190,5 +209,5 @@ Or run the script directly, for example `anna-day open`, `anna-clock tick` or `a
 schedules:
 
 ```bash
-systemctl --user disable --now anna-clock.timer anna-morning.timer anna-evening.timer anna-dream.timer anna-day-close.timer anna-day-open.timer
+systemctl --user disable --now anna-clock.timer anna-tell.timer anna-morning.timer anna-evening.timer anna-dream.timer anna-day-close.timer anna-day-open.timer
 ```

@@ -87,8 +87,8 @@ When Anna has something wrong, fix the file. The file is the truth; there's no h
     Anna's own commits add only the files she changed, but an uncommitted edit of yours sitting in the record is easy to
     lose track of. Commit as soon as you've made it.
 
-You can also just tell Anna, on Telegram or in the brain: "the NAS has 6 disks, not 4". The bot saves facts like that in
-`<things>/` or `memory/` and commits them as `bot: <what>`; the brain does the same in its wrap-up.
+You can also just tell Anna, on Telegram or in the working session: "the NAS has 6 disks, not 4". The bot saves facts like that in
+`<things>/` or `memory/` and commits them as `bot: <what>`; the working session does the same in its wrap-up.
 
 !!! note "If you edit from another computer"
     All parts of Anna share one working copy of the record on Anna's machine. If you keep a second clone elsewhere, run
@@ -135,7 +135,7 @@ This makes a new commit that reverses it. Nothing is erased, so the history stil
 
 | Who | Writes | Doesn't |
 |---|---|---|
-| **The brain, in a session** | Anything the layer rules call for: journal, records of things, runbooks, lessons, backlog, ideas, clock items, checks, senses. It commits as it goes and at wrap-up. | Rewrite an earlier session's journal block. Commit a credential (every committing skill scans the staged diff first). Put secrets in any file. |
+| **The working session (slow side)** | Anything the layer rules call for: journal, records of things, runbooks, lessons, backlog, ideas, clock items, checks, senses. It commits as it goes and at wrap-up. | Rewrite an earlier session's journal block. Commit a credential (every committing skill scans the staged diff first). Put secrets in any file. |
 | **`/anna-wrapup overnight`** (at `day.close`) | Journal, layers, the 📌 line; commits and pushes. | Ask anything or guess: where a step would ask, it leaves the record as it is and puts the question under **Ask**. |
 | **The evening run** (`/anna-evening`) | The day's journal (drafts and the stream), the 📌 line if something is mid-flight; commits and pushes. | Edit records of things, runbooks, lessons or the backlog. It lists them under **Proposed for the next session** for a reviewed session to apply. |
 | **The morning run** (`/anna-morning`) | Nothing itself; `anna-run` saves and commits only the report file in `journal/handoffs/`. | Any other change. |

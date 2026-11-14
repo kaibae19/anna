@@ -5,7 +5,7 @@ description: "Put Anna on your phone: create a Telegram bot, give Anna its token
 # Telegram: the bot and the relay
 
 This page puts Anna on your phone: create a Telegram bot, give Anna its token, let only you talk to it, start it, and
-turn on the relay so the bot can hand real work to the brain. Do [Install](install.md) first.
+turn on the relay so the bot (Anna's fast side) can hand harder things to her slow side, the working session. Do [Install](install.md) first.
 
 !!! note "Telegram is the default, not a requirement"
     The bot is a Claude Code session listening on a *channel plugin*. Telegram is the one the scaffold ships with and is
@@ -21,8 +21,8 @@ turn on the relay so the bot can hand real work to the brain. Do [Install](insta
 
 - **The bot** (`anna-tg`) is a Claude Code session with the Telegram channel. It answers you quickly, runs on a cheaper
   model (`models.bot`, default `sonnet`) and can only do what its allowlist permits.
-- **The relay** (`anna-relay bridge`) carries requests from the bot to the brain and results back. You talk to one Anna;
-  the bot says the brain's result in its own voice.
+- **The relay** (`anna-relay bridge`) carries requests from the bot to the working session and results back. You talk to one Anna;
+  the bot says the slow side's result in its own voice.
 - **`anna-notify`** is the one-way transport for alerts from scripts (a failed night run, a ⛔ in the morning report,
   clock pings) when they can't go through the bot conversationally. Scripts reach it through [the one door](../concepts/telling.md), which
   decides whether you hear it here, in a session, or later.
@@ -48,7 +48,7 @@ You don't install them yourself: once `bot.enabled` or `relay.enabled` is `true`
 ones that are missing (at user scope) and prints `plugin telegram installed (user scope)`. If it prints `⚠ couldn't
 install the … plugin`, run the command it shows, then `./install.sh` again.
 
-Both stay **off** for your normal Claude Code sessions: only the bot and the brain start them, with their own settings
+Both stay **off** for your normal Claude Code sessions: only the bot and the working session start them, with their own settings
 files. `install.sh` sets both to `false` in `~/.claude/settings.json` on every run. After step 3, check:
 
 ```bash
@@ -68,7 +68,7 @@ enabled = true
 instance = "ops"        # the default; names the token file, state folder and settings file
 
 [relay]
-enabled = true          # on if you want the bot to hand work to the brain (step 7)
+enabled = true          # on if you want the bot to hand work to the working session (step 7)
 ```
 
 Then, from the clone:
@@ -207,11 +207,11 @@ systemctl --user status anna-relay
 Both sessions must be **restarted** to load the relay's channel: they only pick up the setting at launch.
 
 - **The bot:** `systemctl --user restart anna-tg@ops`.
-- **The brain, if it isn't running yet** (a new install, before the first `day.open`): `anna-day open`. The very first
-  time, it stops and tells you Claude Code wants you to accept Bypass Permissions mode, which the brain runs in
+- **The working session, if it isn't running yet** (a new install, before the first `day.open`): `anna-day open`. The very first
+  time, it stops and tells you Claude Code wants you to accept Bypass Permissions mode, which the working session runs in
   ([Security model](../concepts/security.md)). Attach with `screen -dr anna`, read it, choose **Yes, I accept**, detach,
   and run `anna-day open` again.
-- **The brain, if it's already running:** attach (`screen -r anna`) and type `/exit`. The window shows
+- **The working session, if it's already running:** attach (`screen -r anna`) and type `/exit`. The window shows
   `Claude exited (rc 0). Resuming Anna-… in 10 s. [Enter] now · [s] shell · [q] close window`: press **Enter** (or
   wait). It reads the config again as it resumes, so the same conversation comes back with the relay's channel.
 
@@ -227,14 +227,14 @@ anna-relay status
 
 `anna-checks relay` says the same in one line. Then try it: ask the bot for something bigger than a quick check, the kind
 of work it hands off ("look through my server's logs for errors since yesterday"). The bot says it's on it; a minute or so later the result
-comes back in its voice. Between `day.close` and `day.open` (default 00:30 to 04:15) the brain is wrapping up or asleep:
+comes back in its voice. Between `day.close` and `day.open` (default 00:30 to 04:15) the working session is wrapping up or asleep:
 requests wait in the queue, and the bot tells you once that it'll get to it in the morning.
 
 How it works, the guards and the queue: [The relay](../concepts/relay.md).
 
 !!! warning "The relay port has no password"
     The relay uses fakechat, Anthropic's demo channel, which has **no authentication**. Anything on the machine that can
-    reach `127.0.0.1:8791` (`relay.brain_port`) can put a prompt into the brain, and the brain runs with permissions off.
+    reach `127.0.0.1:8791` (`relay.brain_port`) can put a prompt into the working session, and it runs with permissions off.
     So:
 
     - Run Anna on a machine that's hers alone: no other users, no services that fetch URLs for others.
@@ -254,7 +254,7 @@ How it works, the guards and the queue: [The relay](../concepts/relay.md).
 
 Anna's bot isn't tied to Telegram. It's a Claude Code session started with `--channels plugin:<channel>`, so any Claude
 Code channel plugin (one for another chat service, or one you write) can carry the conversation. The rest of Anna (the
-brain, the relay, the stream, the record) doesn't care which app you talk through.
+working session, the relay, the stream, the record) doesn't care which app you talk through.
 
 Telegram is wired into these places today, so a different channel means changing each of them:
 
@@ -265,5 +265,5 @@ Telegram is wired into these places today, so a different channel means changing
 | `bot/settings.json.in` | enables the telegram plugin and allows its reply tool |
 | `install.sh` | installs the telegram plugin and keeps it off at user scope |
 
-The relay is separate: it uses the `fakechat` channel between the bot and the brain, whichever app you chat in.
+The relay is separate: it uses the `fakechat` channel between the bot and the working session, whichever app you chat in.
 

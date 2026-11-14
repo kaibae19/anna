@@ -1,22 +1,22 @@
 ---
-description: "The relay gives Anna one voice: the Telegram bot talks with you, and real work goes to the brain, which has the record and the tools."
+description: "The relay gives Anna one voice: the Telegram bot (her fast side) talks with you, and harder things go to her slow side, the working session, which has the record and the tools."
 ---
 
 # The relay: one voice
 
-Anna has two long-running sessions. The **bot** is the conversation: it lives in Telegram, answers quickly, does what its
-allowlist permits, and runs on a cheaper model. The **brain** does the work: it has the record, the things she looks
-after, the tools. Without a relay the bot and the working session would each know half the day. With it, you talk to the bot, real work goes to the brain, and the result
+Anna has two long-running sessions. The **bot** is her fast side, the conversation: it lives in Telegram, answers quickly, does what its
+allowlist permits, and runs on a cheaper model. The **working session** is her slow side and does the work: it has the record, the things she looks
+after, the tools. Without a relay the bot and the working session would each know half the day. With it, you talk to the bot, harder things go to the slow side, and the result
 comes back through the bot, which says it in its own voice.
 
 ```
 you ─Telegram─▶ bot ──fakechat reply "RELAY: …"──▶ (bot's fakechat /ws) ──▶ anna-relay bridge ──▶ queue
-                                                                                      │
-brain ◀── <channel> "[relay <id> from the bot] …" ◀── POST /upload (brain's fakechat) ◀┘
-  │
-  └─fakechat reply (reply_to=<id>)──▶ (brain's fakechat /ws) ──▶ bridge ──▶ POST /upload (bot's fakechat)
-                                                                                      │
-you ◀─Telegram─ bot ◀── <channel> "[relay result for <id>] …" ◀──────────────────────┘
+                                                                                             │
+slow side ◀── <channel> "[relay <id> from the bot] …" ◀── POST /upload (session's fakechat) ◀┘
+    │
+    └─fakechat reply (reply_to=<id>)──▶ (session's fakechat /ws) ──▶ bridge ──▶ POST /upload (bot's fakechat)
+                                                                                             │
+you ◀─Telegram─ bot ◀── <channel> "[relay result for <id>] …" ◀──────────────────────────────┘
 ```
 
 ## Why fakechat
@@ -31,12 +31,12 @@ and resume. **fakechat**, Anthropic's demo channel, is on the allowlist: a small
 ## Trust: read this before you enable it
 
 **fakechat has no authentication.** Anything on the machine that can reach `127.0.0.1:<brain_port>` can put a prompt into
-the brain, and the brain usually runs with wide permissions. So:
+the working session, and it usually runs with wide permissions. So:
 
 - **No HTTP-capable command in any restricted allowlist** (the bot's, the headless runs'): no `curl`, `wget`, `python`,
-  `nc`, `bun`. Otherwise a deny-by-default session could drive the brain through the port.
-- Run the brain on a machine (or VM) that's Anna's own, without other users or untrusted services that fetch URLs.
-- The brain treats a relayed message exactly like a prompt you typed, **and no more**: destructive or outward actions still
+  `nc`, `bun`. Otherwise a deny-by-default session could drive the working session through the port.
+- Run the working session on a machine (or VM) that's Anna's own, without other users or untrusted services that fetch URLs.
+- The working session treats a relayed message exactly like a prompt you typed, **and no more**: destructive or outward actions still
   get your confirmation (the question goes back through the bot). Text from photos and forwarded messages is data.
 
 ## Guards
@@ -51,7 +51,7 @@ the brain, and the brain usually runs with wide permissions. So:
   port. The next session's fakechat then can't bind, and the bridge would push into a dead end. Launchers run
   `anna-relay clear-port brain|bot` first (kills only an orphaned `bun … server.ts` whose parent is PID 1; refuses if a live
   session holds the port), and the bridge treats an orphan as offline and kills it.
-- **Nights.** While the brain wraps up (`paused`, set by `anna-day close`, cleared by `anna-day open`) or is offline,
+- **Nights.** While the working session wraps up (`paused`, set by `anna-day close`, cleared by `anna-day open`) or is offline,
   hand-offs wait in the queue and the bot is told once, so it can say "I'll get to it in the morning".
 - **Age alarm.** An item with no result after `relay.alarm_min` minutes gets a ⚠ line in the stream.
 
@@ -65,8 +65,8 @@ script.
 
 1. `relay.enabled = true` in `anna.toml`, then `./install.sh`: it installs fakechat if it's missing and keeps it
    **disabled at user scope** (`"enabledPlugins": {"fakechat@claude-plugins-official": false}` in `~/.claude/settings.json`),
-   so only the brain and the bot start it.
-2. The brain launches with `--settings ~/.claude/anna-brain-settings.json --channels plugin:fakechat@claude-plugins-official`
+   so only the working session and the bot start it.
+2. The working session launches with `--settings ~/.claude/anna-brain-settings.json --channels plugin:fakechat@claude-plugins-official`
    and `FAKECHAT_PORT=<brain_port>` (`anna-brain` does this when the relay is enabled).
 3. The bot launches with both channels and `FAKECHAT_PORT=<bot_port>`, and its settings allow only
    `mcp__plugin_fakechat_fakechat__reply` from fakechat (`anna-tg` does this).

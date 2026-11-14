@@ -14,7 +14,7 @@ a research archive, or something else entirely ([A record that grows](concepts/a
 
 !!! note "Status: v0.1"
     Every piece is extracted from a deployment that runs daily, generalized and tested in isolation, and the tests run
-    on every push. A fresh install has been walked end to end on a clean VM: setup, the brain's daily rollover, the
+    on every push. A fresh install has been walked end to end on a clean VM: setup, the working session's daily rollover, the
     nightly and morning runs, the Telegram bot and the relay. Not yet on a clean machine: headless login with a
     long-lived token, the bot's pairing flow (the by-hand allowlist is the walked path) and merlin in the bot's session.
     Expect rough edges there.
@@ -27,7 +27,7 @@ a research archive, or something else entirely ([A record that grows](concepts/a
 | are ready to install | [Install](getting-started/install.md), then [Connect Telegram](getting-started/telegram.md) |
 | have her installed and want to know what a day looks like | [Your first day](getting-started/first-day.md) |
 | want to know how she works, and why | [How Anna is built](concepts/architecture.md) and [Philosophy](concepts/philosophy/README.md) |
-| want her to do something she can't yet | [Help her do more](guides/growing-anna.md): talk to the brain and build it together |
+| want her to do something she can't yet | [Help her do more](guides/growing-anna.md): talk to her slow side and build it together |
 | need the exact flag, setting or file | [Reference](reference/config.md) |
 
 ## What she is made of
@@ -35,14 +35,14 @@ a research archive, or something else entirely ([A record that grows](concepts/a
 | Part | What it does |
 |---|---|
 | **The record** | Her long-term memory, written by her: a git repo of plain Markdown (journal, records of the things she looks after, runbooks, planning, lessons). Files are canonical; every index is derived and rebuildable. |
-| **The <span title="Her slow side; the bot is her fast side.">brain</span>** | A long-running Claude Code session that does the real work. It rolls over daily: wraps up the day into the record at night, starts fresh in the morning. |
-| **The bot** | Anna on your phone (Telegram by default; the chat app is a pluggable channel): the conversation, quick answers, and the actions you allowlist. It runs on a cheaper model and hands real work to the brain. |
-| **The relay** | Bot ↔ brain. Your request goes to the brain, the result comes back, and the bot says it in its own voice. One Anna, not two. |
+| **The <span title="The long-running working session; the bot is her fast side.">slow side</span>** | A long-running Claude Code session, deliberate: it checks the record and live state, goes through the gate and does the real work. It rolls over daily: wraps up the day into the record at night, starts fresh in the morning. |
+| **The bot** | Her fast side: Anna on your phone (Telegram by default; the chat app is a pluggable channel): the conversation, quick answers, and the actions you allowlist. It runs on a cheaper model and hands harder things to the slow side. |
+| **The relay** | Fast side ↔ slow side. Your request goes to the working session, the result comes back, and the bot says it in its own voice. One Anna, not two. |
 | **The stream** | Short-term memory: one running log of the day that every part of Anna writes and reads. |
 | **The clock** | Anna's own schedule: follow-ups, reminders, tasks for later, with dates. |
-| **Engines** | Subagents the brain calls for one job each: memory, interpretation, an action gate (enforced by a hook), an epistemic check, goals, curiosity. They return a short block; the brain acts. |
-| **Senses and checks** | What she can feel (the "body") and verify (checks) about what she looks after. You write your own; examples included. |
-| **Skills** | Session bookends: a morning check, a wrap-up into the record, checkpoints, and `/anna-setup` for the first run. |
+| **Engines** | Subagents the slow side calls for one job each: memory, interpretation, an action gate (enforced by a hook), an epistemic check, goals, curiosity. They return a short block; the slow side acts. |
+| **Senses and checks** | What she can feel (the "body"), verify (checks) and be told (pushed senses, through the sense intake) about what she looks after. You write your own; examples included. |
+| **Skills** | Session bookends: a morning check, a wrap-up into the record, checkpoints, the nightly evening fold and dream, applying the proposals you accept, and `/anna-setup` for the first run. |
 | **merlin** (separate) | Retrieval over the record, as an MCP server: [merlin](https://github.com/kaibae19/merlin). Not needed on day one; with active daily use you'll want it within weeks ([why](guides/merlin.md#when-youll-want-it)). |
 
 ## How she works (the short version)
@@ -52,7 +52,7 @@ a research archive, or something else entirely ([A record that grows](concepts/a
 - **Evidence or hypothesis.** A claim about a cause or a current state quotes the output that shows it, or says
   "hypothesis" and names the check that would settle it.
 - **Ask, don't guess.** When the record and the present might differ, she checks or asks.
-- **One voice.** The bot speaks; the brain works. You talk to one Anna.
+- **One Anna, two modes.** The bot is her fast side and speaks; the working session is her slow side and does the work. You talk to one Anna.
 - **Modular.** Every part (the chat app, the engines, checks, senses, skills, retrieval) is a piece you can add, swap
-  or leave out. New abilities are new modules, built with the brain: [Help her do more](guides/growing-anna.md).
+  or leave out. New abilities are new modules, built with her slow side: [Help her do more](guides/growing-anna.md).
 - **An operator, not the system.** She acts through the same doors you do, with allowlists and confirmations.

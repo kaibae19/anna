@@ -37,8 +37,9 @@ headless runs). Times are in `anna.timezone`.
 | [`/anna-morning`](#anna-morning) | `anna-morning.timer` at `runs.morning`, or you | both | no (the headless runner commits the report) |
 | [`/anna-wrapup`](#anna-wrapup) | you, or `anna-day close` at `day.close` | interactive | yes |
 | [`/anna-checkpoint`](#anna-checkpoint) | you, or the `anna-idle-checkpoint` hook | interactive | yes |
-| [`/anna-proposals`](#anna-proposals) | you, or the brain once you accept a proposal | interactive | yes: one commit per proposal |
+| [`/anna-proposals`](#anna-proposals) | you, or the working session once you accept a proposal | interactive | yes: one commit per proposal |
 | [`/anna-evening`](#anna-evening) | `anna-evening.timer` at `runs.evening` | headless only | journal and handoff only |
+| [`/anna-dream`](#anna-dream) | `anna-dream.timer` at `runs.dream` (`dry-run` by hand prints without writing) | headless only | own journal (`## Night`), `self/lately.md`, wonders |
 
 ## anna-setup
 
@@ -74,7 +75,7 @@ and `record.thing`; not sure yet keeps the default), 2 which parts (rollover, mo
 **Won't do:** ask you to paste a token (you create the files in `paths.secrets` yourself), run `sudo` (it gives you the
 `loginctl enable-linger` command), or accept Claude Code's Bypass Permissions dialog (or the bot's folder trust) for you.
 
-**The first start, together:** at the end it offers to start the brain right away. It runs `anna-day open`, tells you
+**The first start, together:** at the end it offers to start the working session (Anna's slow side) right away. It runs `anna-day open`, tells you
 exactly what the one-time dialog looks like and which keys accept it, waits while you decide in your own terminal, then
 starts her again and checks she's up (and the same for the bot's first start, if the bot is on).
 
@@ -129,7 +130,7 @@ backup, a security issue.
 
 - When you type `/anna-wrapup`, or say "wrap up" or "document the day".
 - At night: `anna-day close` (timer at `day.close`, default `00:30`) types the value of `day.wrap` (default
-  `/anna-wrapup overnight`) into the brain, if the brain has been idle at least `day.idle_min` minutes. It waits for the
+  `/anna-wrapup overnight`) into the working session, if it has been idle at least `day.idle_min` minutes. It waits for the
   wrap-up to finish, then exits the session.
 
 **Argument:** `overnight`. In overnight mode the skill asks nothing and waits for nothing: where a step would ask, it
@@ -158,7 +159,7 @@ record has a remote. Its reply goes to the stream, not to you.
 ## anna-checkpoint
 
 **Runs:** when you type `/anna-checkpoint` or say "checkpoint" / "save our progress". Also when the
-[`anna-idle-checkpoint` hook](hooks.md#anna-idle-checkpoint) wakes the brain after a quiet spell (20 minutes by default)
+[`anna-idle-checkpoint` hook](hooks.md#anna-idle-checkpoint) wakes the working session after a quiet spell (20 minutes by default)
 with prompts that aren't journaled yet.
 
 **What it is:** a short wrap-up that doesn't end the session.
@@ -180,7 +181,7 @@ It reports in 3–5 lines and leaves the session open.
 
 ## anna-proposals
 
-**Runs:** interactive only, when you accept a proposal the brain raised, when you ask to go through the proposals, or at
+**Runs:** interactive only, when you accept a proposal the slow side raised, when you ask to go through the proposals, or at
 wrap-up if an accepted one isn't applied yet. Never from a headless run: those only propose.
 
 **Reads:** `self/proposals.md` through [`anna-proposals`](commands.md#anna-proposals) (`list --status accepted`, `show`),
@@ -192,7 +193,7 @@ fact about a thing), through the action gate with your words as `asked`; one com
 with you instead of applied.
 
 **How proposals reach you:** the prompt hook carries one a day (after the day's question) until a reply raises it at a
-natural pause, in plain words you can answer with yes, no or later; the brain records your answer with `anna-proposals
+natural pause, in plain words you can answer with yes, no or later; the slow side records your answer with `anna-proposals
 set`. Asked to go through them, it shows the plain list instead.
 
 ## anna-evening

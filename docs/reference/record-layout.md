@@ -21,9 +21,9 @@ The record lives at `paths.record` (default `~/anna-record`). The first `./insta
 and `_template.md`, runs `git init -b main` and makes the first commit, `record: start from the Anna template`. After that, `install.sh` never
 touches it again (`record exists at … (left as is)`).
 
-`install.sh` also links Claude Code's memory folder for the brain's home directory
+`install.sh` also links Claude Code's memory folder for the working session's home directory
 (`~/.claude/projects/<your home path, every character that isn't a letter or digit replaced by ->/memory`, for example
-`~/.claude/projects/-home-you/memory`) to `<record>/memory`, so what the brain remembers is
+`~/.claude/projects/-home-you/memory`) to `<record>/memory`, so what the working session remembers is
 versioned in the record.
 
 ## Folders
@@ -178,7 +178,7 @@ Link related lessons with [[their-name]].>
 | `project` | ongoing work and constraints the code and history don't show, with absolute dates |
 | `reference` | pointers to outside resources |
 
-**`memory/MEMORY.md`** is the index: one line per lesson file. Claude Code loads it into every brain session, so keep it
+**`memory/MEMORY.md`** is the index: one line per lesson file. Claude Code loads it into every working session, so keep it
 under about 24 KB. Its first line is the **📌 Handoff** line: what's live, what's mid-flight, what's next, and **Ask**
 (questions for you). The wrap-up, checkpoints and (when something is mid-flight) the evening fold update it.
 

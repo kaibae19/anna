@@ -15,7 +15,7 @@ ask where it is if you're not in it). Don't put secrets in the config, the recor
 changing anything on their machines, say what you're about to do. If a config or record already exists, read it and only
 fill what's missing.
 
-**On a rerun, merge `~/CLAUDE.md.anna-new` if it's there.** It's the brain's new home instructions from an update, left
+**On a rerun, merge `~/CLAUDE.md.anna-new` if it's there.** It's the working session's new home instructions from an update, left
 beside their `~/CLAUDE.md` because they had edited theirs. Read both, tell them in a few lines what the new one adds or
 changes (new parts, new rules), carry those into their file while keeping their own edits, show them the result, and on
 their yes write it and delete `~/CLAUDE.md.anna-new`. Never drop a line they wrote without asking.
@@ -41,7 +41,7 @@ Ask, then confirm back in one short summary:
 
 ## 2. Which parts
 Explain each in a sentence and let them choose. Defaults in brackets.
-- **The brain's daily rollover** [yes]: a long-running session in `screen`, wrapped up overnight (`day.close`) and started
+- **The working session's daily rollover** [yes] (Anna's slow side): a long-running session in `screen`, wrapped up overnight (`day.close`) and started
   fresh in the morning (`day.open`). Remote Control (`day.remote_control`) lets them reach it from the Claude app.
 - **Morning check and evening fold** [yes]: headless runs at `runs.morning` / `runs.evening`. For unattended auth, they can
   create a long-lived token with `claude setup-token` and save it as `<paths.secrets>/claude-oauth` (mode 600).
@@ -56,8 +56,8 @@ Explain each in a sentence and let them choose. Defaults in brackets.
   `<paths.secrets>/telegram-<bot.instance>`, then allow only their account: `anna-notify --learn`, then write
   `access.json` by hand as `docs/getting-started/telegram.md` § 5 shows (the plugin's pairing flow is untested under the
   bot's settings). Needs bun. Telegram is the default channel, not a requirement (same page, § Using another chat app).
-- **The relay** [yes if the bot]: the bot hands real work to the brain and speaks the result. Read `docs/concepts/relay.md` with them,
-  especially the trust section: the brain's port takes local HTTP, so Anna's machine should be hers.
+- **The relay** [yes if the bot]: the bot (her fast side) hands harder things to the working session (her slow side) and speaks the result. Read `docs/concepts/relay.md` with them,
+  especially the trust section: the working session's port takes local HTTP, so Anna's machine should be hers.
 - **merlin** [later]: search over the record; not needed on day one, but with daily use they'll want it within weeks
   (`docs/guides/merlin.md` § When you'll want it); https://github.com/kaibae19/merlin.
 
@@ -104,21 +104,21 @@ there's a remote. Add a clock note for tomorrow's first morning report: `anna-cl
 morning report with <user>: did it run, did the checks make sense?"`.
 
 ## 8. Hand over
-Tell them, briefly: how to reach the brain (`screen -r <day.screen>` or the Claude app), what happens tonight and
+Tell them, briefly: how to reach the working session (`screen -r <day.screen>` or the Claude app), what happens tonight and
 tomorrow morning, where the record is, and that `/anna-setup` can be rerun anytime to add parts.
 
 **The engines and the gate** (they'll meet the gate on the first real change, so say it now, in a few lines): before
-replying or acting, the brain runs small checks as subagents (`agents/`: what context belongs in a reply, whether a claim
+replying or acting, the working session runs small checks as subagents (`agents/`: what context belongs in a reply, whether a claim
 is backed, recall from the record). Before any state change (a restart, a package, a device, a push that rewrites, a
 message sent out), it asks the action gate, which answers `go`, `confirm-first` (Anna asks them first) or `no-go`, and
 writes an audit line to the stream. A hook enforces it: a change without a recent `go` is blocked and Anna is told to
 ask the gate. Reads, edits in the record and plain pushes pass. The switch `<paths.state>/gate-off` turns the hook off
 (every pass is still logged); it's theirs, not Anna's. Details: `docs/concepts/security.md` § Destructive and outward actions.
 
-**The first start, together.** The brain runs with permissions off (`docs/concepts/security.md` § Allowlists), and Claude
+**The first start, together.** The working session runs with permissions off (`docs/concepts/security.md` § Allowlists), and Claude
 Code asks once per machine to accept Bypass Permissions mode. Accepting it is their decision, so never do it for them, but
 guide them through it now rather than leaving it for the morning:
-1. Explain in two lines what the dialog means and why the brain runs this way, and ask whether to start her now.
+1. Explain in two lines what the dialog means and why the working session runs this way, and ask whether to start her now.
 2. On yes, run `anna-day open`. The first time it stops with `⚠ open: Claude Code asks you to accept Bypass Permissions
    mode`. Tell them exactly what to do in their own terminal: `screen -dr <day.screen>`; they'll see `WARNING: Claude
    Code running in Bypass Permissions mode`; if they agree, press **Down**, then **Enter** on "Yes, I accept"; detach

@@ -84,11 +84,18 @@ it changes anything. It never asks you to paste a token into the chat; it tells 
     - Your timezone (`anna.timezone`, an IANA name such as `Europe/Berlin`; it suggests one from `timedatectl`).
     - Where the record lives (`paths.record`, default `~/anna-record`) and whether you want it pushed to a private
       remote. Remotes are optional; backups are not, and it says so.
-    - Which machine is Anna's home (one that runs all day, with Claude Code logged in).
+    - Which machine is Anna's home (one that runs all day, with Claude Code logged in), and whether its disk is
+      encrypted (a read-only check; it recommends full-disk encryption, but it's your call).
 2. **Which parts** (defaults in brackets)
-    - The brain's daily rollover [yes]: close at `day.close`, open at `day.open`, and optionally Remote Control
-      (`day.remote_control`) so you can reach the brain from the Claude app.
+    - The working session's daily rollover [yes]: close at `day.close`, open at `day.open`, and optionally Remote Control
+      (`day.remote_control`) so you can reach the working session (Anna's slow side) from the Claude app.
     - Morning check and evening fold [yes]: the headless runs at `runs.morning` and `runs.evening`.
+    - Her own journal and the nightly dream [yes, nothing to set up]: `/anna-dream` at `runs.dream`
+      ([Her own journal](../concepts/own-journal.md)).
+    - Engines that run themselves [yes]: the interpretation engine from the prompt hook; the epistemic relay check stays
+      off ([Engines](../reference/engines.md#engines-that-run-themselves)).
+    - Pushed senses [later, unless something already sends events]: the sense intake (`senses.enabled`;
+      [Senses](../concepts/senses.md)).
     - The Telegram bot [your call] and the relay [yes if the bot]. It reads the relay's trust section with you.
     - merlin, retrieval over the record [later; you'll want it within weeks of daily use]. See [merlin](../guides/merlin.md).
 3. **What she'll look after**: whatever you mention, written down as it comes up. There's no inventory to fill in; she
@@ -113,13 +120,13 @@ it changes anything. It never asks you to paste a token into the chat; it tells 
 It runs `./install.sh` and reads its output with you. If git has no name or email, it sets them **in the record only**
 (`git -C <record> config user.name …`) and never touches your global git config.
 
-At the end it tells you how to reach the brain, what happens tonight and tomorrow morning, and where the record is. You
+At the end it tells you how to reach the working session, what happens tonight and tomorrow morning, and where the record is. You
 can rerun `/anna-setup` any time to add parts: it reads what exists and fills only the gaps.
 
-!!! note "The first start of the brain is yours"
-    The brain runs Claude Code with permission prompts off (`--dangerously-skip-permissions`). Claude Code asks once per
+!!! note "The first start of the working session is yours"
+    The working session (Anna's slow side) runs Claude Code with permission prompts off (`--dangerously-skip-permissions`). Claude Code asks once per
     machine to accept that mode, and Anna leaves that choice to you. `/anna-setup` explains it before you start the
-    brain. Details in [step 6](#6-start-the-brain).
+    session. Details in [step 6](#6-start-the-working-session).
     With prompts off, the action gate and Anna's own habits are the only checks on what she runs, and the gate catches a
     known list of commands, not everything ([Security](../concepts/security.md)). Use a VM of her own and snapshot it
     before the first start.
@@ -164,7 +171,7 @@ Its output lists each step. A typical first run (relay and bot off):
 ```
 Installing Anna (Anna, for you) from /home/you/projects/anna
   scripts and hooks → /home/you/bin
-  skills → ~/.claude/skills (anna-checkpoint anna-evening anna-morning anna-setup anna-wrapup )
+  skills → ~/.claude/skills (anna-checkpoint anna-dream anna-evening anna-morning anna-proposals anna-setup anna-wrapup )
   engines → ~/.claude/agents (anna-action-gate anna-curiosity anna-epistemic anna-goals anna-interpretation anna-memory )
   record created at /home/you/anna-record (git init; add a remote when you want it backed up)
   ~/.claude/anna-headless-settings.json
@@ -181,14 +188,14 @@ Done. Start the brain with: anna-day open   (or wait for 04:15)
 | Scripts and hooks | every file in `bin/` and `hooks/anna-*` copied to `paths.bin` (default `~/bin`) |
 | Skills | `~/.claude/skills/anna-*/` |
 | Engines (subagents) | `~/.claude/agents/anna-*.md`. One you edited is left alone, with the new version beside it as `<name>.md.anna-new` |
-| Shared data | `~/.local/share/anna/` (the default config, the bot's prompt template) |
+| Shared data | `~/.local/share/anna/` (the default config, the bot's prompt template, the contracts) |
 | The record | `paths.record`, from `record-template/`, with `git init` and a first commit. Only if it doesn't exist yet |
 | Settings for the scheduled runs | `~/.claude/anna-headless-settings.json` (deny by default) |
-| Brain settings (relay on) | `~/.claude/anna-brain-settings.json` (enables fakechat for the brain only) |
+| Working-session settings (relay on) | `~/.claude/anna-brain-settings.json` (enables fakechat for the working session only) |
 | Bot settings (bot on) | `~/.claude/anna-tg-<instance>-settings.json` (deny by default). Only if it doesn't exist yet |
 | Hooks | merged into `~/.claude/settings.json`, each once; a timestamped backup `settings.json.bak.*` is kept |
-| The brain's home | `~/CLAUDE.md`. If you already have one, the template goes to `~/CLAUDE.md.anna-new` for you to merge |
-| Brain memory | `~/.claude/projects/<your home folder>/memory` → a symlink into `<record>/memory` |
+| The working session's home | `~/CLAUDE.md`. If you already have one, the template goes to `~/CLAUDE.md.anna-new` for you to merge |
+| Working-session memory | `~/.claude/projects/<your home folder>/memory` → a symlink into `<record>/memory` |
 | systemd user units | `~/.config/systemd/user/`, timers filled from your config times, then enabled |
 
 Options: `./install.sh --no-systemd` skips the units; `./install.sh --no-enable` installs them without enabling.
@@ -237,7 +244,7 @@ record.
     the nightly and morning runs, the bot and the relay have). Expect rough edges here, and see
     [Troubleshooting](troubleshooting.md).
 
-## 6. Start the brain
+## 6. Start the working session
 
 ```bash
 anna-day open
@@ -265,11 +272,11 @@ That's expected. Attach, read the dialog, decide:
 screen -dr anna
 ```
 
-If you choose Yes, detach with **Ctrl-A, then D**, and run `anna-day open` again. Why the brain runs this way:
+If you choose Yes, detach with **Ctrl-A, then D**, and run `anna-day open` again. Why the session runs this way:
 [Security model § Allowlists](../concepts/security.md#allowlists). If you'd rather not now, leave it: the 04:15 open will
 stop at the same place, and you can answer it in the morning.
 
-To talk to the brain, attach with `screen -r anna`. You'll see Claude Code with `bypass permissions on` at the bottom.
+To talk to the working session, attach with `screen -r anna`. You'll see Claude Code with `bypass permissions on` at the bottom.
 
 ## 7. Check that it worked
 
@@ -310,7 +317,9 @@ anna-checks
 ```
 
 A header line, then one section per check, each line starting with `OK`, `⚠` or `⛔`. On a fresh install with the relay
-off you'll see `OK relay: not enabled`, an `OK clock: …` line and `OK disk: / …%`, plus any checks `/anna-setup` added.
+off you'll see `OK relay: not enabled`, an `OK clock: …` line, `OK disk: / …%` and an `OK tell: …` line, plus any checks
+`/anna-setup` added. `⚠ access: no entries in 7 d (no log yet)` is expected until the working session has read a
+file in the record.
 
 **The tests (optional).** From the clone:
 

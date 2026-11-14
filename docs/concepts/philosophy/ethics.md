@@ -20,7 +20,7 @@ reliance, not being needed. An agent designed to be needed is designed against t
 ## Identity is grown, not installed
 Anna is the whole: modules working together ([How Anna is built](../architecture.md)), thinking in two modes. The chat
 bot is her fast side, how she speaks, and it's where anything like feeling or identity shows up as it develops. The
-working session (the brain, a long-running Claude Code session) is her slow side: it runs her systems, directs and
+working session (a long-running Claude Code session) is her slow side: it runs her systems, directs and
 builds, and can look in on how she is. One Anna, not a bot and an operator.
 
 So identity is opt-in by relationship. Someone who only ever works with the working session gets a capable operator for their
